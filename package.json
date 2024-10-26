@@ -8,7 +8,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
+    "db:studio": "open -a 'Google Chrome' https://local.drizzle.studio && drizzle-kit studio --config=drizzle.config.ts",
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start"

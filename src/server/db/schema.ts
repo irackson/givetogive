@@ -19,6 +19,50 @@ import { type AdapterAccount } from 'next-auth/adapters';
  */
 export const createTable = pgTableCreator((name) => `givetogive_${name}`);
 
+export const asks = createTable(
+	'ask',
+	{
+		id: serial('id').primaryKey(),
+		slug: varchar('slug', { length: 256 }).notNull().unique(),
+		title: varchar('title', { length: 256 }).notNull(),
+		description: text('description').notNull(),
+		estimatedMinutesToComplete: integer(
+			'estimated_minutes_to_complete',
+		).notNull(),
+		status: varchar('status', { length: 50 })
+			.notNull()
+			.$type<'not_started' | 'in_progress' | 'complete'>()
+			.default('not_started'),
+		createdById: varchar('created_by', { length: 255 })
+			.notNull()
+			.references(() => users.id),
+		fullFilledById: varchar('fulfilled_by', { length: 255 }).references(
+			() => users.id,
+		),
+		createdAt: timestamp('created_at', { withTimezone: true })
+			.default(sql`CURRENT_TIMESTAMP`)
+			.notNull(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).$onUpdate(
+			() => new Date(),
+		),
+	},
+	(ask) => ({
+		createdByIdIdx: index('ask_created_by_idx').on(ask.createdById),
+		slugIndex: index('asks_slug_idx').on(ask.slug),
+		titleIndex: index('ask_title_idx').on(ask.title),
+	}),
+);
+
+export const asksRelations = relations(asks, ({ one }) => ({
+	createdBy: one(users, {
+		fields: [asks.createdById],
+		references: [users.id],
+	}),
+	fullFilledBy: one(users, {
+		fields: [asks.fullFilledById],
+		references: [users.id],
+	}),
+}));
 export const posts = createTable(
 	'post',
 	{
@@ -35,8 +79,8 @@ export const posts = createTable(
 		),
 	},
 	(example) => ({
-		createdByIdIdx: index('created_by_idx').on(example.createdById),
-		nameIndex: index('name_idx').on(example.name),
+		createdByIdIdx: index('post_created_by_idx').on(example.createdById),
+		nameIndex: index('post_name_idx').on(example.name),
 	}),
 );
 

@@ -1,22 +1,21 @@
 import { notFound } from 'next/navigation';
 import { Container, Typography, Button, Box } from '@mui/material';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
+import { api } from 'code/trpc/server';
 
 export default async function AskDetailPage({
-	params,
+	params: { slugOrId },
 }: {
-	params: { id: string };
+	params: { slugOrId: string };
 }) {
-	const asks = [
-		{
-			id: 1,
-			title: 'Need help with groceries',
-			description:
-				'I am unable to go out and get groceries. Can someone help me?',
-		},
-	];
-
-	const ask = asks.find((ask) => ask.id === Number(params.id));
+	const askQuery = isNaN(Number(slugOrId))
+		? {
+				slug: slugOrId,
+			}
+		: {
+				id: Number(slugOrId),
+			};
+	const ask = await api.ask.getAsk({ ...askQuery });
 
 	if (!ask) return notFound();
 

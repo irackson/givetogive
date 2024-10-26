@@ -7,37 +7,14 @@ import {
 	Typography,
 	Button,
 } from '@mui/material';
+import { api } from 'code/trpc/server';
 
-export default async function AsksIndexPage() {
-	const asks = [
-		{
-			id: 1,
-			title: 'Need help with groceries',
-			description:
-				'I am unable to go out and get groceries. Can someone help me?',
-		},
-		{
-			id: 2,
-			title: 'Need help with moving',
-			description:
-				'I need help moving some furniture around my apartment.',
-		},
-		{
-			id: 3,
-			title: 'Looking for someone to talk to',
-			description: 'Feeling lonely and would love a friendly chat!',
-		},
-		{
-			id: 4,
-			title: 'Help with yard work',
-			description: 'My yard needs some serious cleanup. Any volunteers?',
-		},
-		{
-			id: 5,
-			title: 'Assist with tech setup',
-			description: 'Need help setting up a new phone and computer.',
-		},
-	];
+export default async function AsksIndexPage({
+	createdById,
+}: {
+	createdById?: string;
+}) {
+	const asks = await api.ask.getAsks({ createdById });
 
 	return (
 		<Container sx={{ py: 4 }}>
@@ -70,7 +47,7 @@ export default async function AsksIndexPage() {
 							<Button
 								variant="contained"
 								component={Link}
-								href={`/asks/${ask.id}`}
+								href={`/asks/${ask.slug}`}
 								sx={{ mt: 2 }}
 							>
 								View Details
