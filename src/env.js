@@ -1,7 +1,10 @@
 import { createEnv } from '@t3-oss/env-nextjs';
+import { vercel } from '@t3-oss/env-core/presets';
+
 import { z } from 'zod';
 
 export const env = createEnv({
+	extends: [vercel()],
 	/**
 	 * Specify your server-side environment variables schema here. This way you can ensure the app
 	 * isn't built with invalid env vars.
@@ -57,4 +60,5 @@ export const env = createEnv({
 	 * `SOME_VAR=''` will throw an error.
 	 */
 	emptyStringAsUndefined: true,
+	isServer: typeof window === 'undefined',
 });
