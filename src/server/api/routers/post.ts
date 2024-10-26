@@ -6,6 +6,7 @@ import {
 	publicProcedure,
 } from 'code/server/api/trpc';
 import { posts } from 'code/server/db/schema';
+import { env } from 'code/env';
 
 export const postRouter = createTRPCRouter({
 	hello: publicProcedure
