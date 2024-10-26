@@ -1,61 +1,19 @@
-import Link from 'next/link';
-import {
-	Container,
-	Box,
-	Card,
-	CardContent,
-	Typography,
-	Button,
-} from '@mui/material';
-import { api } from 'code/trpc/server';
+import { Container, Typography } from '@mui/material';
+import { RenderAsksIndex } from 'code/app/_components/ask';
+import { getServerAuthSession } from 'code/server/auth';
 
-export default async function AsksIndexPage({
-	createdById,
-}: {
-	createdById?: string;
-}) {
-	const asks = await api.ask.getAsks({ createdById });
+export default async function AsksIndexPage() {
+	// Fetch session to get the logged-in user's ID
+	const session = await getServerAuthSession();
+	const userId = session?.user?.id; // `userId` is defined if the user is logged in
 
 	return (
 		<Container sx={{ py: 4 }}>
 			<Typography variant="h4" component="h1" align="center" gutterBottom>
 				Open Requests
 			</Typography>
-			<Box
-				display="flex"
-				flexWrap="wrap"
-				justifyContent="center"
-				gap={4}
-				mt={2}
-			>
-				{asks.map((ask) => (
-					<Card
-						key={ask.id}
-						sx={{
-							width: 300,
-							display: 'flex',
-							flexDirection: 'column',
-						}}
-					>
-						<CardContent>
-							<Typography variant="h5" component="h2">
-								{ask.title}
-							</Typography>
-							<Typography variant="body2" color="text.secondary">
-								{ask.description}
-							</Typography>
-							<Button
-								variant="contained"
-								component={Link}
-								href={`/asks/${ask.slug}`}
-								sx={{ mt: 2 }}
-							>
-								View Details
-							</Button>
-						</CardContent>
-					</Card>
-				))}
-			</Box>
+			{/* Pass `userId` as `createdByUserId` if the user is logged in */}
+			<RenderAsksIndex createdByUserId={userId} />
 		</Container>
 	);
 }
