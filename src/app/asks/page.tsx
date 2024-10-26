@@ -1,4 +1,12 @@
 import Link from 'next/link';
+import {
+	Container,
+	Box,
+	Card,
+	CardContent,
+	Typography,
+	Button,
+} from '@mui/material';
 
 export default async function AsksIndexPage() {
 	const asks = [
@@ -10,48 +18,67 @@ export default async function AsksIndexPage() {
 		},
 		{
 			id: 2,
-			title: 'Need help with groceries',
+			title: 'Need help with moving',
 			description:
-				'I am unable to go out and get groceries. Can someone help me?',
+				'I need help moving some furniture around my apartment.',
 		},
 		{
 			id: 3,
-			title: 'Need help with groceries',
-			description:
-				'I am unable to go out and get groceries. Can someone help me?',
+			title: 'Looking for someone to talk to',
+			description: 'Feeling lonely and would love a friendly chat!',
 		},
 		{
 			id: 4,
-			title: 'Need help with groceries',
-			description:
-				'I am unable to go out and get groceries. Can someone help me?',
+			title: 'Help with yard work',
+			description: 'My yard needs some serious cleanup. Any volunteers?',
 		},
 		{
 			id: 5,
-			title: 'Need help with groceries',
-			description:
-				'I am unable to go out and get groceries. Can someone help me?',
+			title: 'Assist with tech setup',
+			description: 'Need help setting up a new phone and computer.',
 		},
 	];
 
 	return (
-		<main className="container mx-auto px-4 py-8">
-			<h1 className="mb-6 text-center text-3xl font-semibold">
+		<Container sx={{ py: 4 }}>
+			<Typography variant="h4" component="h1" align="center" gutterBottom>
 				Open Requests
-			</h1>
-			<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-				{asks?.map((ask) => (
-					<div key={ask.id} className="rounded bg-white p-4 shadow">
-						<h2 className="text-xl font-bold">{ask.title}</h2>
-						<p className="mt-2">{ask.description}</p>
-						<Link href={`/asks/${ask.id}`}>
-							<button className="mt-4 rounded bg-blue-500 px-4 py-2 text-white">
+			</Typography>
+			<Box
+				display="flex"
+				flexWrap="wrap"
+				justifyContent="center"
+				gap={4}
+				mt={2}
+			>
+				{asks.map((ask) => (
+					<Card
+						key={ask.id}
+						sx={{
+							width: 300,
+							display: 'flex',
+							flexDirection: 'column',
+						}}
+					>
+						<CardContent>
+							<Typography variant="h5" component="h2">
+								{ask.title}
+							</Typography>
+							<Typography variant="body2" color="text.secondary">
+								{ask.description}
+							</Typography>
+							<Button
+								variant="contained"
+								component={Link}
+								href={`/asks/${ask.id}`}
+								sx={{ mt: 2 }}
+							>
 								View Details
-							</button>
-						</Link>
-					</div>
+							</Button>
+						</CardContent>
+					</Card>
 				))}
-			</div>
-		</main>
+			</Box>
+		</Container>
 	);
 }

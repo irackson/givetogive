@@ -5,6 +5,20 @@
 await import('./src/env.js');
 
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+	compiler: {
+		// Enables the styled-components SWC transform
+		styledComponents: true,
+	},
+
+	modularizeImports: {
+		'@mui/icons-material': {
+			transform: '@mui/icons-material/{{member}}',
+		},
+	},
+
+	reactStrictMode: true,
+	swcMinify: true,
+};
 
 export default config;

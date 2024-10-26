@@ -1,4 +1,6 @@
 import { notFound } from 'next/navigation';
+import { Container, Typography, Button, Box } from '@mui/material';
+import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 
 export default async function AskDetailPage({
 	params,
@@ -19,13 +21,23 @@ export default async function AskDetailPage({
 	if (!ask) return notFound();
 
 	return (
-		<main className="container mx-auto px-4 py-8">
-			<h1 className="mb-4 text-3xl font-bold">{ask.title}</h1>
-			<p className="mb-4 text-lg">{ask.description}</p>
-			{/* Add more fields here as needed, like the user who posted it, date created, etc. */}
-			<button className="rounded bg-green-500 px-4 py-2 text-white">
-				Offer Help
-			</button>
-		</main>
+		<Container sx={{ py: 4 }}>
+			<Typography variant="h4" component="h1" gutterBottom>
+				{ask.title}
+			</Typography>
+			<Typography variant="body1" paragraph>
+				{ask.description}
+			</Typography>
+			<Box mt={4}>
+				<Button
+					variant="contained"
+					color="success"
+					size="large"
+					startIcon={<VolunteerActivismIcon />}
+				>
+					Offer Help
+				</Button>
+			</Box>
+		</Container>
 	);
 }
