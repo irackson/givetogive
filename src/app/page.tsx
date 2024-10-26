@@ -1,8 +1,8 @@
 import Link from 'next/link';
-
 import { LatestPost } from 'code/app/_components/post';
 import { getServerAuthSession } from 'code/server/auth';
 import { api, HydrateClient } from 'code/trpc/server';
+import { Typography, Button, Box } from '@mui/material';
 
 export default async function Home() {
 	const hello = await api.post.hello({ text: 'give to give' });
@@ -12,37 +12,33 @@ export default async function Home() {
 
 	return (
 		<HydrateClient>
-			<main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#9284a6] to-[#4ce15d] text-white">
-				<div className="container flex flex-col items-center justify-center gap-12 px-4 py-16">
-					<div className="flex flex-col items-center gap-2">
-						<p className="text-2xl text-white">
-							{hello ? hello.greeting : 'Loading tRPC query...'}
-						</p>
-
-						<div className="flex flex-col items-center justify-center gap-4">
-							<p className="text-center text-2xl text-white">
-								{session && (
-									<span>
-										Logged in as {session.user?.name}
-									</span>
-								)}
-							</p>
-							<Link
-								href={
-									session
-										? '/api/auth/signout'
-										: '/api/auth/signin'
-								}
-								className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
-							>
-								{session ? 'Sign out' : 'Sign in'}
-							</Link>
-						</div>
-					</div>
-
-					{session?.user && <LatestPost />}
-				</div>
-			</main>
+			<Box
+				display="flex"
+				flexDirection="column"
+				alignItems="center"
+				justifyContent="center"
+				minHeight="calc(100vh - 64px)"
+				py={4}
+			>
+				<Typography variant="h4" gutterBottom>
+					{hello ? hello.greeting : 'Loading...'}
+				</Typography>
+				{session && (
+					<Typography variant="h6" gutterBottom>
+						Logged in as {session.user?.name}
+					</Typography>
+				)}
+				<Button
+					component={Link}
+					href={session ? '/api/auth/signout' : '/api/auth/signin'}
+					variant="contained"
+					color="secondary"
+					sx={{ mt: 2 }}
+				>
+					{session ? 'Sign out' : 'Sign in'}
+				</Button>
+				{session?.user && <LatestPost />}
+			</Box>
 		</HydrateClient>
 	);
 }
