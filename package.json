@@ -7,11 +7,11 @@
     "build": "next build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate_prod": "DOTENV_CONFIG_PATH=.env.production.hosted npx drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "open -a 'Google Chrome' https://local.drizzle.studio && drizzle-kit studio --config=drizzle.config.ts",
     "dev": "next dev",
-    "lint": "next lint",
-    "start": "next start"
+    "postinstall": "npm install -g dotenv-cli"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.1.0",
