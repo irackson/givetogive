@@ -20,7 +20,7 @@
 			"runtimeArgs": [
 				"--inspect"
 			],
-			"runtimeExecutable": "/Users/homedeveloper/.nvm/versions/node/v23.1.0/bin/node",
+			"runtimeExecutable": "/Users/homedeveloper/.nvm/versions/node/v21.7.2/bin/node",
 			"skipFiles": [
 				"node_modules/**",
 				"**/_next/**",
