@@ -1,6 +1,5 @@
 {
 	"compilerOptions": {
-		/* Base Options: */
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"target": "es2022",
@@ -8,11 +7,9 @@
 		"resolveJsonModule": true,
 		"moduleDetection": "force",
 		"isolatedModules": true,
-		/* Strictness */
 		"strict": true,
 		"noUncheckedIndexedAccess": true,
 		"checkJs": true,
-		/* Bundled projects */
 		"lib": [
 			"dom",
 			"dom.iterable",
@@ -28,7 +25,6 @@
 			}
 		],
 		"incremental": true,
-		/* Path Aliases */
 		"baseUrl": ".",
 		"paths": {
 			"code/*": [

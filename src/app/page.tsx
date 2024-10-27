@@ -1,14 +1,10 @@
-import Link from 'next/link';
-import { LatestPost } from 'code/app/_components/post';
+import { Box, Button, Typography } from '@mui/material';
 import { getServerAuthSession } from 'code/server/auth';
-import { api, HydrateClient } from 'code/trpc/server';
-import { Typography, Button, Box } from '@mui/material';
+import { HydrateClient } from 'code/trpc/server';
+import Link from 'next/link';
 
 export default async function Home() {
-	const hello = await api.post.hello({ text: 'give to give' });
 	const session = await getServerAuthSession();
-
-	void api.post.getLatest.prefetch();
 
 	return (
 		<HydrateClient>
@@ -20,9 +16,6 @@ export default async function Home() {
 				minHeight="calc(100vh - 64px)"
 				py={4}
 			>
-				<Typography variant="h4" gutterBottom>
-					{hello ? hello.greeting : 'Loading...'}
-				</Typography>
 				{session && (
 					<Typography variant="h6" gutterBottom>
 						Logged in as {session.user?.name}
@@ -37,7 +30,6 @@ export default async function Home() {
 				>
 					{session ? 'Sign out' : 'Sign in'}
 				</Button>
-				{session?.user && <LatestPost />}
 			</Box>
 		</HydrateClient>
 	);

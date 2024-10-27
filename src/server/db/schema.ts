@@ -63,26 +63,6 @@ export const asksRelations = relations(asks, ({ one }) => ({
 		references: [users.id],
 	}),
 }));
-export const posts = createTable(
-	'post',
-	{
-		id: serial('id').primaryKey(),
-		name: varchar('name', { length: 256 }),
-		createdById: varchar('created_by', { length: 255 })
-			.notNull()
-			.references(() => users.id),
-		createdAt: timestamp('created_at', { withTimezone: true })
-			.default(sql`CURRENT_TIMESTAMP`)
-			.notNull(),
-		updatedAt: timestamp('updated_at', { withTimezone: true }).$onUpdate(
-			() => new Date(),
-		),
-	},
-	(example) => ({
-		createdByIdIdx: index('post_created_by_idx').on(example.createdById),
-		nameIndex: index('post_name_idx').on(example.name),
-	}),
-);
 
 export const users = createTable('user', {
 	id: varchar('id', { length: 255 })
