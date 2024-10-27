@@ -1,16 +1,15 @@
 'use client';
 
 import { Box, Button, Card, CardContent, Typography } from '@mui/material';
+import type { Ask } from 'code/server/db/schema';
 import { api } from 'code/trpc/react';
 import Link from 'next/link';
 
-type RenderAsksIndexProps = {
-	createdByUserId?: string;
-};
+type RenderAsksIndexProps = Partial<Pick<Ask, 'createdById'>>;
 
-export function RenderAsksIndex({ createdByUserId }: RenderAsksIndexProps) {
+export function RenderAsksIndex({ createdById }: RenderAsksIndexProps) {
 	const [asks] = api.ask.getAsks.useSuspenseQuery({
-		createdById: createdByUserId,
+		createdById: createdById,
 	});
 
 	return (

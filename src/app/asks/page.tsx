@@ -11,7 +11,7 @@ export default async function AsksIndexPage() {
 			<Typography variant="h4" component="h1" align="center" gutterBottom>
 				Open Requests
 			</Typography>
-			<RenderAsksIndex createdByUserId={userId} />
+			<RenderAsksIndex createdById={userId} />
 		</Container>
 	);
 }

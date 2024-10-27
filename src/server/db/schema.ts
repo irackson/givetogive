@@ -1,4 +1,4 @@
-import { relations, sql } from 'drizzle-orm';
+import { type InferSelectModel, relations, sql } from 'drizzle-orm';
 import {
 	index,
 	integer,
@@ -52,6 +52,7 @@ export const asks = createTable(
 		titleIndex: index('ask_title_idx').on(ask.title),
 	}),
 );
+export type Ask = InferSelectModel<typeof asks>;
 
 export const asksRelations = relations(asks, ({ one }) => ({
 	createdBy: one(users, {
