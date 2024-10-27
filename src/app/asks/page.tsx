@@ -9,7 +9,7 @@ export default async function AsksIndexPage() {
 	return (
 		<Container sx={{ py: 4 }}>
 			<Typography variant="h4" component="h1" align="center" gutterBottom>
-				Open Requests
+				{userId ? `Your Requests` : `All Requests`}
 			</Typography>
 			<RenderAsksIndex createdById={userId} />
 		</Container>
