@@ -1,15 +1,14 @@
 'use client';
 
-import Link from 'next/link';
-import { Box, Card, CardContent, Typography, Button } from '@mui/material';
+import { Box, Button, Card, CardContent, Typography } from '@mui/material';
 import { api } from 'code/trpc/react';
+import Link from 'next/link';
 
 type RenderAsksIndexProps = {
 	createdByUserId?: string;
 };
 
 export function RenderAsksIndex({ createdByUserId }: RenderAsksIndexProps) {
-	// Fetch asks with `useSuspenseQuery`, filtering by `createdByUserId` if provided
 	const [asks] = api.ask.getAsks.useSuspenseQuery({
 		createdById: createdByUserId,
 	});

@@ -1,6 +1,6 @@
 import { Container, Typography } from '@mui/material';
-import { RenderAsksIndex } from 'code/app/_components/ask';
 import { getServerAuthSession } from 'code/server/auth';
+import { RenderAsksIndex } from './_components/ask';
 
 export default async function AsksIndexPage() {
 	// Fetch session to get the logged-in user's ID
