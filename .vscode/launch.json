@@ -1,0 +1,63 @@
+{
+	"version": "0.2.0",
+	"compounds": [
+		{
+			"name": "DEBUG",
+			"configurations": [
+				"START_NODE",
+				"OPEN_CHROME"
+			],
+			"stopAll": true,
+			"preLaunchTask": "FOCUS_DEBUG_CONSOLE"
+		}
+	],
+	"configurations": [
+		{
+			"name": "START_NODE",
+			"type": "node",
+			"request": "launch",
+			"program": "${workspaceFolder}/node_modules/.bin/next",
+			"runtimeArgs": [
+				"--inspect"
+			],
+			"runtimeExecutable": "/Users/homedeveloper/.nvm/versions/node/v21.7.2/bin/node",
+			"skipFiles": [
+				"node_modules/**",
+				"**/_next/**",
+				"**/build/proxy.js"
+			],
+			"serverReadyAction": {
+				"action": "startDebugging",
+				"name": "OPEN_CHROME",
+				"pattern": "- Local:.+(https?://.+)",
+				"killOnServerStop": true
+			},
+			"trace": false,
+			"sourceMaps": true,
+			"smartStep": true,
+		},
+		{
+			"name": "OPEN_CHROME",
+			"type": "chrome",
+			"request": "launch",
+			"url": "http://localhost:3000/asks",
+			"webRoot": "${workspaceFolder}",
+			"userDataDir": "${workspaceFolder}/chrome-debug-profile",
+			"runtimeArgs": [
+				"--remote-debugging-port=9222",
+				"--disable-session-restore",
+				"--profile-directory=Debug",
+				"--no-first-run",
+				"--new-window"
+			],
+			"trace": false,
+			"sourceMaps": true,
+			"smartStep": true,
+			"skipFiles": [
+				"node_modules/**",
+				"**/_next/**",
+				"**/build/proxy.js",
+			],
+		}
+	],
+}

@@ -1,0 +1,57 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "KILL_CHROME",
+			"type": "shell",
+			"command": "${input:terminate}",
+			"problemMatcher": []
+		},
+		{
+			"label": "FOCUS_DEBUG_CONSOLE",
+			"type": "shell",
+			"command": "${input:focusDebugConsole}",
+			"problemMatcher": [],
+			"dependsOn": "FOCUS_CALL_STACK"
+		},
+		{
+			"label": "FOCUS_CALL_STACK",
+			"type": "shell",
+			"command": "${input:focusCallStack}",
+			"problemMatcher": [],
+			"dependsOn": "FOCUS_CHROME"
+		},
+		{
+			"label": "FOCUS_CHROME",
+			"type": "shell",
+			"command": "${input:focusChrome}",
+			"problemMatcher": [],
+		}
+	],
+	"inputs": [
+		{
+			"id": "terminate",
+			"type": "command",
+			"command": "workbench.action.debug.stop",
+			"args": {}
+		},
+		{
+			"id": "focusDebugConsole",
+			"type": "command",
+			"command": "workbench.debug.action.focusRepl",
+			"args": {}
+		},
+		{
+			"id": "focusCallStack",
+			"type": "command",
+			"command": "workbench.debug.action.focusCallStackView",
+			"args": {}
+		},
+		{
+			"id": "focusChrome",
+			"type": "command",
+			"command": "workbench.action.debug.nextConsole",
+			"args": {}
+		},
+	]
+}
