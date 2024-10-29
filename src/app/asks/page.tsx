@@ -1,5 +1,6 @@
-import { Container, Typography } from '@mui/material';
+import { Box, Container, Typography } from '@mui/material';
 import { getServerAuthSession } from 'code/server/auth';
+import { CreateAskFormToggle } from './_components/CreateAskFormToggle';
 import { RenderAsksIndex } from './_components/RenderAsksIndex';
 
 export default async function AsksIndexPage() {
@@ -11,7 +12,12 @@ export default async function AsksIndexPage() {
 			<Typography variant="h4" component="h1" align="center" gutterBottom>
 				{userId ? `Your Requests` : `All Requests`}
 			</Typography>
-			<RenderAsksIndex createdById={userId} />
+			<Box display="flex" justifyContent="center" my={2}>
+				<CreateAskFormToggle />
+			</Box>
+			<RenderAsksIndex
+				filterProps={userId ? { createdById: userId } : undefined}
+			/>
 		</Container>
 	);
 }

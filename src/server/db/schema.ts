@@ -1,4 +1,4 @@
-import { type InferSelectModel, relations, sql } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
 	index,
 	integer,
@@ -9,14 +9,9 @@ import {
 	timestamp,
 	varchar,
 } from 'drizzle-orm/pg-core';
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { type AdapterAccount } from 'next-auth/adapters';
 
-/**
- * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
- * database instance for multiple projects.
- *
- * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
- */
 export const createTable = pgTableCreator((name) => `givetogive_${name}`);
 
 export const asks = createTable(
@@ -52,7 +47,21 @@ export const asks = createTable(
 		titleIndex: index('ask_title_idx').on(ask.title),
 	}),
 );
-export type Ask = InferSelectModel<typeof asks>;
+export const insertAskSchema = createInsertSchema(asks, {
+	title: (schema) =>
+		schema.title.min(3, 'Title must be at least 3 characters long'),
+	description: (schema) =>
+		schema.description.min(
+			10,
+			'Description must be at least 10 characters long',
+		),
+	estimatedMinutesToComplete: (schema) =>
+		schema.estimatedMinutesToComplete
+			.int()
+			.positive('Must be a positive number'),
+});
+
+export const selectAskSchema = createSelectSchema(asks);
 
 export const asksRelations = relations(asks, ({ one }) => ({
 	createdBy: one(users, {

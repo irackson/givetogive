@@ -1,19 +1,20 @@
+import { ensureErrMessage } from 'code/lib/utils/errorParsing';
 import {
 	createTRPCRouter,
 	protectedProcedure,
 	publicProcedure,
 } from 'code/server/api/trpc';
-import { asks } from 'code/server/db/schema';
+import { asks, insertAskSchema, selectAskSchema } from 'code/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 export const askRouter = createTRPCRouter({
-	create: protectedProcedure
+	createAsk: protectedProcedure
 		.input(
-			z.object({
-				title: z.string().min(1),
-				description: z.string().min(1),
-				estimatedMinutesToComplete: z.number().positive(),
+			insertAskSchema.pick({
+				title: true,
+				description: true,
+				estimatedMinutesToComplete: true,
 			}),
 		)
 		.mutation(
@@ -21,59 +22,89 @@ export const askRouter = createTRPCRouter({
 				ctx,
 				input: { title, description, estimatedMinutesToComplete },
 			}) => {
-				await ctx.db.insert(asks).values({
-					title,
-					slug: title.toLowerCase().replace(/\s+/g, '-'),
-					description,
-					estimatedMinutesToComplete,
-					status: 'not_started',
-					createdById: ctx.session.user.id,
-				});
+				const newlyCreatedSlug = title
+					.toLowerCase()
+					.replace(/\s+/g, '-');
+				const { newlyCreatedAskId } = await ctx.db
+					.insert(asks)
+					.values({
+						title,
+						slug: newlyCreatedSlug,
+						description,
+						estimatedMinutesToComplete,
+						status: 'not_started',
+						createdById: ctx.session.user.id,
+					})
+					.returning({
+						newlyCreatedAskId: asks.id,
+					})
+					.then(([doc]) => {
+						if (!doc)
+							throw Error(
+								`Expected doc to be object with newlyCreatedAskId but got ${doc}`,
+							);
+						return doc;
+					})
+					.catch((e: unknown) => {
+						const { message, cause } = ensureErrMessage(e);
+						console.error({ message, cause });
+						throw Error(`Failed to create ask: ${message}`, {
+							cause,
+						});
+					});
+				return { newlyCreatedAskId, newlyCreatedSlug };
 			},
 		),
 
 	getAsks: publicProcedure
 		.input(
 			z.object({
-				createdById: z.string().optional(),
+				filter: insertAskSchema
+					.pick({
+						createdById: true,
+					})
+					.optional(),
 			}),
 		)
-		.query(async ({ ctx, input: { createdById } }) => {
+		.query(async ({ ctx, input: { filter } }) => {
 			return ctx.db
 				.select()
 				.from(asks)
 				.where(
-					createdById ? eq(asks.createdById, createdById) : undefined,
+					filter?.createdById
+						? eq(asks.createdById, filter.createdById)
+						: undefined,
 				)
 				.limit(100);
 		}),
 
 	getAsk: publicProcedure
 		.input(
-			z
-				.object({
-					id: z.number().optional(),
-					slug: z.string().optional(),
-				})
-				.refine((data) => data.id ?? data.slug, {
-					message: "Either 'id' or 'slug' must be provided",
+			z.union([
+				selectAskSchema.pick({
+					id: true,
 				}),
+				selectAskSchema.pick({
+					slug: true,
+				}),
+			]),
 		)
 		.query(async ({ ctx, input }) => {
 			const ask = await ctx.db
 				.select()
 				.from(asks)
 				.where(
-					input.id
+					'id' in input
 						? eq(asks.id, input.id)
-						: input.slug
-							? eq(asks.slug, input.slug)
-							: undefined,
+						: eq(asks.slug, input.slug),
 				)
 				.limit(1)
 				.then((res) => {
 					const [ask] = res;
-					if (!ask) throw Error('Ask not found');
+					if (!ask)
+						throw Error(
+							`Ask ${'id' in input ? `with id '${input.id}'` : `with slug '${input.slug}`}' not found`,
+						);
 					return ask;
 				});
 

@@ -3,16 +3,16 @@ import 'code/styles/globals.css';
 import { GeistSans } from 'geist/font/sans';
 import { type Metadata } from 'next';
 
-import { TRPCReactProvider } from 'code/trpc/react';
 import { env } from 'code/env';
+import { TRPCReactProvider } from 'code/trpc/react';
 
 import {
-	Container,
 	AppBar,
+	Box,
+	Button,
+	Container,
 	Toolbar,
 	Typography,
-	Button,
-	Box,
 } from '@mui/material';
 import Link from 'next/link';
 
@@ -56,7 +56,6 @@ export default function RootLayout({
 							</Toolbar>
 						</Container>
 					</AppBar>
-
 					{/* Main Content */}
 					<Container>
 						<Box mt={4}>{children}</Box>

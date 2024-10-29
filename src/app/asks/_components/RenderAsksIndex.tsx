@@ -1,16 +1,25 @@
 'use client';
 
 import { Box, Button, Card, CardContent, Typography } from '@mui/material';
-import type { Ask } from 'code/server/db/schema';
+import type { inferRouterInputs } from '@trpc/server';
+import type { AppRouter } from 'code/server/api/root';
 import { api } from 'code/trpc/react';
 import Link from 'next/link';
 
-type RenderAsksIndexProps = Partial<Pick<Ask, 'createdById'>>;
-
-export function RenderAsksIndex({ createdById }: RenderAsksIndexProps) {
-	const [asks] = api.ask.getAsks.useSuspenseQuery({
-		createdById: createdById,
-	});
+export function RenderAsksIndex({
+	filterProps,
+}: {
+	filterProps: inferRouterInputs<AppRouter>['ask']['getAsks']['filter'];
+}) {
+	const [asks] = api.ask.getAsks.useSuspenseQuery(
+		filterProps
+			? {
+					filter: {
+						createdById: filterProps.createdById,
+					},
+				}
+			: {},
+	);
 
 	return (
 		<Box

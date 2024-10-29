@@ -12,7 +12,7 @@ const config = {
 	],
 	rules: {
 		'@typescript-eslint/array-type': 'off',
-		'@typescript-eslint/consistent-type-definitions': 'off',
+		'@typescript-eslint/consistent-type-definitions': 'warn',
 		'@typescript-eslint/consistent-type-imports': [
 			'warn',
 			{
@@ -23,7 +23,13 @@ const config = {
 		'@typescript-eslint/no-unused-vars': [
 			'warn',
 			{
-				argsIgnorePattern: '^_',
+				args: 'all',
+				argsIgnorePattern: '^__',
+				caughtErrors: 'all',
+				caughtErrorsIgnorePattern: '^__',
+				// destructuredArrayIgnorePattern: '^_',
+				// varsIgnorePattern: '^__',
+				ignoreRestSiblings: true,
 			},
 		],
 		'@typescript-eslint/require-await': 'off',
@@ -33,6 +39,12 @@ const config = {
 				checksVoidReturn: {
 					attributes: false,
 				},
+			},
+		],
+		'react/no-children-prop': [
+			'warn',
+			{
+				allowFunctions: true,
 			},
 		],
 		'drizzle/enforce-delete-with-where': [

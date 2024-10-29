@@ -1,7 +1,8 @@
-import { notFound } from 'next/navigation';
-import { Container, Typography, Button, Box } from '@mui/material';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
+import { Box, Button, Container, Typography } from '@mui/material';
+import { ensureErrMessage } from 'code/lib/utils/errorParsing';
 import { api } from 'code/trpc/server';
+import { notFound } from 'next/navigation';
 
 export default async function AskDetailPage({
 	params: { slugOrId },
@@ -15,9 +16,15 @@ export default async function AskDetailPage({
 		: {
 				id: Number(slugOrId),
 			};
-	const ask = await api.ask.getAsk({ ...askQuery });
 
-	if (!ask) return notFound();
+	const ask = await api.ask.getAsk({ ...askQuery }).catch((e) => {
+		const { message } = ensureErrMessage(e);
+		return message;
+	});
+
+	if (typeof ask === 'string') {
+		return <p>{ask}</p>;
+	}
 
 	return (
 		<Container sx={{ py: 4 }}>
