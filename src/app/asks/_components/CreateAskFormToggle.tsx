@@ -17,19 +17,17 @@ export function CreateAskFormToggle() {
 
 	return (
 		<Box>
-			{!showForm ? (
+			{!showForm ?
 				<Button
-					variant="contained"
-					color="primary"
-					onClick={handleShowForm}
-				>
+					variant='contained'
+					color='primary'
+					onClick={handleShowForm}>
 					Create New Ask
 				</Button>
-			) : (
-				<Box>
+			:	<Box>
 					<ClientFormFields onCancel={handleHideForm} />
 				</Box>
-			)}
+			}
 		</Box>
 	);
 }

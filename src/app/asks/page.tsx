@@ -9,10 +9,10 @@ export default async function AsksIndexPage() {
 
 	return (
 		<Container sx={{ py: 4 }}>
-			<Typography variant="h4" component="h1" align="center" gutterBottom>
+			<Typography variant='h4' component='h1' align='center' gutterBottom>
 				{userId ? `Your Requests` : `All Requests`}
 			</Typography>
-			<Box display="flex" justifyContent="center" my={2}>
+			<Box display='flex' justifyContent='center' my={2}>
 				<CreateAskFormToggle />
 			</Box>
 			<RenderAsksIndex

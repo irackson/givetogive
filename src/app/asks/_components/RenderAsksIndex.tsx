@@ -12,23 +12,22 @@ export function RenderAsksIndex({
 	filterProps: inferRouterInputs<AppRouter>['ask']['getAsks']['filter'];
 }) {
 	const [asks] = api.ask.getAsks.useSuspenseQuery(
-		filterProps
-			? {
-					filter: {
-						createdById: filterProps.createdById,
-					},
-				}
-			: {},
+		filterProps ?
+			{
+				filter: {
+					createdById: filterProps.createdById,
+				},
+			}
+		:	{},
 	);
 
 	return (
 		<Box
-			display="flex"
-			flexWrap="wrap"
-			justifyContent="center"
+			display='flex'
+			flexWrap='wrap'
+			justifyContent='center'
 			gap={4}
-			mt={2}
-		>
+			mt={2}>
 			{asks.map((ask) => (
 				<Card
 					key={ask.id}
@@ -36,21 +35,19 @@ export function RenderAsksIndex({
 						width: 300,
 						display: 'flex',
 						flexDirection: 'column',
-					}}
-				>
+					}}>
 					<CardContent>
-						<Typography variant="h5" component="h2">
+						<Typography variant='h5' component='h2'>
 							{ask.title}
 						</Typography>
-						<Typography variant="body2" color="text.secondary">
+						<Typography variant='body2' color='text.secondary'>
 							{ask.description}
 						</Typography>
 						<Button
-							variant="contained"
+							variant='contained'
 							component={Link}
 							href={`/asks/${ask.slug}`}
-							sx={{ mt: 2 }}
-						>
+							sx={{ mt: 2 }}>
 							View Details
 						</Button>
 					</CardContent>

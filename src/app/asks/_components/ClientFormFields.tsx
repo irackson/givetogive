@@ -25,9 +25,8 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 	const defaultValues: FormValues = {
 		title: searchParams.get('title') ?? '',
 		description: searchParams.get('description') ?? '',
-		estimatedMinutesToComplete: estimatedMinutes
-			? parseInt(estimatedMinutes)
-			: 0,
+		estimatedMinutesToComplete:
+			estimatedMinutes ? parseInt(estimatedMinutes) : 0,
 	};
 
 	// Initialize the createAsk mutation
@@ -92,10 +91,9 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 				e.preventDefault();
 				e.stopPropagation();
 				void handleSubmit();
-			}}
-		>
+			}}>
 			<Field
-				name="title"
+				name='title'
 				children={({
 					name,
 					state: {
@@ -113,12 +111,12 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 						error={errors.length > 0}
 						helperText={errors.join(', ')}
 						fullWidth
-						margin="normal"
+						margin='normal'
 					/>
 				)}
 			/>
 			<Field
-				name="description"
+				name='description'
 				children={({
 					name,
 					state: {
@@ -136,14 +134,14 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 						error={errors.length > 0}
 						helperText={errors.join(', ')}
 						fullWidth
-						margin="normal"
+						margin='normal'
 						multiline
 						rows={4}
 					/>
 				)}
 			/>
 			<Field
-				name="estimatedMinutesToComplete"
+				name='estimatedMinutesToComplete'
 				children={({
 					name,
 					state: {
@@ -160,29 +158,27 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 						onBlur={handleBlur}
 						error={errors.length > 0}
 						helperText={errors.join(', ')}
-						type="number"
+						type='number'
 						fullWidth
-						margin="normal"
+						margin='normal'
 					/>
 				)}
 			/>
 			<Button
-				type="submit"
-				variant="contained"
-				color="primary"
-				disabled={createAskMutation.status === 'pending'}
-			>
+				type='submit'
+				variant='contained'
+				color='primary'
+				disabled={createAskMutation.status === 'pending'}>
 				Submit
 			</Button>
 			{onCancel && (
 				<Button
-					variant="outlined"
-					color="secondary"
+					variant='outlined'
+					color='secondary'
 					onClick={() => {
 						reset();
 						onCancel();
-					}}
-				>
+					}}>
 					Cancel
 				</Button>
 			)}
