@@ -13,6 +13,7 @@ const config = {
 	jsxSingleQuote: true,
 	bracketSpacing: true,
 	quoteProps: 'consistent',
+	singleAttributePerLine: true,
 };
 
 export default config;
