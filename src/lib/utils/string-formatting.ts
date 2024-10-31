@@ -1,5 +1,3 @@
-import { Schema } from 'effect';
-
 ////////////////////////////////////////////////////////////////////////////////
 // #region varNameToHumanReadable
 /**
@@ -9,11 +7,12 @@ import { Schema } from 'effect';
  * @example
  * type Result = SplitCamelCase<'myVariableName'>; // 'my Variable Name'
  */
-type SplitCamelCase<S extends string> = S extends `${infer Head}${infer Tail}`
-	? Tail extends Uncapitalize<Tail>
-		? `${Head}${SplitCamelCase<Tail>}`
-		: `${Head} ${SplitCamelCase<Tail>}`
-	: S;
+type SplitCamelCase<S extends string> =
+	S extends `${infer Head}${infer Tail}` ?
+		Tail extends Uncapitalize<Tail> ?
+			`${Head}${SplitCamelCase<Tail>}`
+		:	`${Head} ${SplitCamelCase<Tail>}`
+	:	S;
 
 /**
  * Helper to replace underscores and hyphens with spaces.
@@ -23,11 +22,11 @@ type SplitCamelCase<S extends string> = S extends `${infer Head}${infer Tail}`
  * type Result = SplitSnakeAndKebabCase<'another_example-here'>; // 'another example here'
  */
 type SplitSnakeAndKebabCase<S extends string> =
-	S extends `${infer Head}_${infer Tail}`
-		? `${Head} ${SplitSnakeAndKebabCase<Tail>}`
-		: S extends `${infer Head}-${infer Tail}`
-			? `${Head} ${SplitSnakeAndKebabCase<Tail>}`
-			: S;
+	S extends `${infer Head}_${infer Tail}` ?
+		`${Head} ${SplitSnakeAndKebabCase<Tail>}`
+	: S extends `${infer Head}-${infer Tail}` ?
+		`${Head} ${SplitSnakeAndKebabCase<Tail>}`
+	:	S;
 
 /**
  * Combines all splitting helpers to handle camelCase, snake_case, and kebab-case.
@@ -47,9 +46,10 @@ type SplitAllCases<S extends string> = SplitCamelCase<
  * @example
  * type Result = CapitalizeWords<'hello world'>; // 'Hello World'
  */
-type CapitalizeWords<S extends string> = S extends `${infer Word} ${infer Rest}`
-	? `${Capitalize<Word>} ${CapitalizeWords<Rest>}`
-	: Capitalize<S>;
+type CapitalizeWords<S extends string> =
+	S extends `${infer Word} ${infer Rest}` ?
+		`${Capitalize<Word>} ${CapitalizeWords<Rest>}`
+	:	Capitalize<S>;
 
 /**
  * Converts a string from camelCase, snake_case, or kebab-case to a human-readable format with capitalized words.
@@ -75,24 +75,11 @@ export type HumanReadable<S extends string> = CapitalizeWords<SplitAllCases<S>>;
  */
 export const varNameToHumanReadable = <const T extends string>(
 	varName: T,
-): HumanReadable<T> => {
-	const pipeline = Schema.transform(Schema.String, Schema.String, {
-		strict: true,
-		decode: (str: string) =>
-			str
-				.replace(/([A-Z])/g, ' $1') // Insert space before uppercase letters
-				.replace(/[_-]/g, ' ') // Replace underscores and hyphens with spaces
-				.replace(/\b\w/g, (char) => char.toUpperCase()) // Capitalize the first letter of each word
-				.trim(),
-		// Encode function: no-op (returns the string as is)
-		encode: (str) => str,
-	});
-
-	const pipelineFunc = Schema.decodeUnknownSync(pipeline);
-
-	const result = pipelineFunc(varName);
-
-	return result as HumanReadable<T>;
-};
+): HumanReadable<T> =>
+	varName
+		.replace(/([A-Z])/g, ' $1')
+		.replace(/[_-]/g, ' ')
+		.replace(/\b\w/g, (char) => char.toUpperCase())
+		.trim() as HumanReadable<T>;
 // #endregion
 ////////////////////////////////////////////////////////////////////////////////

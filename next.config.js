@@ -1,3 +1,4 @@
+//@ts-check
 /**
  * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially useful
  * for Docker builds.
@@ -18,6 +19,24 @@ const config = {
 	},
 
 	reactStrictMode: true,
+	experimental: {
+		typedRoutes: true,
+	},
+	typescript: {
+		ignoreBuildErrors: false,
+	},
+	logging: {
+		fetches: {
+			fullUrl: true,
+		},
+	},
+	eslint: {
+		ignoreDuringBuilds: false,
+	},
+	devIndicators: {
+		buildActivity: true,
+		buildActivityPosition: 'top-right',
+	},
 };
 
 export default config;

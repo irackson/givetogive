@@ -1,3 +1,4 @@
+//@ts-check
 import { vercel } from '@t3-oss/env-core/presets';
 import { createEnv } from '@t3-oss/env-nextjs';
 
