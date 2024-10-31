@@ -5,7 +5,9 @@ import type { NextConfig } from 'next';
  * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially useful
  * for Docker builds.
  */
-console.info(`Loaded with environment: ${env.NODE_ENV}`);
+console.info(
+	`Loaded with environment: ${env.NODE_ENV} (from ${import.meta.url})`,
+);
 const config: NextConfig = {
 	compiler: {
 		// Enables the styled-components SWC transform
@@ -22,6 +24,7 @@ const config: NextConfig = {
 	experimental: {
 		typedRoutes: true,
 		// reactCompiler: true, //! TODO: resolve emotion deps
+		// ppr: true,
 	},
 
 	typescript: {

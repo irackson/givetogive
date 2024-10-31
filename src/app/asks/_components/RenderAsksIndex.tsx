@@ -4,6 +4,7 @@ import { Box, Button, Card, CardContent, Typography } from '@mui/material';
 import type { inferRouterInputs } from '@trpc/server';
 import type { AppRouter } from 'code/server/api/root';
 import { api } from 'code/trpc/react';
+import type { Route } from 'next';
 import Link from 'next/link';
 
 export function RenderAsksIndex({
@@ -43,7 +44,7 @@ export function RenderAsksIndex({
 						<Typography variant='body2' color='text.secondary'>
 							{ask.description}
 						</Typography>
-						<Link href={`/asks/${ask.slug}`} passHref>
+						<Link href={`/asks/${ask.slug}` as Route} passHref>
 							<Button variant='contained' sx={{ mt: 2 }}>
 								View Details
 							</Button>
