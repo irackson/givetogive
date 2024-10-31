@@ -1,4 +1,3 @@
-//@ts-check
 import { vercel } from '@t3-oss/env-core/presets';
 import { createEnv } from '@t3-oss/env-nextjs';
 
@@ -18,9 +17,9 @@ export const env = createEnv({
 		DATABASE_URL: z.string().url(),
 		NODE_ENV: z.enum(['development', 'production']).default('development'),
 		NEXTAUTH_SECRET:
-			process.env.NODE_ENV === 'production'
-				? z.string()
-				: z.string().optional(),
+			process.env.NODE_ENV === 'production' ?
+				z.string()
+			:	z.string().optional(),
 		NEXTAUTH_URL: z.preprocess(
 			// This makes Vercel deployments not fail if you don't set NEXTAUTH_URL
 			// Since NextAuth.js automatically uses the VERCEL_URL if present.
