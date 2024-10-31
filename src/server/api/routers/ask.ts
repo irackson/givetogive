@@ -71,9 +71,9 @@ export const askRouter = createTRPCRouter({
 				.select()
 				.from(asks)
 				.where(
-					filter?.createdById
-						? eq(asks.createdById, filter.createdById)
-						: undefined,
+					filter?.createdById ?
+						eq(asks.createdById, filter.createdById)
+					:	undefined,
 				)
 				.limit(100);
 		}),
@@ -94,9 +94,9 @@ export const askRouter = createTRPCRouter({
 				.select()
 				.from(asks)
 				.where(
-					'id' in input
-						? eq(asks.id, input.id)
-						: eq(asks.slug, input.slug),
+					'id' in input ?
+						eq(asks.id, input.id)
+					:	eq(asks.slug, input.slug),
 				)
 				.limit(1)
 				.then((res) => {

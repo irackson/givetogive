@@ -49,7 +49,12 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 		validators: {
 			// onChange: createAskFormInputValidation,
 			onChange: z.object({
-				title: z.string().min(3),
+				title: z
+					.string()
+					.min(3)
+					.refine((v) => !/^\d+$/.test(v), {
+						message: 'The title cannot solely consist of numbers',
+					}),
 				description: z.string().min(10),
 				estimatedMinutesToComplete: z.number().int().min(1),
 			}),
@@ -98,7 +103,7 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 					name,
 					state: {
 						value,
-						meta: { errors },
+						meta: { errors, isTouched },
 					},
 					handleChange,
 					handleBlur,
@@ -108,7 +113,7 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 						value={value}
 						onChange={(e) => handleChange(e.target.value)}
 						onBlur={handleBlur}
-						error={errors.length > 0}
+						error={isTouched && errors.length > 0}
 						helperText={errors.join(', ')}
 						fullWidth
 						margin='normal'
@@ -121,7 +126,7 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 					name,
 					state: {
 						value,
-						meta: { errors },
+						meta: { errors, isTouched },
 					},
 					handleChange,
 					handleBlur,
@@ -131,7 +136,7 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 						value={value}
 						onChange={(e) => handleChange(e.target.value)}
 						onBlur={handleBlur}
-						error={errors.length > 0}
+						error={isTouched && errors.length > 0}
 						helperText={errors.join(', ')}
 						fullWidth
 						margin='normal'
@@ -146,7 +151,7 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 					name,
 					state: {
 						value,
-						meta: { errors },
+						meta: { errors, isTouched },
 					},
 					handleChange,
 					handleBlur,
@@ -156,7 +161,7 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 						value={value}
 						onChange={(e) => handleChange(parseInt(e.target.value))}
 						onBlur={handleBlur}
-						error={errors.length > 0}
+						error={isTouched && errors.length > 0}
 						helperText={errors.join(', ')}
 						type='number'
 						fullWidth
