@@ -1,15 +1,5 @@
-# [givetogive](https://givetogive.vercel.app/)
+# [Visit GivetoGive](https://givetogive.vercel.app/)
 
-## TODOs
+![wakatime](https://wakatime.com/badge/user/4c81cb27-377a-401f-b22b-0f0921763ea1/project/ae0d785e-292d-449d-8e4f-ca0f9ec4056d.svg?style=flat-square)
 
-### New Features
-
-### Improvements
-
--   use guids instead of integers for primary keys
--   use slug library for generating slugs from titles
--   eslint to enforce consistence of importing via React.useState instead of {useState} from React, or vice versa. but always do the same across the board
--   eslint to enforce
--   use experimental_runtimeEnv
--   [eslint boundaries](https://www.youtube.com/watch?v=xyxrB2Aa7KE&t=953s)
--   use logging library
+## [Contribute](https://github.com/users/irackson/projects/1/views/1)
