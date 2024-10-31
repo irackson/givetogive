@@ -3,11 +3,11 @@ import { Box, Button, Container, Typography } from '@mui/material';
 import { ensureErrMessage } from 'code/lib/utils/errorParsing';
 import { api } from 'code/trpc/server';
 
-export default async function AskDetailPage({
-	params: { slugOrId },
-}: {
-	params: { slugOrId: string };
+export default async function AskDetailPage(props: {
+	params: Promise<{ slugOrId: string }>;
 }) {
+	const { slugOrId } = await props.params;
+
 	const askQuery =
 		isNaN(Number(slugOrId)) ?
 			{
