@@ -21,7 +21,7 @@ const config: NextConfig = {
 	reactStrictMode: true,
 	experimental: {
 		typedRoutes: true,
-		// reactCompiler: true,
+		// reactCompiler: true, //! TODO: resolve emotion deps
 	},
 
 	typescript: {
