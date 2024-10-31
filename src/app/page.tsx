@@ -16,7 +16,9 @@ export default async function Home() {
 				minHeight='calc(100vh - 64px)'
 				py={4}>
 				{session && (
-					<Typography variant='h6' gutterBottom>
+					<Typography
+						variant='h6'
+						gutterBottom>
 						Logged in as {session.user?.name}
 					</Typography>
 				)}

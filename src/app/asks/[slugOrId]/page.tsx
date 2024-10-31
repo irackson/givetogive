@@ -28,10 +28,15 @@ export default async function AskDetailPage(props: {
 
 	return (
 		<Container sx={{ py: 4 }}>
-			<Typography variant='h4' component='h1' gutterBottom>
+			<Typography
+				variant='h4'
+				component='h1'
+				gutterBottom>
 				{ask.title}
 			</Typography>
-			<Typography variant='body1' paragraph>
+			<Typography
+				variant='body1'
+				paragraph>
 				{ask.description}
 			</Typography>
 			<Box mt={4}>

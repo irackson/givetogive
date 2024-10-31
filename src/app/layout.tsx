@@ -29,14 +29,21 @@ export default function RootLayout({
 	children,
 }: Readonly<{ children: React.ReactNode }>) {
 	return (
-		<html lang='en' className={`${GeistSans.variable}`}>
+		<html
+			lang='en'
+			className={`${GeistSans.variable}`}>
 			<body className='min-h-screen bg-gradient-to-b from-[#9284a6] to-[#4ce15d] text-white'>
 				<TRPCReactProvider>
 					{/* Navbar */}
-					<AppBar position='static' color='transparent' elevation={0}>
+					<AppBar
+						position='static'
+						color='transparent'
+						elevation={0}>
 						<Container>
 							<Toolbar disableGutters>
-								<Typography variant='h6' sx={{ flexGrow: 1 }}>
+								<Typography
+									variant='h6'
+									sx={{ flexGrow: 1 }}>
 									Giving Network
 								</Typography>
 								<Button

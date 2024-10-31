@@ -38,14 +38,22 @@ export function RenderAsksIndex({
 						flexDirection: 'column',
 					}}>
 					<CardContent>
-						<Typography variant='h5' component='h2'>
+						<Typography
+							variant='h5'
+							component='h2'>
 							{ask.title}
 						</Typography>
-						<Typography variant='body2' color='text.secondary'>
+						<Typography
+							variant='body2'
+							color='text.secondary'>
 							{ask.description}
 						</Typography>
-						<Link href={`/asks/${ask.slug}` as Route} passHref>
-							<Button variant='contained' sx={{ mt: 2 }}>
+						<Link
+							href={`/asks/${ask.slug}` as Route}
+							passHref>
+							<Button
+								variant='contained'
+								sx={{ mt: 2 }}>
 								View Details
 							</Button>
 						</Link>
