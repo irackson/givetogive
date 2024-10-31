@@ -1,65 +1,56 @@
 {
 	"compilerOptions": {
-		"esModuleInterop": true,
-		"skipLibCheck": true,
-		"target": "es2022",
 		"allowJs": true,
-		"resolveJsonModule": true,
-		"moduleDetection": "force",
-		"isolatedModules": true,
-		"strict": true,
-		"noUncheckedIndexedAccess": true,
-		"noErrorTruncation": true,
-		"exactOptionalPropertyTypes": true,
-		"noImplicitAny": true,
-		"forceConsistentCasingInFileNames": true,
-		"noFallthroughCasesInSwitch": true,
-		"noImplicitOverride": true,
-		"noImplicitReturns": true,
-		"noImplicitThis": true,
-		"noPropertyAccessFromIndexSignature": true,
-		"noUncheckedSideEffectImports": true,
-		"pretty": true,
-		"strictBindCallApply": true,
-		"strictBuiltinIteratorReturn": true,
-		"strictFunctionTypes": true,
-		"strictNullChecks": true,
 		"alwaysStrict": true,
-		"suppressExcessPropertyErrors": false,
-		"suppressImplicitAnyIndexErrors": false,
-		"useUnknownInCatchVariables": true,
+		"baseUrl": ".",
 		"checkJs": true,
+		"esModuleInterop": true,
+		"exactOptionalPropertyTypes": true,
+		"forceConsistentCasingInFileNames": true,
+		"incremental": true,
+		"isolatedModules": true,
+		"jsx": "preserve",
 		"lib": [
 			"dom",
 			"dom.iterable",
 			"ES2022"
 		],
-		"noEmit": true,
 		"module": "ESNext",
+		"moduleDetection": "force",
 		"moduleResolution": "Bundler",
-		"jsx": "preserve",
+		"noEmit": true,
+		"noErrorTruncation": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitAny": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noImplicitThis": true,
+		"noPropertyAccessFromIndexSignature": true,
+		"noUncheckedIndexedAccess": true,
+		"noUncheckedSideEffectImports": true,
+		"paths": {
+			"code/*": [
+				"./src/*"
+			]
+		},
 		"plugins": [
 			{
 				"name": "next"
 			}
 		],
-		"incremental": true,
-		"baseUrl": ".",
-		"paths": {
-			"code/*": [
-				"./src/*"
-			]
-		}
+		"pretty": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"strict": true,
+		"strictBindCallApply": true,
+		"strictBuiltinIteratorReturn": true,
+		"strictFunctionTypes": true,
+		"strictNullChecks": true,
+		"suppressExcessPropertyErrors": false,
+		"suppressImplicitAnyIndexErrors": false,
+		"target": "es2022",
+		"useUnknownInCatchVariables": true
 	},
-	"include": [
-		".eslintrc.cjs",
-		"next-env.d.ts",
-		"**/*.ts",
-		"**/*.tsx",
-		"**/*.cjs",
-		"**/*.js",
-		".next/types/**/*.ts"
-	],
 	"exclude": [
 		"node_modules",
 		"chrome-debug-profile",
@@ -67,6 +58,19 @@
 		".next",
 		".vercel",
 		".vscode",
-		".drizzle",
+		".drizzle"
+	],
+	"include": [
+		".eslintrc.cjs",
+		"next-env.d.ts",
+		"**/*.ts",
+		"**/*.tsx",
+		"**/*.cjs",
+		"**/*.js",
+		".next/types/**/*.ts",
+		"drizzle.config.ts",
+		"tailwind.config.ts",
+		"postcss.config.cjs",
+		"prettier.config.js"
 	]
 }
