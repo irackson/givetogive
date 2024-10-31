@@ -43,13 +43,11 @@ export function RenderAsksIndex({
 						<Typography variant='body2' color='text.secondary'>
 							{ask.description}
 						</Typography>
-						<Button
-							variant='contained'
-							component={Link}
-							href={`/asks/${ask.slug}`}
-							sx={{ mt: 2 }}>
-							View Details
-						</Button>
+						<Link href={`/asks/${ask.slug}`} passHref>
+							<Button variant='contained' sx={{ mt: 2 }}>
+								View Details
+							</Button>
+						</Link>
 					</CardContent>
 				</Card>
 			))}

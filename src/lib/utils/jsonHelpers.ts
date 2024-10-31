@@ -2,7 +2,7 @@ export const stringifyCircularJSON = <T>(value: T) => {
 	const seen = new WeakSet();
 	return JSON.stringify(
 		value,
-		function (key, value: unknown) {
+		function (__key, value: unknown) {
 			if (typeof value === 'object' && value !== null) {
 				if (seen.has(value)) {
 					return '[Circular]';
@@ -28,9 +28,9 @@ export const irradiateCircularity = <T>(
 		if (withLog) {
 			console.error(
 				`Failed to irradiateCircularity: ${
-					e && typeof e === 'object' && 'message' in e
-						? String(e.message)
-						: 'unknown reason'
+					e && typeof e === 'object' && 'message' in e ?
+						String(e.message)
+					:	'unknown reason'
 				}. Returning undefined`,
 			);
 		}
@@ -49,9 +49,9 @@ export const objInObjOutOrJsonStringifiedToParsed = <const T>(value: T): T => {
 	} catch (e) {
 		console.error(
 			`Failed to JSON.parse non-string value (${value}). Returning value as is. Error: ${
-				e && typeof e === 'object' && 'message' in e
-					? String(e.message)
-					: 'unknown reason'
+				e && typeof e === 'object' && 'message' in e ?
+					String(e.message)
+				:	'unknown reason'
 			}`,
 		);
 		return value as T;
