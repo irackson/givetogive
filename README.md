@@ -6,4 +6,4 @@
 
 ## Installation
 
-> due to Next.js 15 Upgrade, run `npm install --legacy-peer-deps` for deps
+> due to Next.js 15 Upgrade, run `npm install --legacy-peer-deps` for dependencies
