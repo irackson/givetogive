@@ -28,15 +28,21 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "eslint: lint whole workspace",
 			"type": "eslint",
+			"group": "build",
 			"problemMatcher": [
 				"$eslint-stylish"
 			],
-			"label": "ESLINT",
-			"isBackground": true,
 			"runOptions": {
 				"runOn": "folderOpen"
 			},
+			"presentation": {
+				"reveal": "never",
+				"close": true,
+				"clear": true,
+				"revealProblems": "always"
+			}
 		}
 	],
 	"inputs": [

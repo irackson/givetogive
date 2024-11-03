@@ -4,7 +4,13 @@ const config = {
 	parserOptions: {
 		project: true,
 	},
-	plugins: ['@typescript-eslint', 'drizzle', 'deprecation', 'react-hooks'],
+	plugins: [
+		'@typescript-eslint',
+		'drizzle',
+		'deprecation',
+		'react-hooks',
+		'import',
+	],
 	extends: [
 		'next/core-web-vitals',
 		'plugin:@typescript-eslint/recommended-type-checked',
@@ -79,6 +85,15 @@ const config = {
 							"Use named imports like { useState } from 'react' instead.",
 					},
 				],
+			},
+		],
+		'import/no-named-as-default': 'off',
+		'import/no-duplicates': 'error',
+		'import/order': [
+			'warn',
+			{
+				'newlines-between': 'always',
+				'groups': [['builtin', 'external', 'internal']],
 			},
 		],
 	},
