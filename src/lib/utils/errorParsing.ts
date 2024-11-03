@@ -11,9 +11,9 @@ export function ensureFallbackMsg(
 ): typeof genericErrorMessage;
 
 export function ensureFallbackMsg(msg: string | undefined | null) {
-	return typeof msg === 'string' && msg.length > 0
-		? msg
-		: genericErrorMessage;
+	return typeof msg === 'string' && msg.length > 0 ?
+			msg
+		:	genericErrorMessage;
 }
 /////////////////////////////////////////////////////////////////////
 
@@ -43,12 +43,14 @@ export const parseUncaughtException = (
 					...(name && { name }),
 					...(stack && {
 						stack:
-							typeof stack === 'string'
-								? stack.split('\n').slice(1, 5)
-								: Array.isArray(stack) &&
-									  stack.every((s) => typeof s === 'string')
-									? stack.slice(1, 5)
-									: stack,
+							typeof stack === 'string' ?
+								stack.split('\n').slice(1, 5)
+							: (
+								Array.isArray(stack) &&
+								stack.every((s) => typeof s === 'string')
+							) ?
+								stack.slice(1, 5)
+							:	stack,
 					}),
 				},
 			}),
@@ -58,9 +60,9 @@ export const parseUncaughtException = (
 
 		return {
 			message: `Failed to parseUncaughtException: ${
-				e && typeof e === 'object' && 'message' in e
-					? String(e.message)
-					: 'unknown reason'
+				e && typeof e === 'object' && 'message' in e ?
+					String(e.message)
+				:	'unknown reason'
 			}. Returning message of 'undefined' (as string)`,
 		};
 	}

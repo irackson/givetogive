@@ -1,11 +1,7 @@
 import '@/styles/globals.css';
 
-import { GeistSans } from 'geist/font/sans';
-import { type Metadata } from 'next';
-
 import { env } from '@/env';
 import { TRPCReactProvider } from '@/trpc/react';
-
 import {
 	AppBar,
 	Box,
@@ -14,6 +10,8 @@ import {
 	Toolbar,
 	Typography,
 } from '@mui/material';
+import { GeistSans } from 'geist/font/sans';
+import { type Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
