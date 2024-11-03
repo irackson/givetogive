@@ -14,6 +14,7 @@ const config = {
 	rules: {
 		'@typescript-eslint/array-type': 'off',
 		'@typescript-eslint/consistent-type-definitions': 'warn',
+		'@typescript-eslint/dot-notation': 'off',
 		'@typescript-eslint/consistent-type-imports': [
 			'warn',
 			{
