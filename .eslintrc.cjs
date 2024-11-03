@@ -68,6 +68,19 @@ const config = {
 		'deprecation/deprecation': 'warn',
 		'react-hooks/rules-of-hooks': 'error',
 		'react-hooks/exhaustive-deps': 'warn',
+		'no-restricted-imports': [
+			'error',
+			{
+				paths: [
+					{
+						name: 'react',
+						importNames: ['default'],
+						message:
+							"Use named imports like { useState } from 'react' instead.",
+					},
+				],
+			},
+		],
 	},
 };
 module.exports = config;

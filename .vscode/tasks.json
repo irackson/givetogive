@@ -25,7 +25,18 @@
 			"label": "FOCUS_CHROME",
 			"type": "shell",
 			"command": "${input:focusChrome}",
-			"problemMatcher": [],
+			"problemMatcher": []
+		},
+		{
+			"type": "eslint",
+			"problemMatcher": [
+				"$eslint-stylish"
+			],
+			"label": "ESLINT",
+			"isBackground": true,
+			"runOptions": {
+				"runOn": "folderOpen"
+			},
 		}
 	],
 	"inputs": [
