@@ -1,10 +1,10 @@
 import { type Session } from 'next-auth';
-import React from 'react';
+import { createContext } from 'react';
 
 export interface NavContextType {
 	session: Session | null;
 }
 
-export const NavContext = React.createContext<NavContextType>({
+export const NavContext = createContext<NavContextType>({
 	session: null,
 });

@@ -10,6 +10,7 @@ const config = {
 		'deprecation',
 		'react-hooks',
 		'import',
+		'react',
 	],
 	extends: [
 		'next/core-web-vitals',
@@ -96,6 +97,8 @@ const config = {
 				'groups': [['builtin', 'external', 'internal']],
 			},
 		],
+		'react/jsx-uses-react': 'off',
+		'react/react-in-jsx-scope': 'off',
 	},
 };
 module.exports = config;
