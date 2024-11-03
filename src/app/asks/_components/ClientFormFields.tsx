@@ -26,7 +26,9 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 		title: searchParams.get('title') ?? '',
 		description: searchParams.get('description') ?? '',
 		estimatedMinutesToComplete:
-			estimatedMinutes ? parseInt(estimatedMinutes) : 0,
+			typeof estimatedMinutes === 'string' ?
+				parseInt(estimatedMinutes)
+			:	0,
 	};
 
 	// Initialize the createAsk mutation
@@ -70,11 +72,7 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 			// 	// User is logged in: submit the form
 			// }
 
-			if (value) {
-				createAskMutation.mutate(value);
-			} else {
-				console.log('Why is this submitting with no value?');
-			}
+			createAskMutation.mutate(value);
 		},
 	});
 

@@ -15,7 +15,7 @@ export default async function AsksIndexPage() {
 				component='h1'
 				align='center'
 				gutterBottom>
-				{userId ? `Your Requests` : `All Requests`}
+				{userId != undefined ? `Your Requests` : `All Requests`}
 			</Typography>
 			<Box
 				display='flex'
@@ -24,7 +24,9 @@ export default async function AsksIndexPage() {
 				<CreateAskFormToggle />
 			</Box>
 			<RenderAsksIndex
-				filterProps={userId ? { createdById: userId } : undefined}
+				filterProps={
+					userId != undefined ? { createdById: userId } : undefined
+				}
 			/>
 		</Container>
 	);

@@ -1,3 +1,5 @@
+import { isWithMessage } from './errorParsing';
+
 export const stringifyCircularJSON = <T>(value: T) => {
 	const seen = new WeakSet();
 	return JSON.stringify(
@@ -28,9 +30,7 @@ export const irradiateCircularity = <T>(
 		if (withLog) {
 			console.error(
 				`Failed to irradiateCircularity: ${
-					e && typeof e === 'object' && 'message' in e ?
-						String(e.message)
-					:	'unknown reason'
+					isWithMessage(e) ? e.message : 'unknown reason'
 				}. Returning undefined`,
 			);
 		}
@@ -49,9 +49,7 @@ export const objInObjOutOrJsonStringifiedToParsed = <const T>(value: T): T => {
 	} catch (e) {
 		console.error(
 			`Failed to JSON.parse non-string value (${value}). Returning value as is. Error: ${
-				e && typeof e === 'object' && 'message' in e ?
-					String(e.message)
-				:	'unknown reason'
+				isWithMessage(e) ? e.message : 'unknown reason'
 			}`,
 		);
 		return value as T;

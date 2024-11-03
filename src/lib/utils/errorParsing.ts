@@ -25,8 +25,9 @@ export interface SomeObjWithMessage {
 }
 export const isWithMessage = (e: unknown): e is SomeObjWithMessage =>
 	Boolean(
-		e &&
+		Boolean(e) &&
 			typeof e === 'object' &&
+			e !== null &&
 			'message' in e &&
 			typeof e.message === 'string',
 	);
@@ -38,10 +39,10 @@ export const parseUncaughtException = (
 		const { message, name, stack } = someObjWithMessage;
 		return {
 			message,
-			...((name ?? stack) && {
+			...((name != undefined || stack != undefined) && {
 				cause: {
-					...(name && { name }),
-					...(stack && {
+					...(name != undefined && { name }),
+					...(stack != undefined && {
 						stack:
 							typeof stack === 'string' ?
 								stack.split('\n').slice(1, 5)
@@ -60,9 +61,7 @@ export const parseUncaughtException = (
 
 		return {
 			message: `Failed to parseUncaughtException: ${
-				e && typeof e === 'object' && 'message' in e ?
-					String(e.message)
-				:	'unknown reason'
+				isWithMessage(e) ? e.message : 'unknown reason'
 			}. Returning message of 'undefined' (as string)`,
 		};
 	}

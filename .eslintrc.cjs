@@ -44,7 +44,7 @@ const config = {
 			'warn',
 			'record',
 		],
-		'@typescript-eslint/strict-boolean-expressions': 'warn',
+		'@typescript-eslint/strict-boolean-expressions': 'off',
 		'@typescript-eslint/no-floating-promises': 'warn',
 		'@typescript-eslint/no-misused-promises': [
 			'error',
@@ -100,5 +100,6 @@ const config = {
 		'react/jsx-uses-react': 'off',
 		'react/react-in-jsx-scope': 'off',
 	},
+	ignorePatterns: ['chrome-debug-profile'],
 };
 module.exports = config;
