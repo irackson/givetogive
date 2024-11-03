@@ -1,11 +1,10 @@
-//@ts-check
 /** @type {import("eslint").Linter.Config} */
 const config = {
 	parser: '@typescript-eslint/parser',
 	parserOptions: {
 		project: true,
 	},
-	plugins: ['@typescript-eslint', 'drizzle'],
+	plugins: ['@typescript-eslint', 'drizzle', 'deprecation'],
 	extends: [
 		'next/core-web-vitals',
 		'plugin:@typescript-eslint/recommended-type-checked',
@@ -29,12 +28,17 @@ const config = {
 				argsIgnorePattern: '^__',
 				caughtErrors: 'all',
 				caughtErrorsIgnorePattern: '^__',
-				// destructuredArrayIgnorePattern: '^_',
-				// varsIgnorePattern: '^__',
 				ignoreRestSiblings: true,
 			},
 		],
 		'@typescript-eslint/require-await': 'off',
+		'@typescript-eslint/no-explicit-any': 'warn',
+		'@typescript-eslint/consistent-indexed-object-style': [
+			'warn',
+			'record',
+		],
+		'@typescript-eslint/strict-boolean-expressions': 'warn',
+		'@typescript-eslint/no-floating-promises': 'warn',
 		'@typescript-eslint/no-misused-promises': [
 			'error',
 			{
@@ -61,6 +65,7 @@ const config = {
 				drizzleObjectName: ['db', 'ctx.db'],
 			},
 		],
+		'deprecation/deprecation': 'warn',
 	},
 };
 module.exports = config;
