@@ -4,7 +4,7 @@ const config = {
 	parserOptions: {
 		project: true,
 	},
-	plugins: ['@typescript-eslint', 'drizzle', 'deprecation'],
+	plugins: ['@typescript-eslint', 'drizzle', 'deprecation', 'react-hooks'],
 	extends: [
 		'next/core-web-vitals',
 		'plugin:@typescript-eslint/recommended-type-checked',
@@ -66,6 +66,8 @@ const config = {
 			},
 		],
 		'deprecation/deprecation': 'warn',
+		'react-hooks/rules-of-hooks': 'error',
+		'react-hooks/exhaustive-deps': 'warn',
 	},
 };
 module.exports = config;
