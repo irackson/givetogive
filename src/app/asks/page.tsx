@@ -1,5 +1,5 @@
+import { getServerAuthSession } from '@/server/auth';
 import { Box, Container, Typography } from '@mui/material';
-import { getServerAuthSession } from 'code/server/auth';
 import { CreateAskFormToggle } from './_components/CreateAskFormToggle';
 import { RenderAsksIndex } from './_components/RenderAsksIndex';
 

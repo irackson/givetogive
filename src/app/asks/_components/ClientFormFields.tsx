@@ -1,12 +1,12 @@
 'use client';
 
+import { varNameToHumanReadable } from '@/lib/utils/string-formatting';
+import type { AppRouter } from '@/server/api/root';
+import { api } from '@/trpc/react';
 import { Button, TextField } from '@mui/material';
 import { useForm } from '@tanstack/react-form';
 import { zodValidator } from '@tanstack/zod-form-adapter';
 import type { inferRouterInputs } from '@trpc/server';
-import { varNameToHumanReadable } from 'code/lib/utils/string-formatting';
-import type { AppRouter } from 'code/server/api/root';
-import { api } from 'code/trpc/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 

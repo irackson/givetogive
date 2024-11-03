@@ -1,9 +1,9 @@
 'use client';
 
+import type { AppRouter } from '@/server/api/root';
+import { api } from '@/trpc/react';
 import { Box, Button, Card, CardContent, Typography } from '@mui/material';
 import type { inferRouterInputs } from '@trpc/server';
-import type { AppRouter } from 'code/server/api/root';
-import { api } from 'code/trpc/react';
 import type { Route } from 'next';
 import Link from 'next/link';
 

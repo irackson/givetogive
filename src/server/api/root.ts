@@ -1,5 +1,5 @@
-import { askRouter } from 'code/server/api/routers/ask';
-import { createCallerFactory, createTRPCRouter } from 'code/server/api/trpc';
+import { askRouter } from '@/server/api/routers/ask';
+import { createCallerFactory, createTRPCRouter } from '@/server/api/trpc';
 
 export const appRouter = createTRPCRouter({
 	ask: askRouter,

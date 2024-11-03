@@ -1,10 +1,10 @@
-import { ensureErrMessage } from 'code/lib/utils/errorParsing';
+import { ensureErrMessage } from '@/lib/utils/errorParsing';
 import {
 	createTRPCRouter,
 	protectedProcedure,
 	publicProcedure,
-} from 'code/server/api/trpc';
-import { asks, insertAskSchema, selectAskSchema } from 'code/server/db/schema';
+} from '@/server/api/trpc';
+import { asks, insertAskSchema, selectAskSchema } from '@/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 

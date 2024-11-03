@@ -1,6 +1,6 @@
+import { getServerAuthSession } from '@/server/auth';
+import { HydrateClient } from '@/trpc/server';
 import { Box, Button, Typography } from '@mui/material';
-import { getServerAuthSession } from 'code/server/auth';
-import { HydrateClient } from 'code/trpc/server';
 import Link from 'next/link';
 
 export default async function Home() {

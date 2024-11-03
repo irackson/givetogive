@@ -29,7 +29,7 @@
 		"noUncheckedIndexedAccess": true,
 		"noUncheckedSideEffectImports": true,
 		"paths": {
-			"code/*": [
+			"@/*": [
 				"./src/*"
 			]
 		},
@@ -57,7 +57,7 @@
 		".git",
 		".next",
 		".vercel",
-		".vscode",
+		".vs@",
 		".drizzle"
 	],
 	"include": [

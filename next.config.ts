@@ -1,4 +1,4 @@
-import { env } from 'code/env';
+import { env } from '@/env';
 import type { NextConfig } from 'next';
 
 /**

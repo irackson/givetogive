@@ -1,1 +1,1 @@
-declare module 'code/styles/globals.css' {}
+declare module '@/styles/globals.css' {}

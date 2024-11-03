@@ -1,10 +1,10 @@
-import 'code/styles/globals.css';
+import '@/styles/globals.css';
 
 import { GeistSans } from 'geist/font/sans';
 import { type Metadata } from 'next';
 
-import { env } from 'code/env';
-import { TRPCReactProvider } from 'code/trpc/react';
+import { env } from '@/env';
+import { TRPCReactProvider } from '@/trpc/react';
 
 import {
 	AppBar,

@@ -1,7 +1,7 @@
+import { ensureErrMessage } from '@/lib/utils/errorParsing';
+import { api } from '@/trpc/server';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import { Box, Button, Container, Typography } from '@mui/material';
-import { ensureErrMessage } from 'code/lib/utils/errorParsing';
-import { api } from 'code/trpc/server';
 
 export default async function AskDetailPage(props: {
 	params: Promise<{ slugOrId: string }>;
