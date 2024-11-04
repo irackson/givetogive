@@ -12,6 +12,7 @@ import {
 import { GeistSans } from 'geist/font/sans';
 import { type Metadata } from 'next';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 export const metadata: Metadata = {
 	title:
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
 	children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: Readonly<{ children: ReactNode }>) {
 	return (
 		<html
 			lang='en'

@@ -52,7 +52,7 @@ const config = {
 			'error',
 			{
 				checksVoidReturn: {
-					attributes: false,
+					attributes: true,
 				},
 			},
 		],
@@ -89,9 +89,9 @@ const config = {
 				paths: [
 					{
 						name: 'react',
-						importNames: ['default', 'ReactNode'],
+						importNames: ['default'],
 						message:
-							"Use named imports for types like `{ type ReactNode }` from 'react' instead of using the default import.",
+							"Use named imports from 'react' instead of the default import.",
 					},
 				],
 			},
@@ -116,6 +116,9 @@ const config = {
 		'chrome-debug-profile',
 		'package.json',
 		'package-lock.json',
+		'node_modules/',
+		'.next',
+		'drizzle/',
 	],
 };
 module.exports = config;
