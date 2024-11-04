@@ -1,6 +1,5 @@
-import '@/styles/globals.css';
-
 import { env } from '@/env';
+import '@/styles/globals.css';
 import { TRPCReactProvider } from '@/trpc/react';
 import {
 	AppBar,

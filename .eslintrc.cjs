@@ -17,6 +17,7 @@ const config = {
 		'next/core-web-vitals',
 		'plugin:@typescript-eslint/recommended-type-checked',
 		'plugin:@typescript-eslint/stylistic-type-checked',
+		'plugin:react/recommended',
 	],
 	rules: {
 		'@typescript-eslint/array-type': 'off',
@@ -75,16 +76,22 @@ const config = {
 		],
 		'deprecation/deprecation': 'warn',
 		'react-hooks/rules-of-hooks': 'error',
-		'react-hooks/exhaustive-deps': 'warn',
+		'react-hooks/exhaustive-deps': [
+			'warn',
+			{
+				additionalHooks:
+					'(useRecoilCallback|useRecoilValue|useTrpcMutation|useTrpcQuery|useQuery|useMutation|useInfiniteQuery|useQueries)',
+			},
+		],
 		'no-restricted-imports': [
 			'error',
 			{
 				paths: [
 					{
 						name: 'react',
-						importNames: ['default'],
+						importNames: ['default', 'ReactNode'],
 						message:
-							"Use named imports like { useState } from 'react' instead.",
+							"Use named imports for types like `{ type ReactNode }` from 'react' instead of using the default import.",
 					},
 				],
 			},
@@ -95,7 +102,11 @@ const config = {
 			'warn',
 			{
 				'newlines-between': 'always',
-				'groups': [['builtin', 'external', 'internal']],
+				'groups': [
+					['builtin', 'external', 'internal'],
+					['parent', 'sibling', 'index'],
+				],
+				'warnOnUnassignedImports': true,
 			},
 		],
 		'react/jsx-uses-react': 'off',
