@@ -2,7 +2,8 @@
 const config = {
 	parser: '@typescript-eslint/parser',
 	parserOptions: {
-		project: true,
+		project: './tsconfig.json',
+		extraFileExtensions: ['.json'],
 	},
 	plugins: [
 		'@typescript-eslint',
@@ -100,6 +101,10 @@ const config = {
 		'react/jsx-uses-react': 'off',
 		'react/react-in-jsx-scope': 'off',
 	},
-	ignorePatterns: ['chrome-debug-profile'],
+	ignorePatterns: [
+		'chrome-debug-profile',
+		'package.json',
+		'package-lock.json',
+	],
 };
 module.exports = config;
