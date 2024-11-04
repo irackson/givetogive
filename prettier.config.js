@@ -13,6 +13,15 @@ const config = {
 	bracketSpacing: true,
 	quoteProps: 'consistent',
 	singleAttributePerLine: true,
+	trailingComma: 'all',
+	overrides: [
+		{
+			files: '*.html',
+			options: {
+				htmlWhitespaceSensitivity: 'ignore',
+			},
+		},
+	],
 };
 
 export default config;
