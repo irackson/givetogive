@@ -41,6 +41,7 @@ export default function RootLayout({
 							<Toolbar disableGutters>
 								<Typography
 									variant='h6'
+									color={'goldenrod'}
 									sx={{ flexGrow: 1 }}>
 									Giving Network
 								</Typography>
