@@ -1,20 +1,19 @@
-import { DrizzleAdapter } from '@auth/drizzle-adapter';
-import {
-	getServerSession,
-	type DefaultSession,
-	type NextAuthOptions,
-} from 'next-auth';
-import { type Adapter } from 'next-auth/adapters';
-import DiscordProvider from 'next-auth/providers/discord';
-
-import { env } from 'code/env';
-import { db } from 'code/server/db';
+import { env } from '@/env';
+import { db } from '@/server/db';
 import {
 	accounts,
 	sessions,
 	users,
 	verificationTokens,
-} from 'code/server/db/schema';
+} from '@/server/db/schema';
+import { DrizzleAdapter } from '@auth/drizzle-adapter';
+import {
+	type DefaultSession,
+	type NextAuthOptions,
+	getServerSession,
+} from 'next-auth';
+import { type Adapter } from 'next-auth/adapters';
+import DiscordProvider from 'next-auth/providers/discord';
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`

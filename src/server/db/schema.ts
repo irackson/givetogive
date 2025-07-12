@@ -9,16 +9,13 @@ import {
 	timestamp,
 	varchar,
 } from 'drizzle-orm/pg-core';
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { type AdapterAccount } from 'next-auth/adapters';
 
-/**
- * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
- * database instance for multiple projects.
- *
- * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
- */
 export const createTable = pgTableCreator((name) => `givetogive_${name}`);
 
+//! TODO fix with https://chatgpt.com/c/6726f09e-d8b4-800d-9645-cc1ba73bce8c after drizzle fixes db:migrate error
+// eslint-disable-next-line deprecation/deprecation
 export const asks = createTable(
 	'ask',
 	{
@@ -52,6 +49,21 @@ export const asks = createTable(
 		titleIndex: index('ask_title_idx').on(ask.title),
 	}),
 );
+export const insertAskSchema = createInsertSchema(asks, {
+	title: (schema) =>
+		schema.title.min(3, 'Title must be at least 3 characters long'),
+	description: (schema) =>
+		schema.description.min(
+			10,
+			'Description must be at least 10 characters long',
+		),
+	estimatedMinutesToComplete: (schema) =>
+		schema.estimatedMinutesToComplete
+			.int()
+			.positive('Must be a positive number'),
+});
+
+export const selectAskSchema = createSelectSchema(asks);
 
 export const asksRelations = relations(asks, ({ one }) => ({
 	createdBy: one(users, {
@@ -63,26 +75,6 @@ export const asksRelations = relations(asks, ({ one }) => ({
 		references: [users.id],
 	}),
 }));
-export const posts = createTable(
-	'post',
-	{
-		id: serial('id').primaryKey(),
-		name: varchar('name', { length: 256 }),
-		createdById: varchar('created_by', { length: 255 })
-			.notNull()
-			.references(() => users.id),
-		createdAt: timestamp('created_at', { withTimezone: true })
-			.default(sql`CURRENT_TIMESTAMP`)
-			.notNull(),
-		updatedAt: timestamp('updated_at', { withTimezone: true }).$onUpdate(
-			() => new Date(),
-		),
-	},
-	(example) => ({
-		createdByIdIdx: index('post_created_by_idx').on(example.createdById),
-		nameIndex: index('post_name_idx').on(example.name),
-	}),
-);
 
 export const users = createTable('user', {
 	id: varchar('id', { length: 255 })
@@ -102,6 +94,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	accounts: many(accounts),
 }));
 
+// eslint-disable-next-line deprecation/deprecation
 export const accounts = createTable(
 	'account',
 	{
@@ -135,6 +128,7 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 	user: one(users, { fields: [accounts.userId], references: [users.id] }),
 }));
 
+// eslint-disable-next-line deprecation/deprecation
 export const sessions = createTable(
 	'session',
 	{
@@ -158,6 +152,7 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
 	user: one(users, { fields: [sessions.userId], references: [users.id] }),
 }));
 
+// eslint-disable-next-line deprecation/deprecation
 export const verificationTokens = createTable(
 	'verification_token',
 	{

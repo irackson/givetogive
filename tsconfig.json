@@ -1,34 +1,67 @@
 {
 	"compilerOptions": {
-		/* Base Options: */
-		"esModuleInterop": true,
-		"skipLibCheck": true,
-		"target": "es2022",
 		"allowJs": true,
-		"resolveJsonModule": true,
-		"moduleDetection": "force",
-		"isolatedModules": true,
-
-		/* Strictness */
-		"strict": true,
-		"noUncheckedIndexedAccess": true,
-		"checkJs": true,
-
-		/* Bundled projects */
-		"lib": ["dom", "dom.iterable", "ES2022"],
-		"noEmit": true,
-		"module": "ESNext",
-		"moduleResolution": "Bundler",
-		"jsx": "preserve",
-		"plugins": [{ "name": "next" }],
-		"incremental": true,
-
-		/* Path Aliases */
+		"alwaysStrict": true,
 		"baseUrl": ".",
+		"checkJs": true,
+		"esModuleInterop": true,
+		"exactOptionalPropertyTypes": true,
+		"forceConsistentCasingInFileNames": true,
+		"incremental": true,
+		"isolatedModules": true,
+		"jsx": "preserve",
+		"lib": [
+			"dom",
+			"dom.iterable",
+			"ES2022"
+		],
+		"module": "ESNext",
+		"moduleDetection": "force",
+		"moduleResolution": "Bundler",
+		"noEmit": true,
+		"disableSizeLimit": true,
+		"noErrorTruncation": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitAny": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noImplicitThis": true,
+		"noPropertyAccessFromIndexSignature": true,
+		"noUncheckedIndexedAccess": true,
+		"noUncheckedSideEffectImports": true,
 		"paths": {
-			"code/*": ["./src/*"]
-		}
+			"@/*": [
+				"./src/*"
+			]
+		},
+		"plugins": [
+			{
+				"name": "next"
+			}
+		],
+		"pretty": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"strict": true,
+		"strictBindCallApply": true,
+		"strictBuiltinIteratorReturn": true,
+		"strictFunctionTypes": true,
+		"strictNullChecks": true,
+		"suppressExcessPropertyErrors": false,
+		"suppressImplicitAnyIndexErrors": false,
+		"target": "es2022",
+		"useUnknownInCatchVariables": true
 	},
+	"exclude": [
+		"node_modules",
+		"**/node_modules/*",
+		"chrome-debug-profile",
+		".git",
+		".next",
+		".vercel",
+		".vs@",
+		".drizzle"
+	],
 	"include": [
 		".eslintrc.cjs",
 		"next-env.d.ts",
@@ -36,7 +69,10 @@
 		"**/*.tsx",
 		"**/*.cjs",
 		"**/*.js",
-		".next/types/**/*.ts"
-	],
-	"exclude": ["node_modules"]
+		".next/types/**/*.ts",
+		"drizzle.config.ts",
+		"tailwind.config.ts",
+		"postcss.config.cjs",
+		"prettier.config.js"
+	]
 }

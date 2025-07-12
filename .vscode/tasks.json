@@ -25,7 +25,32 @@
 			"label": "FOCUS_CHROME",
 			"type": "shell",
 			"command": "${input:focusChrome}",
-			"problemMatcher": [],
+			"problemMatcher": []
+		},
+		{
+			"label": "ESLINT",
+			"type": "eslint",
+			"group": "build",
+			"problemMatcher": [
+				"$eslint-stylish"
+			],
+			"runOptions": {
+				"runOn": "folderOpen",
+				"instanceLimit": 1,
+			},
+			"icon": {
+				"dark": "./icons/eslint-dark.svg",
+				"light": "./icons/eslint-light.svg"
+			},
+			"presentation": {
+				"echo": false,
+				"showReuseMessage": false,
+				"clear": true,
+				"reveal": "silent",
+				"focus": false
+			},
+			"detail": "custom lint workspace task",
+			"promptOnClose": false,
 		}
 	],
 	"inputs": [

@@ -1,19 +1,33 @@
-import { Container, Typography } from '@mui/material';
-import { RenderAsksIndex } from 'code/app/_components/ask';
-import { getServerAuthSession } from 'code/server/auth';
+import { getServerAuthSession } from '@/server/auth';
+import { Box, Container, Typography } from '@mui/material';
+
+import { CreateAskFormToggle } from './_components/CreateAskFormToggle';
+import { RenderAsksIndex } from './_components/RenderAsksIndex';
 
 export default async function AsksIndexPage() {
-	// Fetch session to get the logged-in user's ID
 	const session = await getServerAuthSession();
-	const userId = session?.user?.id; // `userId` is defined if the user is logged in
+	const userId = session?.user?.id;
 
 	return (
 		<Container sx={{ py: 4 }}>
-			<Typography variant="h4" component="h1" align="center" gutterBottom>
-				Open Requests
+			<Typography
+				variant='h4'
+				component='h1'
+				align='center'
+				gutterBottom>
+				{userId != undefined ? `Your Requests` : `All Requests`}
 			</Typography>
-			{/* Pass `userId` as `createdByUserId` if the user is logged in */}
-			<RenderAsksIndex createdByUserId={userId} />
+			<Box
+				display='flex'
+				justifyContent='center'
+				my={2}>
+				<CreateAskFormToggle />
+			</Box>
+			<RenderAsksIndex
+				filterProps={
+					userId != undefined ? { createdById: userId } : undefined
+				}
+			/>
 		</Container>
 	);
 }
