@@ -3,7 +3,13 @@
 import { varNameToHumanReadable } from '@/lib/utils/string-formatting';
 import type { AppRouter } from '@/server/api/root';
 import { api } from '@/trpc/react';
-import { Button, TextField } from '@mui/material';
+import {
+	Button,
+	FormHelperText,
+	Slider,
+	TextField,
+	Typography,
+} from '@mui/material';
 import { useForm } from '@tanstack/react-form';
 import { zodValidator } from '@tanstack/zod-form-adapter';
 import type { inferRouterInputs } from '@trpc/server';
@@ -22,9 +28,12 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 
 	// Extract default values from URL parameters
 	const estimatedMinutes = searchParams.get('estimatedMinutesToComplete');
+	const difficultyParam = searchParams.get('difficulty');
 	const defaultValues: FormValues = {
 		title: searchParams.get('title') ?? '',
 		description: searchParams.get('description') ?? '',
+		difficulty:
+			typeof difficultyParam === 'string' ? parseInt(difficultyParam) : 1,
 		estimatedMinutesToComplete:
 			typeof estimatedMinutes === 'string' ?
 				parseInt(estimatedMinutes)
@@ -58,6 +67,7 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 						message: 'The title cannot solely consist of numbers',
 					}),
 				description: z.string().min(10),
+				difficulty: z.number().int().min(1).max(5),
 				estimatedMinutesToComplete: z.number().int().min(1),
 			}),
 		},
@@ -76,11 +86,12 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 		},
 	});
 
-	// Helper function to serialize form values into URL parameters
 	function serializeFormValues(values: FormValues) {
+		// Helper function to serialize form values into URL parameters
 		const params = new URLSearchParams();
 		params.set('title', values.title);
 		params.set('description', values.description);
+		params.set('difficulty', values.difficulty.toString());
 		params.set(
 			'estimatedMinutesToComplete',
 			values.estimatedMinutesToComplete.toString(),
@@ -165,6 +176,38 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 						fullWidth
 						margin='normal'
 					/>
+				)}
+			/>
+			<Field
+				name='difficulty'
+				children={({
+					name,
+					state: {
+						value,
+						meta: { errors, isTouched },
+					},
+					handleChange,
+				}) => (
+					<>
+						<Typography gutterBottom>
+							{varNameToHumanReadable(name)}
+						</Typography>
+						<Slider
+							value={value}
+							onChange={(_, newValue) =>
+								handleChange(newValue as number)
+							}
+							min={1}
+							max={5}
+							step={1}
+							valueLabelDisplay='auto'
+						/>
+						{isTouched && errors.length > 0 && (
+							<FormHelperText error>
+								{errors.join(', ')}
+							</FormHelperText>
+						)}
+					</>
 				)}
 			/>
 			<Button
