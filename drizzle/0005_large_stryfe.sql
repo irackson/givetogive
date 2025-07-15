@@ -1,0 +1,1 @@
+ALTER TABLE "givetogive_ask" ALTER COLUMN "difficulty" DROP DEFAULT;

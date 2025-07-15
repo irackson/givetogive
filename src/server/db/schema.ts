@@ -22,11 +22,11 @@ export const asks = createTable(
 		id: serial('id').primaryKey(),
 		slug: varchar('slug', { length: 256 }).notNull().unique(),
 		title: varchar('title', { length: 256 }).notNull(),
-	description: text('description').notNull(),
-	difficulty: integer('difficulty').notNull().default(1),
-	estimatedMinutesToComplete: integer(
-		'estimated_minutes_to_complete',
-	).notNull(),
+		description: text('description').notNull(),
+		difficulty: integer('difficulty').notNull(),
+		estimatedMinutesToComplete: integer(
+			'estimated_minutes_to_complete',
+		).notNull(),
 		status: varchar('status', { length: 50 })
 			.notNull()
 			.$type<'not_started' | 'in_progress' | 'complete'>()
