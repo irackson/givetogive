@@ -119,6 +119,7 @@ const config = {
 		'node_modules/',
 		'.next',
 		'drizzle/',
+		'**/*.md',
 	],
 };
 module.exports = config;
