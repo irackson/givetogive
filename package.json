@@ -11,6 +11,7 @@
 		"db:migrate_prod": "DOTENV_CONFIG_PATH=.env.production.hosted npx drizzle-kit migrate",
 		"db:push": "drizzle-kit push",
 		"db:studio": "open -a 'Google Chrome' https://local.drizzle.studio && drizzle-kit studio --config=drizzle.config.ts",
+		"db:studio_prod": "open -a 'Google Chrome' https://local.drizzle.studio && DOTENV_CONFIG_PATH=.env.production.hosted drizzle-kit studio --config=drizzle.config.ts",
 		"postinstall": "npm install -g dotenv-cli"
 	},
 	"dependencies": {
