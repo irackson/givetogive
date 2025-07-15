@@ -86,12 +86,13 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 		},
 	});
 
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	function serializeFormValues(values: FormValues) {
 		// Helper function to serialize form values into URL parameters
 		const params = new URLSearchParams();
 		params.set('title', values.title);
 		params.set('description', values.description);
-		params.set('difficulty', values.difficulty.toString());
+		params.set('difficulty', String(values.difficulty));
 		params.set(
 			'estimatedMinutesToComplete',
 			values.estimatedMinutesToComplete.toString(),
@@ -194,7 +195,7 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 						</Typography>
 						<Slider
 							value={value}
-							onChange={(_, newValue) =>
+							onChange={(__e, newValue) =>
 								handleChange(newValue as number)
 							}
 							min={1}
