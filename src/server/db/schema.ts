@@ -14,7 +14,7 @@ import { type AdapterAccount } from 'next-auth/adapters';
 
 export const createTable = pgTableCreator((name) => `givetogive_${name}`);
 
-//! TODO fix with https://chatgpt.com/c/6726f09e-d8b4-800d-9645-cc1ba73bce8c after drizzle fixes db:migrate error
+//! TODO fix with https://chatgpt.com/c/6726f09e-d8b4-800d-9645-cc1ba73bce8c after drizzle fixes db:generate / db:migrate error ("undefined" is not valid JSON)
 // eslint-disable-next-line deprecation/deprecation
 export const asks = createTable(
 	'ask',
@@ -48,8 +48,10 @@ export const asks = createTable(
 		createdByIdIdx: index('ask_created_by_idx').on(ask.createdById),
 		slugIndex: index('asks_slug_idx').on(ask.slug),
 		titleIndex: index('ask_title_idx').on(ask.title),
+		difficultyIndex: index('ask_difficulty_idx').on(ask.difficulty),
 	}),
 );
+
 export const insertAskSchema = createInsertSchema(asks, {
 	title: (schema) =>
 		schema.title.min(3, 'Title must be at least 3 characters long'),
