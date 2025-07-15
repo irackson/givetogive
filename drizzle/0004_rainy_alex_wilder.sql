@@ -1,0 +1,1 @@
+ALTER TABLE "givetogive_ask" ADD COLUMN "difficulty" integer DEFAULT 1 NOT NULL;

@@ -14,13 +14,14 @@ export const askRouter = createTRPCRouter({
 			insertAskSchema.pick({
 				title: true,
 				description: true,
+				difficulty: true,
 				estimatedMinutesToComplete: true,
 			}),
 		)
 		.mutation(
 			async ({
 				ctx,
-				input: { title, description, estimatedMinutesToComplete },
+				input: { title, description, difficulty, estimatedMinutesToComplete },
 			}) => {
 				const newlyCreatedSlug = title
 					.toLowerCase()
@@ -31,6 +32,7 @@ export const askRouter = createTRPCRouter({
 						title,
 						slug: newlyCreatedSlug,
 						description,
+						difficulty,
 						estimatedMinutesToComplete,
 						status: 'not_started',
 						createdById: ctx.session.user.id,

@@ -22,10 +22,11 @@ export const asks = createTable(
 		id: serial('id').primaryKey(),
 		slug: varchar('slug', { length: 256 }).notNull().unique(),
 		title: varchar('title', { length: 256 }).notNull(),
-		description: text('description').notNull(),
-		estimatedMinutesToComplete: integer(
-			'estimated_minutes_to_complete',
-		).notNull(),
+	description: text('description').notNull(),
+	difficulty: integer('difficulty').notNull().default(1),
+	estimatedMinutesToComplete: integer(
+		'estimated_minutes_to_complete',
+	).notNull(),
 		status: varchar('status', { length: 50 })
 			.notNull()
 			.$type<'not_started' | 'in_progress' | 'complete'>()
@@ -57,6 +58,11 @@ export const insertAskSchema = createInsertSchema(asks, {
 			10,
 			'Description must be at least 10 characters long',
 		),
+	difficulty: (schema) =>
+		schema.difficulty
+			.int()
+			.min(1, 'Difficulty must be at least 1')
+			.max(5, 'Difficulty must be at most 5'),
 	estimatedMinutesToComplete: (schema) =>
 		schema.estimatedMinutesToComplete
 			.int()
