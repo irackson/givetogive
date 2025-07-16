@@ -2,47 +2,12 @@
   "version": "7",
   "dialect": "postgresql",
   "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1729890622205,
-      "tag": "0000_massive_random",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1729971587576,
-      "tag": "0001_nifty_legion",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1729974175913,
-      "tag": "0002_strong_charles_xavier",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1729997030579,
-      "tag": "0003_overrated_piledriver",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1752541403080,
-      "tag": "0004_rainy_alex_wilder",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1752554965689,
-      "tag": "0005_large_stryfe",
-      "breakpoints": true
-    }
+    { "idx": 0, "version": "7", "when": 1729890622205, "tag": "0000_massive_random", "breakpoints": true },
+    { "idx": 1, "version": "7", "when": 1729971587576, "tag": "0001_nifty_legion", "breakpoints": true },
+    { "idx": 2, "version": "7", "when": 1729974175913, "tag": "0002_strong_charles_xavier", "breakpoints": true },
+    { "idx": 3, "version": "7", "when": 1729997030579, "tag": "0003_overrated_piledriver", "breakpoints": true },
+    { "idx": 4, "version": "7", "when": 1752541403080, "tag": "0004_rainy_alex_wilder", "breakpoints": true },
+    { "idx": 5, "version": "7", "when": 1752554965689, "tag": "0005_large_stryfe", "breakpoints": true },
+    { "idx": 6, "version": "7", "when": 1752600000000, "tag": "0006_melodic_gorilla_man", "breakpoints": true }
   ]
 }

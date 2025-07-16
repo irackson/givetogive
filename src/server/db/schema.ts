@@ -90,12 +90,17 @@ export const users = createTable('user', {
 		.primaryKey()
 		.$defaultFn(() => crypto.randomUUID()),
 	name: varchar('name', { length: 255 }),
-	email: varchar('email', { length: 255 }).notNull(),
-	emailVerified: timestamp('email_verified', {
-		mode: 'date',
-		withTimezone: true,
-	}).default(sql`CURRENT_TIMESTAMP`),
-	image: varchar('image', { length: 255 }),
+        email: varchar('email', { length: 255 }).notNull(),
+        hashedPassword: varchar('hashed_password', { length: 255 }),
+        emailVerified: timestamp('email_verified', {
+                mode: 'date',
+                withTimezone: true,
+        }).default(sql`CURRENT_TIMESTAMP`),
+        image: varchar('image', { length: 255 }),
+});
+
+export const insertUserSchema = createInsertSchema(users, {
+        email: (schema) => schema.email.email(),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({
