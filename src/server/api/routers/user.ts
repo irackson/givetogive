@@ -9,7 +9,7 @@ export const userRouter = createTRPCRouter({
 		.input(
 			insertUserSchema.pick({ email: true }).extend({
 				password: z.string().min(8),
-				name: z.string().optional(),
+				name: z.string().min(1, 'Name is required'),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
