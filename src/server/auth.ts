@@ -14,6 +14,9 @@ import {
 } from 'next-auth';
 import { type Adapter } from 'next-auth/adapters';
 import DiscordProvider from 'next-auth/providers/discord';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import bcrypt from 'bcryptjs';
+import { eq } from 'drizzle-orm';
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -57,11 +60,37 @@ export const authOptions: NextAuthOptions = {
 		sessionsTable: sessions,
 		verificationTokensTable: verificationTokens,
 	}) as Adapter,
-	providers: [
-		DiscordProvider({
-			clientId: env.DISCORD_CLIENT_ID,
-			clientSecret: env.DISCORD_CLIENT_SECRET,
-		}),
+        providers: [
+                CredentialsProvider({
+                        name: 'Credentials',
+                        credentials: {
+                                email: { label: 'Email', type: 'text' },
+                                password: { label: 'Password', type: 'password' },
+                        },
+                        async authorize(credentials) {
+                                if (!credentials) return null;
+                                const [user] = await db
+                                        .select()
+                                        .from(users)
+                                        .where(eq(users.email, credentials.email))
+                                        .limit(1);
+                                if (
+                                        user?.hashedPassword &&
+                                        (await bcrypt.compare(credentials.password, user.hashedPassword))
+                                ) {
+                                        return {
+                                                id: user.id,
+                                                name: user.name ?? user.email,
+                                                email: user.email,
+                                        };
+                                }
+                                return null;
+                        },
+                }),
+                DiscordProvider({
+                        clientId: env.DISCORD_CLIENT_ID,
+                        clientSecret: env.DISCORD_CLIENT_SECRET,
+                }),
 		/**
 		 * ...add more providers here.
 		 *
