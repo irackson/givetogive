@@ -1,7 +1,6 @@
 import { getServerAuthSession } from '@/server/auth';
 import { HydrateClient } from '@/trpc/server';
 import { Box, Button, Typography } from '@mui/material';
-import Link from 'next/link';
 
 export default async function Home() {
 	const session = await getServerAuthSession();
@@ -23,7 +22,6 @@ export default async function Home() {
 					</Typography>
 				)}
 				<Button
-					component={Link}
 					href={session ? '/api/auth/signout' : '/api/auth/signin'}
 					variant='contained'
 					color='secondary'

@@ -15,7 +15,6 @@ import { type AdapterAccount } from 'next-auth/adapters';
 export const createTable = pgTableCreator((name) => `givetogive_${name}`);
 
 //! TODO fix with https://chatgpt.com/c/6726f09e-d8b4-800d-9645-cc1ba73bce8c after drizzle fixes db:migrate error
-// eslint-disable-next-line deprecation/deprecation
 export const asks = createTable(
 	'ask',
 	{
@@ -52,21 +51,15 @@ export const asks = createTable(
 );
 export const insertAskSchema = createInsertSchema(asks, {
 	title: (schema) =>
-		schema.title.min(3, 'Title must be at least 3 characters long'),
+		schema.min(3, 'Title must be at least 3 characters long'),
 	description: (schema) =>
-		schema.description.min(
-			10,
-			'Description must be at least 10 characters long',
-		),
+		schema.min(10, 'Description must be at least 10 characters long'),
 	difficulty: (schema) =>
-		schema.difficulty
-			.int()
+		schema
 			.min(1, 'Difficulty must be at least 1')
 			.max(5, 'Difficulty must be at most 5'),
 	estimatedMinutesToComplete: (schema) =>
-		schema.estimatedMinutesToComplete
-			.int()
-			.positive('Must be a positive number'),
+		schema.positive('Must be a positive number'),
 });
 
 export const selectAskSchema = createSelectSchema(asks);
@@ -100,7 +93,6 @@ export const usersRelations = relations(users, ({ many }) => ({
 	accounts: many(accounts),
 }));
 
-// eslint-disable-next-line deprecation/deprecation
 export const accounts = createTable(
 	'account',
 	{
@@ -134,7 +126,6 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 	user: one(users, { fields: [accounts.userId], references: [users.id] }),
 }));
 
-// eslint-disable-next-line deprecation/deprecation
 export const sessions = createTable(
 	'session',
 	{
@@ -158,7 +149,6 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
 	user: one(users, { fields: [sessions.userId], references: [users.id] }),
 }));
 
-// eslint-disable-next-line deprecation/deprecation
 export const verificationTokens = createTable(
 	'verification_token',
 	{

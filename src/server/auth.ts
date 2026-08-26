@@ -7,11 +7,7 @@ import {
 	verificationTokens,
 } from '@/server/db/schema';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
-import {
-	type DefaultSession,
-	type NextAuthOptions,
-	getServerSession,
-} from 'next-auth';
+import NextAuth, { type DefaultSession } from 'next-auth';
 import { type Adapter } from 'next-auth/adapters';
 import DiscordProvider from 'next-auth/providers/discord';
 
@@ -37,11 +33,9 @@ declare module 'next-auth' {
 }
 
 /**
- * Options for NextAuth.js used to configure adapters, providers, callbacks, etc.
- *
- * @see https://next-auth.js.org/configuration/options
+ * Auth.js configuration and helpers shared by Server Components, tRPC, and the route handler.
  */
-export const authOptions: NextAuthOptions = {
+export const { auth, handlers, signIn, signOut } = NextAuth({
 	callbacks: {
 		session: ({ session, user }) => ({
 			...session,
@@ -57,6 +51,8 @@ export const authOptions: NextAuthOptions = {
 		sessionsTable: sessions,
 		verificationTokensTable: verificationTokens,
 	}) as Adapter,
+	...(env.NEXTAUTH_SECRET ? { secret: env.NEXTAUTH_SECRET } : {}),
+	trustHost: true,
 	providers: [
 		DiscordProvider({
 			clientId: env.DISCORD_CLIENT_ID,
@@ -72,11 +68,9 @@ export const authOptions: NextAuthOptions = {
 		 * @see https://next-auth.js.org/providers/github
 		 */
 	],
-};
+});
 
 /**
- * Wrapper for `getServerSession` so that you don't need to import the `authOptions` in every file.
- *
- * @see https://next-auth.js.org/configuration/nextjs
+ * Compatibility name used throughout the existing application.
  */
-export const getServerAuthSession = () => getServerSession(authOptions);
+export const getServerAuthSession = auth;

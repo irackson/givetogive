@@ -11,7 +11,6 @@ import {
 	Typography,
 } from '@mui/material';
 import { useForm } from '@tanstack/react-form';
-import { zodValidator } from '@tanstack/zod-form-adapter';
 import type { inferRouterInputs } from '@trpc/server';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
@@ -56,7 +55,6 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 	// Set up the form using useForm with validatorAdapter
 	const { Field, handleSubmit, reset } = useForm({
 		defaultValues,
-		validatorAdapter: zodValidator(),
 		validators: {
 			// onChange: createAskFormInputValidation,
 			onChange: z.object({
@@ -86,20 +84,6 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 		},
 	});
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	function serializeFormValues(values: FormValues) {
-		// Helper function to serialize form values into URL parameters
-		const params = new URLSearchParams();
-		params.set('title', values.title);
-		params.set('description', values.description);
-		params.set('difficulty', String(values.difficulty));
-		params.set(
-			'estimatedMinutesToComplete',
-			values.estimatedMinutesToComplete.toString(),
-		);
-		return params.toString();
-	}
-
 	return (
 		<form
 			onSubmit={(e) => {
@@ -107,9 +91,8 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 				e.stopPropagation();
 				void handleSubmit();
 			}}>
-			<Field
-				name='title'
-				children={({
+			<Field name='title'>
+				{({
 					name,
 					state: {
 						value,
@@ -129,10 +112,9 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 						margin='normal'
 					/>
 				)}
-			/>
-			<Field
-				name='description'
-				children={({
+			</Field>
+			<Field name='description'>
+				{({
 					name,
 					state: {
 						value,
@@ -154,10 +136,9 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 						rows={4}
 					/>
 				)}
-			/>
-			<Field
-				name='estimatedMinutesToComplete'
-				children={({
+			</Field>
+			<Field name='estimatedMinutesToComplete'>
+				{({
 					name,
 					state: {
 						value,
@@ -178,10 +159,9 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 						margin='normal'
 					/>
 				)}
-			/>
-			<Field
-				name='difficulty'
-				children={({
+			</Field>
+			<Field name='difficulty'>
+				{({
 					name,
 					state: {
 						value,
@@ -210,7 +190,7 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 						)}
 					</>
 				)}
-			/>
+			</Field>
 			<Button
 				type='submit'
 				variant='contained'

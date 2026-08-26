@@ -21,8 +21,8 @@ const config: NextConfig = {
 	},
 
 	reactStrictMode: true,
+	typedRoutes: true,
 	experimental: {
-		typedRoutes: true,
 		// reactCompiler: true, //! TODO: resolve emotion deps
 		// ppr: true,
 	},
@@ -35,12 +35,8 @@ const config: NextConfig = {
 			fullUrl: true,
 		},
 	},
-	eslint: {
-		ignoreDuringBuilds: false,
-	},
 	devIndicators: {
-		buildActivity: true,
-		buildActivityPosition: 'top-right',
+		position: 'top-right',
 	},
 };
 

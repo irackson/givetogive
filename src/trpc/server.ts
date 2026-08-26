@@ -14,7 +14,6 @@ import { createQueryClient } from './query-client';
 const createContext = cache(async () => {
 	//! https://nextjs.org/docs/canary/app/building-your-application/upgrading/version-15#temporary-synchronous-usage-1
 
-	// eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call
 	const heads = new Headers(await headers());
 	try {
 		heads.set('x-trpc-source', 'rsc');
