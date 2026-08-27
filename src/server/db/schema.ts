@@ -7,6 +7,7 @@ import {
 	serial,
 	text,
 	timestamp,
+	uniqueIndex,
 	varchar,
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
@@ -45,6 +46,7 @@ export const asks = createTable(
 	},
 	(ask) => ({
 		createdByIdIdx: index('ask_created_by_idx').on(ask.createdById),
+		difficultyIndex: index('ask_difficulty_idx').on(ask.difficulty),
 		slugIndex: index('asks_slug_idx').on(ask.slug),
 		titleIndex: index('ask_title_idx').on(ask.title),
 	}),
@@ -75,19 +77,28 @@ export const asksRelations = relations(asks, ({ one }) => ({
 	}),
 }));
 
-export const users = createTable('user', {
-	id: varchar('id', { length: 255 })
-		.notNull()
-		.primaryKey()
-		.$defaultFn(() => crypto.randomUUID()),
-	name: varchar('name', { length: 255 }),
-	email: varchar('email', { length: 255 }).notNull(),
-	emailVerified: timestamp('email_verified', {
-		mode: 'date',
-		withTimezone: true,
-	}).default(sql`CURRENT_TIMESTAMP`),
-	image: varchar('image', { length: 255 }),
-});
+export const users = createTable(
+	'user',
+	{
+		id: varchar('id', { length: 255 })
+			.notNull()
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		name: varchar('name', { length: 255 }),
+		email: varchar('email', { length: 255 }).notNull(),
+		hashedPassword: varchar('hashed_password', { length: 255 }),
+		emailVerified: timestamp('email_verified', {
+			mode: 'date',
+			withTimezone: true,
+		}).default(sql`CURRENT_TIMESTAMP`),
+		image: varchar('image', { length: 255 }),
+	},
+	(user) => ({
+		emailLowerUniqueIndex: uniqueIndex('user_email_lower_unique_idx').on(
+			sql`lower(${user.email})`,
+		),
+	}),
+);
 
 export const usersRelations = relations(users, ({ many }) => ({
 	accounts: many(accounts),

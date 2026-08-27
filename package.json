@@ -8,11 +8,12 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "eslint .",
-		"db:generate": "drizzle-kit generate",
-		"db:migrate": "drizzle-kit migrate",
+		"db:generate": "dotenv -e .env.local -- drizzle-kit generate",
+		"db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",
 		"db:migrate_prod": "dotenv -e .env.production.hosted -- drizzle-kit migrate",
-		"db:push": "drizzle-kit push",
-		"db:studio": "drizzle-kit studio --config=drizzle.config.ts",
+		"db:push": "dotenv -e .env.local -- drizzle-kit push",
+		"db:seed": "dotenv -e .env.local -- node scripts/seed.mjs",
+		"db:studio": "dotenv -e .env.local -- drizzle-kit studio --config=drizzle.config.ts",
 		"db:studio_prod": "dotenv -e .env.production.hosted -- drizzle-kit studio --config=drizzle.config.ts"
 	},
 	"dependencies": {

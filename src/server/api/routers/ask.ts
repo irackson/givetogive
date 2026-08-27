@@ -1,12 +1,16 @@
 import { ensureErrMessage } from '@/lib/utils/errorParsing';
+import { createSlugBase, createSlugCandidate } from '@/lib/utils/slug';
 import {
 	createTRPCRouter,
 	protectedProcedure,
 	publicProcedure,
 } from '@/server/api/trpc';
+import { hasDatabaseErrorCode } from '@/server/db/errors';
 import { asks, insertAskSchema, selectAskSchema } from '@/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+
+const MAX_SLUG_ATTEMPTS = 100;
 
 export const askRouter = createTRPCRouter({
 	createAsk: protectedProcedure
@@ -21,40 +25,63 @@ export const askRouter = createTRPCRouter({
 		.mutation(
 			async ({
 				ctx,
-				input: { title, description, difficulty, estimatedMinutesToComplete },
+				input: {
+					title,
+					description,
+					difficulty,
+					estimatedMinutesToComplete,
+				},
 			}) => {
-				const newlyCreatedSlug = title
-					.toLowerCase()
-					.replace(/\s+/g, '-');
-				const { newlyCreatedAskId } = await ctx.db
-					.insert(asks)
-					.values({
-						title,
-						slug: newlyCreatedSlug,
-						description,
-						difficulty,
-						estimatedMinutesToComplete,
-						status: 'not_started',
-						createdById: ctx.session.user.id,
-					})
-					.returning({
-						newlyCreatedAskId: asks.id,
-					})
-					.then(([doc]) => {
-						if (!doc)
+				const slugBase = createSlugBase(title);
+
+				for (
+					let sequence = 1;
+					sequence <= MAX_SLUG_ATTEMPTS;
+					sequence += 1
+				) {
+					const newlyCreatedSlug = createSlugCandidate(
+						slugBase,
+						sequence,
+					);
+
+					try {
+						const [doc] = await ctx.db
+							.insert(asks)
+							.values({
+								title,
+								slug: newlyCreatedSlug,
+								description,
+								difficulty,
+								estimatedMinutesToComplete,
+								status: 'not_started',
+								createdById: ctx.session.user.id,
+							})
+							.returning({ newlyCreatedAskId: asks.id });
+
+						if (!doc) {
 							throw Error(
-								`Expected doc to be object with newlyCreatedAskId but got ${doc}`,
+								'The database did not return the new Ask',
 							);
-						return doc;
-					})
-					.catch((e: unknown) => {
-						const { message, cause } = ensureErrMessage(e);
+						}
+
+						return {
+							newlyCreatedAskId: doc.newlyCreatedAskId,
+							newlyCreatedSlug,
+						};
+					} catch (error: unknown) {
+						if (hasDatabaseErrorCode(error, '23505')) continue;
+
+						const { message, cause } = ensureErrMessage(error);
 						console.error({ message, cause });
 						throw Error(`Failed to create ask: ${message}`, {
 							cause,
 						});
-					});
-				return { newlyCreatedAskId, newlyCreatedSlug };
+					}
+				}
+
+				throw Error(
+					`Failed to create ask: could not find a unique slug after ${MAX_SLUG_ATTEMPTS} attempts`,
+				);
 			},
 		),
 

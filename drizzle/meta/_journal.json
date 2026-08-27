@@ -43,6 +43,13 @@
       "when": 1752554965689,
       "tag": "0005_large_stryfe",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787846005547,
+      "tag": "0006_even_the_call",
+      "breakpoints": true
     }
   ]
 }

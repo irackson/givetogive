@@ -28,6 +28,15 @@ export default async function Home() {
 					sx={{ mt: 2 }}>
 					{session ? 'Sign out' : 'Sign in'}
 				</Button>
+				{!session && (
+					<Button
+						href='/signup'
+						variant='outlined'
+						color='secondary'
+						sx={{ mt: 2 }}>
+						Create account
+					</Button>
+				)}
 			</Box>
 		</HydrateClient>
 	);
