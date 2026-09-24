@@ -3,15 +3,16 @@
 GiveToGive is a community mutual-aid application for publishing requests and
 connecting people who need help with people who can offer it.
 
-The current application supports Discord and email/password authentication,
-creating and browsing Asks, and PostgreSQL persistence through Drizzle ORM. Broader Ask types,
-multiple contributors, payments, community funds, and subscriptions are planned
+The current application supports Discord and verified email/password
+authentication, password reset, creating and browsing typed Asks, and multiple
+partial contributions toward each Ask goal. PostgreSQL persistence is handled
+through Drizzle ORM. Payments, community funds, and subscriptions are planned
 but are not implemented yet.
 
 ## Requirements
 
-- Node.js 20.9 or newer
-- npm 10
+- Node.js 24.x (the repo currently pins 24.19.0 in `.nvmrc`)
+- npm 10.8.3
 - A PostgreSQL database
 - Discord OAuth credentials
 
@@ -35,6 +36,11 @@ but are not implemented yet.
     NEXTAUTH_URL=http://localhost:3000
     DISCORD_CLIENT_ID=
     DISCORD_CLIENT_SECRET=
+
+    # Optional: enables verification and reset email delivery through Resend.
+    # Without these values, development displays one-time preview links.
+    RESEND_API_KEY=
+    AUTH_EMAIL_FROM="GiveToGive <hello@example.com>"
     ```
 
 3. Start the development server:
@@ -63,12 +69,28 @@ but are not implemented yet.
 
 ## Current routes
 
-- `/` — authentication entry point
-- `/signup` — create an email/password account
-- `/asks` — browse Asks and open the creation form
-- `/asks/[slugOrId]` — view one Ask by slug or numeric ID
-- `/api/auth/[...nextauth]` — Auth.js handlers
-- `/api/trpc/[trpc]` — tRPC API handler
+- `/` - home and authentication status
+- `/signin` - email/password and Discord sign-in
+- `/signup` - create an email/password account
+- `/forgot-password` - request a password reset
+- `/reset-password` - finish a password reset from a tokenized link
+- `/verify-email` - verify an email or request a replacement link
+- `/asks` - browse typed Asks and open the creation form
+- `/asks/[slugOrId]` - view an Ask, its progress, and its contributors
+- `/api/auth/[...nextauth]` - Auth.js handlers
+- `/api/trpc/[trpc]` - tRPC API handler
+
+## Ask and contribution model
+
+Every Ask has a type (`time`, `task`, `item`, `money`, or `resource`), a
+positive goal, a difficulty from 1 to 5, and an estimated completion time.
+Monetary amounts are stored as integer minor units (for example, cents).
+
+Contributions belong to one Ask and one authenticated user. Multiple people
+can pledge partial amounts, and an Ask moves from `not_started` to
+`in_progress` and then `complete` as its active contribution total reaches the
+goal. The legacy single `fulfilled_by` column remains only for migration
+compatibility and is no longer used by the application workflow.
 
 ## Project links
 

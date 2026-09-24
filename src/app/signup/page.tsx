@@ -6,10 +6,11 @@ import {
 	Box,
 	Button,
 	Container,
+	Link,
+	Stack,
 	TextField,
 	Typography,
 } from '@mui/material';
-import { signIn } from 'next-auth/react';
 import { useState, type FormEvent } from 'react';
 
 export default function SignupPage() {
@@ -18,77 +19,81 @@ export default function SignupPage() {
 	const [password, setPassword] = useState('');
 	const register = api.user.register.useMutation();
 
-	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
-
-		try {
-			await register.mutateAsync({ email, name, password });
-		} catch {
-			return;
-		}
-
-		await signIn('credentials', {
-			email,
-			password,
-			redirectTo: '/',
-		});
+		register.mutate({ email, name, password });
 	};
 
 	return (
 		<Container maxWidth='sm'>
 			<Box
 				component='form'
-				onSubmit={(event) => void handleSubmit(event)}
-				sx={{
-					display: 'flex',
-					flexDirection: 'column',
-					gap: 2,
-					py: 4,
-				}}>
-				<Typography
-					component='h1'
-					variant='h4'>
-					Create an account
-				</Typography>
-				<TextField
-					autoComplete='name'
-					label='Name'
-					onChange={(event) => setName(event.target.value)}
-					required
-					value={name}
-				/>
-				<TextField
-					autoComplete='email'
-					label='Email'
-					onChange={(event) => setEmail(event.target.value)}
-					required
-					type='email'
-					value={email}
-				/>
-				<TextField
-					autoComplete='new-password'
-					helperText='Use at least 8 characters.'
-					inputProps={{ minLength: 8, maxLength: 128 }}
-					label='Password'
-					onChange={(event) => setPassword(event.target.value)}
-					required
-					type='password'
-					value={password}
-				/>
-				{register.error && (
-					<Alert severity='error'>{register.error.message}</Alert>
-				)}
-				<Button
-					disabled={register.isPending}
-					type='submit'
-					variant='contained'>
-					{register.isPending ?
-						'Creating account…'
-					:	'Create account'}
-				</Button>
-				<Button href='/api/auth/signin'>
-					Already have an account?
-				</Button>
+				onSubmit={handleSubmit}
+				sx={{ py: 4 }}>
+				<Stack spacing={2}>
+					<Typography
+						component='h1'
+						variant='h4'>
+						Create an account
+					</Typography>
+					<Typography color='text.secondary'>
+						Join the community to ask for help or contribute to an
+						Ask.
+					</Typography>
+					<TextField
+						autoComplete='name'
+						label='Name'
+						onChange={(event) => setName(event.target.value)}
+						required
+						value={name}
+					/>
+					<TextField
+						autoComplete='email'
+						label='Email'
+						onChange={(event) => setEmail(event.target.value)}
+						required
+						type='email'
+						value={email}
+					/>
+					<TextField
+						autoComplete='new-password'
+						helperText='Use 8 to 128 characters.'
+						inputProps={{ minLength: 8, maxLength: 128 }}
+						label='Password'
+						onChange={(event) => setPassword(event.target.value)}
+						required
+						type='password'
+						value={password}
+					/>
+					{register.error && (
+						<Alert severity='error'>{register.error.message}</Alert>
+					)}
+					{register.data && (
+						<Alert severity='success'>
+							Account created.{' '}
+							{register.data.emailDelivered ?
+								'Check your email for a verification link.'
+							:	'Email delivery is not configured yet.'}
+							{register.data.verificationUrl && (
+								<>
+									<br />
+									<Link href={register.data.verificationUrl}>
+										Open the development verification link
+									</Link>
+								</>
+							)}
+						</Alert>
+					)}
+					<Button
+						disabled={register.isPending || Boolean(register.data)}
+						type='submit'
+						variant='contained'>
+						{register.isPending ?
+							'Creating account...'
+						:	'Create account'}
+					</Button>
+					<Button href='/signin'>Already have an account?</Button>
+				</Stack>
 			</Box>
 		</Container>
 	);

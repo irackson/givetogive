@@ -140,6 +140,91 @@ const sampleAsks = [
 	},
 ];
 
+const askGoals = {
+	'seed-grocery-delivery-after-surgery': { type: 'task', goalAmount: 1 },
+	'seed-community-garden-cleanup': { type: 'time', goalAmount: 240 },
+	'seed-donate-winter-coats': { type: 'item', goalAmount: 10 },
+	'seed-ride-to-medical-appointment': { type: 'task', goalAmount: 1 },
+	'seed-help-assemble-bookshelf': { type: 'task', goalAmount: 1 },
+	'seed-laptop-for-student': { type: 'resource', goalAmount: 1 },
+	'seed-translate-housing-forms': { type: 'time', goalAmount: 120 },
+	'seed-dog-walks-this-weekend': { type: 'time', goalAmount: 80 },
+	'seed-moving-boxes-needed': { type: 'item', goalAmount: 20 },
+	'seed-resume-review': { type: 'task', goalAmount: 1 },
+	'seed-porch-ramp-repair': {
+		type: 'money',
+		goalAmount: 35000,
+		currency: 'USD',
+	},
+	'seed-meal-train-for-new-parent': { type: 'resource', goalAmount: 8 },
+};
+
+const sampleContributions = [
+	{
+		askSlug: 'seed-community-garden-cleanup',
+		contributorId: 'seed-user-jordan',
+		amount: 60,
+		note: 'I can help Saturday morning.',
+	},
+	{
+		askSlug: 'seed-community-garden-cleanup',
+		contributorId: 'seed-user-priya',
+		amount: 45,
+		note: 'Happy to bring gloves and help weed.',
+	},
+	{
+		askSlug: 'seed-donate-winter-coats',
+		contributorId: 'seed-user-luis',
+		amount: 3,
+		note: 'Three clean adult coats are ready for drop-off.',
+	},
+	{
+		askSlug: 'seed-help-assemble-bookshelf',
+		contributorId: 'seed-user-maya',
+		amount: 1,
+		note: 'Assembly completed.',
+		status: 'completed',
+	},
+	{
+		askSlug: 'seed-translate-housing-forms',
+		contributorId: 'seed-user-luis',
+		amount: 30,
+		note: 'I can cover the first half hour.',
+	},
+	{
+		askSlug: 'seed-dog-walks-this-weekend',
+		contributorId: 'seed-user-jordan',
+		amount: 40,
+		note: 'I can take the Saturday walks.',
+		status: 'completed',
+	},
+	{
+		askSlug: 'seed-dog-walks-this-weekend',
+		contributorId: 'seed-user-priya',
+		amount: 40,
+		note: 'I can take the Sunday walks.',
+		status: 'completed',
+	},
+	{
+		askSlug: 'seed-porch-ramp-repair',
+		contributorId: 'seed-user-maya',
+		amount: 7500,
+		note: 'Putting $75 toward lumber and hardware.',
+	},
+	{
+		askSlug: 'seed-meal-train-for-new-parent',
+		contributorId: 'seed-user-jordan',
+		amount: 2,
+		note: 'I can prepare two dinners.',
+	},
+	{
+		askSlug: 'seed-meal-train-for-new-parent',
+		contributorId: 'seed-user-priya',
+		amount: 1,
+		note: 'I can bring one freezer meal.',
+	},
+];
+
 try {
 	const summary = await sql.begin(async (transaction) => {
 		const authenticatedUsers = await transaction`
@@ -169,11 +254,8 @@ try {
 
 		let insertedAskCount = 0;
 		for (const [index, ask] of sampleAsks.entries()) {
+			const goal = askGoals[ask.slug];
 			const createdById = authorIds[index % authorIds.length];
-			const fulfilledById =
-				ask.status === 'not_started' ?
-					null
-				:	authorIds[(index + 1) % authorIds.length];
 
 			const result = await transaction`
 				insert into givetogive_ask (
@@ -183,6 +265,9 @@ try {
 					difficulty,
 					estimated_minutes_to_complete,
 					status,
+					type,
+					goal_amount,
+					currency,
 					created_by,
 					fulfilled_by
 				)
@@ -193,19 +278,78 @@ try {
 					${ask.difficulty},
 					${ask.estimatedMinutesToComplete},
 					${ask.status},
+					${goal.type},
+					${goal.goalAmount},
+					${goal.currency ?? null},
 					${createdById},
-					${fulfilledById}
+					null
 				)
-				on conflict (slug) do nothing
+				on conflict (slug) do update set
+					title = excluded.title,
+					description = excluded.description,
+					difficulty = excluded.difficulty,
+					estimated_minutes_to_complete = excluded.estimated_minutes_to_complete,
+					type = excluded.type,
+					goal_amount = excluded.goal_amount,
+					currency = excluded.currency,
+					fulfilled_by = null
 			`;
 
 			insertedAskCount += result.count;
 		}
 
+		let contributionsInserted = 0;
+		for (const contribution of sampleContributions) {
+			const result = await transaction`
+				insert into givetogive_ask_contribution (
+					ask_id,
+					contributor_id,
+					amount,
+					note,
+					status
+				)
+				select
+					asks.id,
+					${contribution.contributorId},
+					${contribution.amount},
+					${contribution.note},
+					${contribution.status ?? 'pledged'}
+				from givetogive_ask as asks
+				where asks.slug = ${contribution.askSlug}
+				and not exists (
+					select 1
+					from givetogive_ask_contribution as existing
+					where existing.ask_id = asks.id
+					and existing.contributor_id = ${contribution.contributorId}
+					and existing.note = ${contribution.note}
+				)
+			`;
+			contributionsInserted += result.count;
+		}
+
+		await transaction`
+			update givetogive_ask as asks
+			set status = case
+				when progress.amount >= asks.goal_amount then 'complete'
+				when progress.amount > 0 then 'in_progress'
+				else 'not_started'
+			end
+			from (
+				select
+					ask_id,
+					coalesce(sum(amount) filter (where status <> 'cancelled'), 0)::int as amount
+				from givetogive_ask_contribution
+				group by ask_id
+			) as progress
+			where asks.id = progress.ask_id
+			and asks.slug like 'seed-%'
+		`;
+
 		return {
 			authenticatedUsersUsed: authenticatedUsers.length,
 			fakeUsersUpserted,
 			asksInserted: insertedAskCount,
+			contributionsInserted,
 			totalSeedAsks: sampleAsks.length,
 		};
 	});

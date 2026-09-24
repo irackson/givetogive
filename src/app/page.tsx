@@ -22,7 +22,7 @@ export default async function Home() {
 					</Typography>
 				)}
 				<Button
-					href={session ? '/api/auth/signout' : '/api/auth/signin'}
+					href={session ? '/api/auth/signout' : '/signin'}
 					variant='contained'
 					color='secondary'
 					sx={{ mt: 2 }}>

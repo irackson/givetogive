@@ -1,6 +1,11 @@
 import { env } from '@/env';
 import { credentialsSchema } from '@/server/auth/credentials';
 import { verifyPassword } from '@/server/auth/password';
+import {
+	clearRateLimit,
+	isRateLimited,
+	recordRateLimitAttempt,
+} from '@/server/auth/rate-limit';
 import { db } from '@/server/db';
 import {
 	accounts,
@@ -54,6 +59,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 	}) as Adapter,
 	...(env.NEXTAUTH_SECRET ? { secret: env.NEXTAUTH_SECRET } : {}),
 	session: { strategy: 'jwt' },
+	pages: { signIn: '/signin' },
 	trustHost: true,
 	providers: [
 		CredentialsProvider({
@@ -62,12 +68,14 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 				email: { label: 'Email', type: 'email' },
 				password: { label: 'Password', type: 'password' },
 			},
-			authorize: async (credentials) => {
+			authorize: async (credentials, request) => {
 				const parsedCredentials =
 					credentialsSchema.safeParse(credentials);
 				if (!parsedCredentials.success) return null;
 
 				const { email, password } = parsedCredentials.data;
+				if (await isRateLimited('sign-in', email, request.headers))
+					return null;
 				const [user] = await db
 					.select()
 					.from(users)
@@ -76,10 +84,17 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
 				if (
 					!user?.hashedPassword ||
-					!(await verifyPassword(password, user.hashedPassword))
+					!(await verifyPassword(password, user.hashedPassword)) ||
+					!user.emailVerified
 				) {
+					await recordRateLimitAttempt(
+						'sign-in',
+						email,
+						request.headers,
+					);
 					return null;
 				}
+				await clearRateLimit('sign-in', email, request.headers);
 
 				return {
 					email: user.email,

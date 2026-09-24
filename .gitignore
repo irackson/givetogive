@@ -8,6 +8,9 @@
 # testing
 /coverage
 
+# generated verification artifacts
+/tmp/
+
 # database
 /prisma/db.sqlite
 /prisma/db.sqlite-journal
