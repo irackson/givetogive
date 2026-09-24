@@ -7,6 +7,9 @@
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
+/output/signin-recovery-*.png
 
 # generated verification artifacts
 /tmp/

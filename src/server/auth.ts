@@ -15,7 +15,7 @@ import {
 } from '@/server/db/schema';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { sql } from 'drizzle-orm';
-import NextAuth, { type DefaultSession } from 'next-auth';
+import NextAuth, { AuthError, type DefaultSession } from 'next-auth';
 import { type Adapter } from 'next-auth/adapters';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import DiscordProvider from 'next-auth/providers/discord';
@@ -58,6 +58,16 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 		verificationTokensTable: verificationTokens,
 	}) as Adapter,
 	...(env.NEXTAUTH_SECRET ? { secret: env.NEXTAUTH_SECRET } : {}),
+	logger: {
+		error: (error) => {
+			if (
+				error instanceof AuthError &&
+				error.type === 'CredentialsSignin'
+			)
+				return;
+			console.error(error);
+		},
+	},
 	session: { strategy: 'jwt' },
 	pages: { signIn: '/signin' },
 	trustHost: true,

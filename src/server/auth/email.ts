@@ -9,9 +9,11 @@ interface AuthEmailInput {
 	purpose: AuthTokenPurpose;
 }
 
-type AuthEmailProvider = 'gmail' | 'resend';
+type AuthEmailProvider = 'gmail' | 'resend' | 'test';
 
 function getEmailProvider(): AuthEmailProvider | undefined {
+	if (env.AUTH_EMAIL_TEST_MODE === 'true') return 'test';
+
 	if (
 		env.GOOGLE_CLIENT_ID &&
 		env.GOOGLE_CLIENT_SECRET &&

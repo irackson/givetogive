@@ -11,6 +11,8 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "eslint .",
+		"test": "npm run test:e2e",
+		"test:e2e": "playwright test",
 		"db:generate": "dotenv -e .env.local -- drizzle-kit generate",
 		"db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",
 		"db:migrate_prod": "dotenv -e .env.production.hosted -- drizzle-kit migrate",
@@ -47,6 +49,7 @@
 		"zod": "4.6.5"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.58.2",
 		"@types/node": "^24.0.0",
 		"@types/react": "19.3.0",
 		"@types/react-dom": "19.3.0",

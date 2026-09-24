@@ -26,7 +26,7 @@ export function SigninForm({ callbackUrl }: { callbackUrl: string }) {
 			});
 			if (result?.error) {
 				setError(
-					'Sign-in failed. Check your credentials and verify your email.',
+					"We couldn't sign you in. Check your email and password. If you recently created this account, resend your verification email.",
 				);
 				return;
 			}
@@ -64,7 +64,20 @@ export function SigninForm({ callbackUrl }: { callbackUrl: string }) {
 						onChange={(event) => setPassword(event.target.value)}
 						required
 					/>
-					{error && <Alert severity='error'>{error}</Alert>}
+					{error && (
+						<Alert
+							severity='error'
+							action={
+								<Button
+									href='/verify-email'
+									color='inherit'
+									size='small'>
+									Resend verification
+								</Button>
+							}>
+							{error}
+						</Alert>
+					)}
 					<Button
 						type='submit'
 						variant='contained'

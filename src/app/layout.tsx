@@ -23,7 +23,8 @@ export default async function RootLayout({
 	return (
 		<html
 			lang='en'
-			className={`${GeistSans.variable}`}>
+			className={`${GeistSans.variable}`}
+			data-scroll-behavior='smooth'>
 			<body>
 				<AppRouterCacheProvider>
 					<ThemeRegistry>

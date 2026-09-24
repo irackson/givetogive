@@ -64,6 +64,7 @@ but are not implemented yet.
 | `npm run dev`         | Start the Next.js development server     |
 | `npm run build`       | Create and type-check a production build |
 | `npm run lint`        | Run ESLint                               |
+| `npm test`            | Run the Playwright end-to-end suite      |
 | `npm run db:generate` | Generate a Drizzle migration             |
 | `npm run db:migrate`  | Apply pending database migrations        |
 | `npm run db:push`     | Push the current schema directly         |
@@ -72,6 +73,15 @@ but are not implemented yet.
 
 `db:seed`, `db:migrate`, and `db:push` modify the database configured in
 `.env.local`. Confirm that connection before running them.
+
+## End-to-end tests
+
+`npm test` starts an isolated local Next.js server on port 3100 and runs the
+browser suite in Chromium. It covers the public routes, the unverified-account
+recovery path, email verification, password reset, sign-in, Ask creation, and
+a second member's contribution. The test server uses `AUTH_EMAIL_TEST_MODE`, so
+no real emails are sent while the application still returns development links
+for the complete verification and reset flows.
 
 ## Current routes
 
