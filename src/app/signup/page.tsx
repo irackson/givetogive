@@ -58,7 +58,7 @@ export default function SignupPage() {
 							Account created.{' '}
 							{register.data.emailDelivered ?
 								'Check your email for a verification link.'
-							:	'Email delivery is not configured yet.'}
+							:	'We could not send the verification email. Please try again.'}
 							{register.data.verificationUrl && (
 								<>
 									<br />

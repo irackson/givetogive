@@ -37,8 +37,14 @@ but are not implemented yet.
     DISCORD_CLIENT_ID=
     DISCORD_CLIENT_SECRET=
 
-    # Optional: enables verification and reset email delivery through Resend.
-    # Without these values, development displays one-time preview links.
+    # Gmail OAuth is the primary verification/reset email transport.
+    GOOGLE_CLIENT_ID=
+    GOOGLE_CLIENT_SECRET=
+    GOOGLE_REFRESH_TOKEN=
+    GMAIL_SENDER="GiveToGive <hello@example.com>"
+
+    # Optional Resend fallback when Gmail OAuth is not configured.
+    # Without either transport, development displays one-time preview links.
     RESEND_API_KEY=
     AUTH_EMAIL_FROM="GiveToGive <hello@example.com>"
     ```
