@@ -10,6 +10,7 @@
 
 # generated verification artifacts
 /tmp/
+/.codex-finalizer/
 
 # database
 /prisma/db.sqlite
@@ -49,3 +50,6 @@ chrome-debug-profile
 
 # idea files
 .idea
+
+# personal editor appearance
+.vscode/settings.json

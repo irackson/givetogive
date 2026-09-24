@@ -101,8 +101,12 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 			spacing={2}>
 			<Typography
 				component='h2'
-				variant='h5'>
+				className='ask-form-title'>
 				Create a new Ask
+			</Typography>
+			<Typography color='text.secondary'>
+				Make the need specific and the finish line clear. Neighbors can
+				contribute in smaller pieces.
 			</Typography>
 			<Field name='title'>
 				{({ name, state, handleChange, handleBlur }) => (

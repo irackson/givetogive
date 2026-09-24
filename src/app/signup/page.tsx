@@ -1,16 +1,8 @@
 'use client';
 
+import { AuthFrame } from '@/app/_components/AuthFrame';
 import { api } from '@/trpc/react';
-import {
-	Alert,
-	Box,
-	Button,
-	Container,
-	Link,
-	Stack,
-	TextField,
-	Typography,
-} from '@mui/material';
+import { Alert, Box, Button, Link, Stack, TextField } from '@mui/material';
 import { useState, type FormEvent } from 'react';
 
 export default function SignupPage() {
@@ -19,27 +11,20 @@ export default function SignupPage() {
 	const [password, setPassword] = useState('');
 	const register = api.user.register.useMutation();
 
-	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-		event.preventDefault();
-		register.mutate({ email, name, password });
-	};
-
 	return (
-		<Container maxWidth='sm'>
+		<AuthFrame
+			variant='signup'
+			eyebrow='A useful place to belong'
+			title='Make room for good turns.'
+			description='Create an account to ask clearly, contribute in pieces, and keep the network personal.'>
 			<Box
 				component='form'
-				onSubmit={handleSubmit}
-				sx={{ py: 4 }}>
+				className='auth-form'
+				onSubmit={(event: FormEvent<HTMLFormElement>) => {
+					event.preventDefault();
+					register.mutate({ email, name, password });
+				}}>
 				<Stack spacing={2}>
-					<Typography
-						component='h1'
-						variant='h4'>
-						Create an account
-					</Typography>
-					<Typography color='text.secondary'>
-						Join the community to ask for help or contribute to an
-						Ask.
-					</Typography>
 					<TextField
 						autoComplete='name'
 						label='Name'
@@ -87,14 +72,18 @@ export default function SignupPage() {
 					<Button
 						disabled={register.isPending || Boolean(register.data)}
 						type='submit'
-						variant='contained'>
+						variant='contained'
+						color='secondary'>
 						{register.isPending ?
-							'Creating account...'
+							'Creating your account...'
 						:	'Create account'}
 					</Button>
-					<Button href='/signin'>Already have an account?</Button>
+					<p className='auth-footnote'>
+						Already have a place here?{' '}
+						<a href='/signin'>Sign in.</a>
+					</p>
 				</Stack>
 			</Box>
-		</Container>
+		</AuthFrame>
 	);
 }

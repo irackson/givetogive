@@ -1,15 +1,8 @@
 'use client';
 
+import { AuthFrame } from '@/app/_components/AuthFrame';
 import { api } from '@/trpc/react';
-import {
-	Alert,
-	Box,
-	Button,
-	Container,
-	Stack,
-	TextField,
-	Typography,
-} from '@mui/material';
+import { Alert, Box, Button, Stack, TextField } from '@mui/material';
 import { useState, type FormEvent } from 'react';
 
 export function ResetPasswordForm({ token }: { token: string }) {
@@ -17,20 +10,19 @@ export function ResetPasswordForm({ token }: { token: string }) {
 	const resetPassword = api.user.resetPassword.useMutation();
 
 	return (
-		<Container maxWidth='sm'>
+		<AuthFrame
+			variant='reset'
+			eyebrow='Reset password'
+			title='Choose a new key.'
+			description='Use a password you can return to easily. We will take care of the rest.'>
 			<Box
 				component='form'
+				className='auth-form'
 				onSubmit={(event: FormEvent<HTMLFormElement>) => {
 					event.preventDefault();
 					resetPassword.mutate({ token, password });
-				}}
-				sx={{ py: 4 }}>
+				}}>
 				<Stack spacing={2}>
-					<Typography
-						component='h1'
-						variant='h4'>
-						Choose a new password
-					</Typography>
 					{!token && (
 						<Alert severity='warning'>
 							Open this page from a password reset link.
@@ -68,9 +60,11 @@ export function ResetPasswordForm({ token }: { token: string }) {
 							'Updating...'
 						:	'Update password'}
 					</Button>
-					<Button href='/signin'>Back to sign in</Button>
+					<p className='auth-footnote'>
+						<a href='/signin'>Back to sign in.</a>
+					</p>
 				</Stack>
 			</Box>
-		</Container>
+		</AuthFrame>
 	);
 }

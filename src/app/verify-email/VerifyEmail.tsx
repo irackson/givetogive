@@ -1,16 +1,15 @@
 'use client';
 
+import { AuthFrame } from '@/app/_components/AuthFrame';
 import { api } from '@/trpc/react';
 import {
 	Alert,
 	Box,
 	Button,
 	CircularProgress,
-	Container,
 	Link,
 	Stack,
 	TextField,
-	Typography,
 } from '@mui/material';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 
@@ -29,20 +28,18 @@ export function VerifyEmail({ token }: { token: string }) {
 
 	if (token) {
 		return (
-			<Container maxWidth='sm'>
+			<AuthFrame
+				variant='verify'
+				eyebrow='One last step'
+				title='Confirm your email.'
+				description='This keeps the neighborhood network accountable and your account ready to use.'>
 				<Stack
 					spacing={2}
-					alignItems='center'
-					sx={{ py: 6 }}>
-					<Typography
-						component='h1'
-						variant='h4'>
-						Verify your email
-					</Typography>
+					className='auth-form auth-form--status'>
 					{verify.isPending && (
 						<>
 							<CircularProgress />
-							<Typography>Verifying...</Typography>
+							<span>Verifying your link...</span>
 						</>
 					)}
 					{verify.error && (
@@ -59,28 +56,24 @@ export function VerifyEmail({ token }: { token: string }) {
 						Continue to sign in
 					</Button>
 				</Stack>
-			</Container>
+			</AuthFrame>
 		);
 	}
 
 	return (
-		<Container maxWidth='sm'>
+		<AuthFrame
+			variant='verify'
+			eyebrow='A link, one more time'
+			title='Resend verification.'
+			description='Enter your email and we will send a fresh link if there is an account waiting to be confirmed.'>
 			<Box
 				component='form'
+				className='auth-form'
 				onSubmit={(event: FormEvent<HTMLFormElement>) => {
 					event.preventDefault();
 					resend.mutate({ email });
-				}}
-				sx={{ py: 4 }}>
+				}}>
 				<Stack spacing={2}>
-					<Typography
-						component='h1'
-						variant='h4'>
-						Resend verification
-					</Typography>
-					<Typography color='text.secondary'>
-						Enter your email to request a new verification link.
-					</Typography>
 					<TextField
 						label='Email'
 						type='email'
@@ -112,9 +105,11 @@ export function VerifyEmail({ token }: { token: string }) {
 							'Sending...'
 						:	'Send verification link'}
 					</Button>
-					<Button href='/signin'>Back to sign in</Button>
+					<p className='auth-footnote'>
+						<a href='/signin'>Back to sign in.</a>
+					</p>
 				</Stack>
 			</Box>
-		</Container>
+		</AuthFrame>
 	);
 }

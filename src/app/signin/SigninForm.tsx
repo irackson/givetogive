@@ -1,15 +1,7 @@
 'use client';
 
-import {
-	Alert,
-	Box,
-	Button,
-	Container,
-	Divider,
-	Stack,
-	TextField,
-	Typography,
-} from '@mui/material';
+import { AuthFrame } from '@/app/_components/AuthFrame';
+import { Alert, Box, Button, Divider, Stack, TextField } from '@mui/material';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
@@ -46,20 +38,16 @@ export function SigninForm({ callbackUrl }: { callbackUrl: string }) {
 	};
 
 	return (
-		<Container maxWidth='sm'>
+		<AuthFrame
+			variant='signin'
+			eyebrow='Good to see you'
+			title='Come back into the circle.'
+			description='Sign in to post a need, keep track of your contributions, and respond when a neighbor could use you.'>
 			<Box
 				component='form'
 				onSubmit={(event) => void handleSubmit(event)}
-				sx={{ py: 4 }}>
+				className='auth-form'>
 				<Stack spacing={2}>
-					<Typography
-						component='h1'
-						variant='h4'>
-						Welcome back
-					</Typography>
-					<Typography color='text.secondary'>
-						Sign in to create Asks and support your neighbors.
-					</Typography>
 					<TextField
 						label='Email'
 						type='email'
@@ -80,14 +68,21 @@ export function SigninForm({ callbackUrl }: { callbackUrl: string }) {
 					<Button
 						type='submit'
 						variant='contained'
+						color='primary'
 						disabled={pending}>
-						{pending ? 'Signing in...' : 'Sign in'}
+						{pending ? 'Signing you in...' : 'Sign in'}
 					</Button>
-					<Button href='/forgot-password'>Forgot password?</Button>
-					<Button href='/verify-email'>
-						Need a new verification link?
-					</Button>
-					<Divider>or</Divider>
+					<div className='auth-inline-links'>
+						<Button href='/forgot-password'>
+							Forgot password?
+						</Button>
+						<Button href='/verify-email'>
+							Resend verification
+						</Button>
+					</div>
+					<Divider className='auth-divider'>
+						or use a connected account
+					</Divider>
 					<Button
 						variant='outlined'
 						onClick={() =>
@@ -95,9 +90,11 @@ export function SigninForm({ callbackUrl }: { callbackUrl: string }) {
 						}>
 						Continue with Discord
 					</Button>
-					<Button href='/signup'>Create an account</Button>
+					<p className='auth-footnote'>
+						New here? <a href='/signup'>Make your free account.</a>
+					</p>
 				</Stack>
 			</Box>
-		</Container>
+		</AuthFrame>
 	);
 }

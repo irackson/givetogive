@@ -8,28 +8,26 @@ import {
 	type AskType,
 } from '@/lib/asks';
 import { api } from '@/trpc/react';
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import {
 	Alert,
 	Box,
 	Button,
-	Chip,
-	Container,
 	Dialog,
 	DialogActions,
 	DialogContent,
 	DialogTitle,
-	Divider,
 	LinearProgress,
-	List,
-	ListItem,
-	ListItemText,
 	Stack,
 	TextField,
 	Typography,
 } from '@mui/material';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
+
+import { AskTypeGlyph } from './AskTypeGlyph';
 
 interface Contribution {
 	id: number;
@@ -59,6 +57,10 @@ interface AskDetailValue {
 	creatorName: string | null;
 	contributedAmount: number;
 	contributions: Contribution[];
+}
+
+function statusLabel(status: string) {
+	return status.replace('_', ' ');
 }
 
 export function AskDetail({
@@ -91,6 +93,7 @@ export function AskDetail({
 		100,
 	);
 	const isOwner = viewerId === ask.createdById;
+	const currency = ask.currency ?? 'USD';
 
 	const submitContribution = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
@@ -102,129 +105,167 @@ export function AskDetail({
 	};
 
 	return (
-		<Container
-			maxWidth='md'
-			sx={{ py: 4 }}>
-			<Stack spacing={3}>
-				<Stack
-					direction='row'
-					spacing={1}
-					useFlexGap
-					flexWrap='wrap'>
-					<Chip
-						label={ASK_TYPE_LABELS[ask.type]}
-						color='secondary'
-					/>
-					<Chip label={ask.status.replace('_', ' ')} />
-					<Chip
-						label={`Difficulty ${ask.difficulty}/5`}
-						variant='outlined'
-					/>
-					<Chip
-						label={`About ${ask.estimatedMinutesToComplete} minutes`}
-						variant='outlined'
-					/>
-				</Stack>
-				<Box>
-					<Typography
-						variant='h3'
-						component='h1'
-						gutterBottom>
-						{ask.title}
-					</Typography>
-					<Typography
-						variant='subtitle1'
-						color='text.secondary'>
-						Asked by {ask.creatorName ?? 'a community member'}
-					</Typography>
-				</Box>
-				<Typography variant='body1'>{ask.description}</Typography>
-				<Box>
-					<Stack
-						direction={{ xs: 'column', sm: 'row' }}
-						justifyContent='space-between'
-						spacing={1}>
-						<Typography variant='h6'>
-							{formatAskAmount(
-								ask.type,
-								ask.contributedAmount,
-								ask.currency ?? 'USD',
-							)}{' '}
-							contributed
-						</Typography>
-						<Typography>
-							Goal{' '}
-							{formatAskAmount(
-								ask.type,
-								ask.goalAmount,
-								ask.currency ?? 'USD',
-							)}
-						</Typography>
-					</Stack>
-					<LinearProgress
-						variant='determinate'
-						value={progress}
-						sx={{ height: 10, borderRadius: 5, mt: 1 }}
-					/>
-				</Box>
-				{viewerId === null ?
-					<Button
-						href={`/signin?callbackUrl=${encodeURIComponent(`/asks/${ask.slug}`)}`}
-						variant='contained'
-						color='success'
-						size='large'
-						startIcon={<VolunteerActivismIcon />}>
-						Sign in to offer help
-					</Button>
-				: isOwner ?
-					<Alert severity='info'>
-						This is your Ask. Contributions from other community
-						members will appear below.
-					</Alert>
-				: remainingAmount === 0 ?
-					<Alert severity='success'>
-						This Ask has reached its goal.
-					</Alert>
-				:	<Button
-						onClick={() => setIsOpen(true)}
-						variant='contained'
-						color='success'
-						size='large'
-						startIcon={<VolunteerActivismIcon />}>
-						Offer Help
-					</Button>
-				}
-				<Divider />
-				<Box>
-					<Typography
-						variant='h5'
-						component='h2'>
-						Community contributions
-					</Typography>
+		<div className={`ask-detail ask-detail--${ask.type}`}>
+			<section className='ask-detail__hero'>
+				<div className='page-wrap ask-detail__hero-grid'>
+					<div className='ask-detail__headline'>
+						<Link
+							href='/asks'
+							className='back-link'>
+							<ArrowBackRoundedIcon fontSize='small' /> Back to
+							the noticeboard
+						</Link>
+						<div className='ask-detail__badges'>
+							<span className='ask-detail__type'>
+								<AskTypeGlyph type={ask.type} />{' '}
+								{ASK_TYPE_LABELS[ask.type]}
+							</span>
+							<span>{statusLabel(ask.status)}</span>
+						</div>
+						<h1 className='display-title'>{ask.title}</h1>
+						<p className='ask-detail__byline'>
+							Asked by{' '}
+							<strong>
+								{ask.creatorName ?? 'a community member'}
+							</strong>
+						</p>
+					</div>
+
+					<aside className='contribution-panel'>
+						<p className='eyebrow'>Contribution progress</p>
+						<div className='contribution-panel__amounts'>
+							<strong>
+								{formatAskAmount(
+									ask.type,
+									ask.contributedAmount,
+									currency,
+								)}
+							</strong>
+							<span>
+								of{' '}
+								{formatAskAmount(
+									ask.type,
+									ask.goalAmount,
+									currency,
+								)}
+							</span>
+						</div>
+						<LinearProgress
+							variant='determinate'
+							value={progress}
+						/>
+						<p className='contribution-panel__remaining'>
+							{remainingAmount === 0 ?
+								'This ask has reached its goal.'
+							:	`${formatAskAmount(ask.type, remainingAmount, currency)} remains.`
+							}
+						</p>
+
+						{viewerId === null ?
+							<Button
+								href={`/signin?callbackUrl=${encodeURIComponent(`/asks/${ask.slug}`)}`}
+								variant='contained'
+								className='detail-offer-button'
+								startIcon={<VolunteerActivismIcon />}>
+								Sign in to offer help
+							</Button>
+						: isOwner ?
+							<Alert
+								severity='info'
+								className='detail-state'>
+								This is your Ask. Community contributions will
+								appear below.
+							</Alert>
+						: remainingAmount === 0 ?
+							<Alert
+								severity='success'
+								className='detail-state'>
+								The neighborhood met this goal.
+							</Alert>
+						:	<Button
+								onClick={() => setIsOpen(true)}
+								variant='contained'
+								className='detail-offer-button'
+								startIcon={<VolunteerActivismIcon />}>
+								Offer a contribution
+							</Button>
+						}
+					</aside>
+				</div>
+			</section>
+
+			<section className='page-wrap ask-detail__content'>
+				<div className='ask-detail__story'>
+					<p className='eyebrow'>The full ask</p>
+					<h2 className='section-title'>Here is what would help.</h2>
+					<p className='ask-detail__description'>{ask.description}</p>
+					<div className='ask-detail__facts'>
+						<div>
+							<span>Difficulty</span>
+							<strong>{ask.difficulty}/5</strong>
+						</div>
+						<div>
+							<span>Time estimate</span>
+							<strong>
+								About {ask.estimatedMinutesToComplete} min
+							</strong>
+						</div>
+						<div>
+							<span>Supporters</span>
+							<strong>{ask.contributions.length}</strong>
+						</div>
+					</div>
+				</div>
+
+				<div className='contribution-wall'>
+					<div className='contribution-wall__heading'>
+						<div>
+							<p className='eyebrow'>The reply wall</p>
+							<h2 className='section-title'>
+								Neighbors who stepped up
+							</h2>
+						</div>
+						<span>
+							{ask.contributions.length} contribution
+							{ask.contributions.length === 1 ? '' : 's'}
+						</span>
+					</div>
 					{ask.contributions.length === 0 ?
-						<Typography
-							color='text.secondary'
-							sx={{ mt: 1 }}>
-							Be the first person to contribute.
-						</Typography>
-					:	<List>
-							{ask.contributions.map((contribution) => (
-								<ListItem
-									key={contribution.id}
-									disableGutters>
-									<ListItemText
-										primary={`${contribution.contributorName ?? 'Community member'} pledged ${formatAskAmount(ask.type, contribution.amount, ask.currency ?? 'USD')}`}
-										secondary={
-											contribution.note ??
-											contribution.status
-										}
-									/>
-								</ListItem>
+						<div className='contribution-wall__empty'>
+							<p>
+								There is room for the first reply. A small share
+								can move this one forward.
+							</p>
+						</div>
+					:	<ol className='contribution-list'>
+							{ask.contributions.map((contribution, index) => (
+								<li key={contribution.id}>
+									<span className='contribution-list__number'>
+										{String(index + 1).padStart(2, '0')}
+									</span>
+									<div>
+										<strong>
+											{contribution.contributorName ??
+												'Community member'}
+										</strong>
+										<p>
+											{contribution.note ??
+												'Shared a contribution with this Ask.'}
+										</p>
+									</div>
+									<span className='contribution-list__amount'>
+										{formatAskAmount(
+											ask.type,
+											contribution.amount,
+											currency,
+										)}
+									</span>
+								</li>
 							))}
-						</List>
+						</ol>
 					}
-				</Box>
-			</Stack>
+				</div>
+			</section>
 
 			<Dialog
 				open={isOpen}
@@ -234,25 +275,27 @@ export function AskDetail({
 				<Box
 					component='form'
 					onSubmit={submitContribution}>
-					<DialogTitle>Offer help with this Ask</DialogTitle>
+					<DialogTitle className='contribution-dialog__title'>
+						Your part of the help
+					</DialogTitle>
 					<DialogContent>
 						<Stack
-							spacing={2}
+							spacing={2.2}
 							sx={{ pt: 1 }}>
 							<Typography color='text.secondary'>
-								Remaining:{' '}
 								{formatAskAmount(
 									ask.type,
 									remainingAmount,
-									ask.currency ?? 'USD',
-								)}
+									currency,
+								)}{' '}
+								remains. Share only what works for you.
 							</Typography>
 							<TextField
 								autoFocus
 								label={
 									ask.type === 'money' ?
-										`Amount (${ask.currency ?? 'USD'})`
-									:	`Amount (${getAskUnitLabel(ask.type, ask.currency ?? 'USD')})`
+										`Amount (${currency})`
+									:	`Amount (${getAskUnitLabel(ask.type, currency)})`
 								}
 								value={amount}
 								onChange={(event) =>
@@ -271,7 +314,7 @@ export function AskDetail({
 								required
 							/>
 							<TextField
-								label='Note (optional)'
+								label='A note for the asker (optional)'
 								value={note}
 								onChange={(event) =>
 									setNote(event.target.value)
@@ -288,12 +331,14 @@ export function AskDetail({
 							)}
 						</Stack>
 					</DialogContent>
-					<DialogActions>
-						<Button onClick={() => setIsOpen(false)}>Cancel</Button>
+					<DialogActions sx={{ px: 3, pb: 3 }}>
+						<Button onClick={() => setIsOpen(false)}>
+							Not yet
+						</Button>
 						<Button
 							type='submit'
 							variant='contained'
-							color='success'
+							color='secondary'
 							disabled={createContribution.isPending}>
 							{createContribution.isPending ?
 								'Saving...'
@@ -302,6 +347,6 @@ export function AskDetail({
 					</DialogActions>
 				</Box>
 			</Dialog>
-		</Container>
+		</div>
 	);
 }
