@@ -1,15 +1,30 @@
 import Image from 'next/image';
+import { Suspense } from 'react';
 
+import { parseAskFilters } from '@/lib/ask-browsing';
 import { getServerAuthSession } from '@/server/auth';
 import { api, HydrateClient } from '@/trpc/server';
 
 import { CreateAskFormToggle } from './_components/CreateAskFormToggle';
 import { RenderAsksIndex } from './_components/RenderAsksIndex';
 
-export default async function AsksIndexPage() {
+export default async function AsksIndexPage({
+	searchParams,
+}: {
+	searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
 	const session = await getServerAuthSession();
+	const params = await searchParams;
+	const filters = parseAskFilters({
+		get: (key) => {
+			const value = params[key];
+			return (Array.isArray(value) ? value[0] : value) ?? null;
+		},
+	});
 
-	await api.ask.getAsks.prefetch({});
+	if (!filters.savedOnly || session?.user) {
+		await api.ask.getAsks.prefetch(filters);
+	}
 
 	return (
 		<HydrateClient>
@@ -38,14 +53,25 @@ export default async function AsksIndexPage() {
 				<section className='page-wrap asks-directory'>
 					<div className='asks-directory__intro'>
 						<div>
-							<p className='eyebrow'>Open asks</p>
+							<p className='eyebrow'>The community board</p>
 							<h2 className='section-title'>Find a good fit.</h2>
 						</div>
 						<CreateAskFormToggle
 							isAuthenticated={Boolean(session?.user)}
 						/>
 					</div>
-					<RenderAsksIndex />
+					<Suspense
+						fallback={
+							<div
+								className='asks-loading'
+								role='status'>
+								Loading the noticeboard…
+							</div>
+						}>
+						<RenderAsksIndex
+							isAuthenticated={Boolean(session?.user)}
+						/>
+					</Suspense>
 				</section>
 			</div>
 		</HydrateClient>

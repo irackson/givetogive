@@ -4,10 +4,13 @@ GiveToGive is a community mutual-aid application for publishing requests and
 connecting people who need help with people who can offer it.
 
 The current application supports Discord and verified email/password
-authentication, password reset, creating and browsing typed Asks, and multiple
-partial contributions toward each Ask goal. PostgreSQL persistence is handled
-through Drizzle ORM. Payments, community funds, and subscriptions are planned
-but are not implemented yet.
+authentication, password reset, creating and filtering typed Asks, private saved
+Asks, member profiles, and multiple partial contributions toward each Ask goal.
+Contributors and Ask owners can record completion; contributors can cancel
+their own pledges. Both changes appear in activity history. PostgreSQL
+persistence is handled through Drizzle ORM.
+Money Asks record off-platform pledges only: payments, community funds, and
+subscriptions are not implemented.
 
 ## Requirements
 
@@ -59,29 +62,42 @@ but are not implemented yet.
 
 ## Useful commands
 
-| Command               | Purpose                                  |
-| --------------------- | ---------------------------------------- |
-| `npm run dev`         | Start the Next.js development server     |
-| `npm run build`       | Create and type-check a production build |
-| `npm run lint`        | Run ESLint                               |
-| `npm test`            | Run the Playwright end-to-end suite      |
-| `npm run db:generate` | Generate a Drizzle migration             |
-| `npm run db:migrate`  | Apply pending database migrations        |
-| `npm run db:push`     | Push the current schema directly         |
-| `npm run db:seed`     | Add idempotent sample users and Asks     |
-| `npm run db:studio`   | Open Drizzle Studio                      |
+| Command               | Purpose                                        |
+| --------------------- | ---------------------------------------------- |
+| `npm run dev`         | Start the Next.js development server           |
+| `npm run build`       | Create and type-check a production build       |
+| `npm run lint`        | Run ESLint                                     |
+| `npm test`            | Run unit tests and Playwright end-to-end tests |
+| `npm run test:unit`   | Run filter, callback and lifecycle unit tests  |
+| `npm run test:e2e`    | Run the Playwright browser/API suite           |
+| `npm run db:generate` | Generate a Drizzle migration                   |
+| `npm run db:migrate`  | Apply pending database migrations              |
+| `npm run db:push`     | Push the current schema directly               |
+| `npm run db:seed`     | Add idempotent sample users and Asks           |
+| `npm run db:studio`   | Open Drizzle Studio                            |
 
 `db:seed`, `db:migrate`, and `db:push` modify the database configured in
 `.env.local`. Confirm that connection before running them.
 
 ## End-to-end tests
 
-`npm test` starts an isolated local Next.js server on port 3100 and runs the
-browser suite in Chromium. It covers the public routes, the unverified-account
-recovery path, email verification, password reset, sign-in, Ask creation, and
-a second member's contribution. The test server uses `AUTH_EMAIL_TEST_MODE`, so
-no real emails are sent while the application still returns development links
-for the complete verification and reset flows.
+`npm test` first runs unit tests, then starts a local Next.js server on port
+3100 and runs Chromium tests. Coverage includes public routes, authentication,
+typed Ask creation, partial contributions, completion/cancellation, concurrent
+pledges, ownership rules, URL filters, private saves, profile editing, history
+pagination, and one-time password-reset tokens.
+
+The local test server uses `AUTH_EMAIL_TEST_MODE`, so no real emails are sent
+while development-only preview links exercise verification and reset flows.
+Production ignores that flag and never exposes those preview links.
+
+To run the release browser/API checks against an existing deployment, set
+`PLAYWRIGHT_BASE_URL` to its full URL before `npm run test:e2e`. This disables
+the automatic local server and skips the development-preview email tests.
+The fixture database in `.env.local` must be the deployment's database. These
+tests make real writes: they create synthetic members and Asks, exercise them,
+and clean up the exact generated member IDs and related records afterward.
+Use a deliberately selected database, never an unrelated production connection.
 
 ## Current routes
 
@@ -91,8 +107,11 @@ for the complete verification and reset flows.
 - `/forgot-password` - request a password reset
 - `/reset-password` - finish a password reset from a tokenized link
 - `/verify-email` - verify an email or request a replacement link
-- `/asks` - browse typed Asks and open the creation form
-- `/asks/[slugOrId]` - view an Ask, its progress, and its contributors
+- `/asks` - browse/search/filter typed Asks, save them, and open creation
+- `/asks?saved=1` - the signed-in member's private saved list
+- `/asks/[slugOrId]` - view progress/activity, offer help, and manage contributions
+- `/members` - redirect to the signed-in member's profile, or sign-in
+- `/members/[id]` - public profile, owner editing, and paginated contribution history
 - `/api/auth/[...nextauth]` - Auth.js handlers
 - `/api/trpc/[trpc]` - tRPC API handler
 
@@ -102,11 +121,30 @@ Every Ask has a type (`time`, `task`, `item`, `money`, or `resource`), a
 positive goal, a difficulty from 1 to 5, and an estimated completion time.
 Monetary amounts are stored as integer minor units (for example, cents).
 
-Contributions belong to one Ask and one authenticated user. Multiple people
-can pledge partial amounts, and an Ask moves from `not_started` to
-`in_progress` and then `complete` as its active contribution total reaches the
-goal. The legacy single `fulfilled_by` column remains only for migration
-compatibility and is no longer used by the application workflow.
+Contributions belong to one Ask and one authenticated user. Owners cannot
+contribute to their own Ask. Multiple people can pledge partial amounts, with
+database locking preventing concurrent pledges from overfilling the goal.
+
+A pledge reserves capacity but does not mean help has been delivered:
+
+- `not_started`: no active contributions.
+- `in_progress`: at least one active contribution, but completed help is below the goal.
+- `complete`: completed contributions reach the goal.
+
+Either the contributor or the Ask owner can mark a pledge completed; only the
+contributor can cancel their own pledge. Cancellation releases capacity;
+completed and cancelled entries are terminal records. Owners can update the title, description, difficulty, time
+estimate, and goal; the URL stays stable, and a goal cannot be lowered below
+active contributions. Raising a fulfilled goal reopens the Ask. Activity records
+capture creation, edits, offers, completion, and cancellation.
+
+Profiles show completed contributions publicly and all statuses to their owner.
+Email confirmation is an account signal, not identity verification. Unknown
+legacy join dates are left blank. The legacy single `fulfilled_by` column
+remains only for migration compatibility and is not used by the workflow.
+
+See [the capability outline](docs/feature-outline.md) for the release's
+feature-by-feature provenance, routes, and intentional limits.
 
 ## Project links
 

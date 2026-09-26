@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "allowJs": true,
+    "allowImportingTsExtensions": true,
     "alwaysStrict": true,
     "baseUrl": ".",
     "checkJs": true,

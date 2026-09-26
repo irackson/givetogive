@@ -12,7 +12,7 @@ interface AuthEmailInput {
 type AuthEmailProvider = 'gmail' | 'resend' | 'test';
 
 function getEmailProvider(): AuthEmailProvider | undefined {
-	if (env.AUTH_EMAIL_TEST_MODE === 'true') return 'test';
+	if (env.AUTH_EMAIL_TEST_MODE === 'true' && env.NODE_ENV === 'development') return 'test';
 
 	if (
 		env.GOOGLE_CLIENT_ID &&

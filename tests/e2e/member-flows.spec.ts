@@ -1,8 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
+import { cleanMembers, testSql } from './fixtures';
 
 const runId = `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-const password = 'E2e-password-2026!';
-const replacementPassword = 'New-e2e-password-2026!';
+const password = `E2e-${randomUUID()}!`;
+const replacementPassword = `New-e2e-${randomUUID()}!`;
 const owner = {
 	email: `givetogive-e2e-owner-${runId}@example.com`,
 	name: 'E2E Ask Owner',
@@ -41,6 +43,11 @@ async function signIn(page: Page, email: string, value = password) {
 }
 
 test.describe.serial('GiveToGive member flows', () => {
+	test.skip(Boolean(process.env['PLAYWRIGHT_BASE_URL']), 'Development email previews are intentionally unavailable in production.');
+	test.afterAll(async () => {
+		const members = await testSql`SELECT id FROM givetogive_user WHERE email IN (${owner.email}, ${neighbor.email})`;
+		await cleanMembers(members.map((member) => String(member['id'])));
+	});
 	test('renders every public route without a framework error', async ({ page }) => {
 		const consoleErrors: string[] = [];
 		page.on('console', (message) => {
@@ -142,7 +149,9 @@ test.describe.serial('GiveToGive member flows', () => {
 		await page
 			.getByRole('link', { name: 'Open the development reset link' })
 			.click();
+		await page.waitForLoadState('networkidle');
 		await page.getByLabel('New password').fill(replacementPassword);
+		await expect(page.getByLabel('New password')).toHaveValue(replacementPassword);
 		await page.getByRole('button', { name: 'Update password' }).click();
 		await expect(
 			page.getByText('Your password has been updated. You can sign in now.'),

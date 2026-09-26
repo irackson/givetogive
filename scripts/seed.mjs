@@ -228,34 +228,48 @@ const sampleContributions = [
 try {
 	const summary = await sql.begin(async (transaction) => {
 		const authenticatedUsers = await transaction`
-			select distinct users.id
+			select users.id
 			from givetogive_user as users
-			inner join givetogive_account as accounts
-				on accounts.user_id = users.id
+			where exists (
+				select 1 from givetogive_account as accounts
+				where accounts.user_id = users.id
+			) or (users.hashed_password is not null and users.email_verified is not null)
 			order by users.id
 		`;
 
-		let fakeUsersUpserted = 0;
+		let fakeUsersInserted = 0;
 		for (const user of fakeUsers) {
 			const result = await transaction`
 				insert into givetogive_user (id, name, email)
 				values (${user.id}, ${user.name}, ${user.email})
-				on conflict (id) do update set
-					name = excluded.name,
-					email = excluded.email
+				on conflict do nothing
 			`;
-			fakeUsersUpserted += result.count;
+			fakeUsersInserted += result.count;
 		}
 
-		const authorIds = [
+		const availableFakeUsers = await transaction`
+			select id from givetogive_user
+			where id in ${transaction(fakeUsers.map(({ id }) => id))}
+		`;
+		const fakeUserIds = new Set(availableFakeUsers.map(({ id }) => id));
+		const authorIds = [...new Set([
 			...authenticatedUsers.map(({ id }) => id),
-			...fakeUsers.map(({ id }) => id),
-		];
+			...availableFakeUsers.map(({ id }) => id),
+		])];
 
 		let insertedAskCount = 0;
 		for (const [index, ask] of sampleAsks.entries()) {
 			const goal = askGoals[ask.slug];
-			const createdById = authorIds[index % authorIds.length];
+			const contributorIds = new Set(
+				sampleContributions
+					.filter(({ askSlug }) => askSlug === ask.slug)
+					.map(({ contributorId }) => contributorId),
+			);
+			const eligibleAuthors = authorIds.filter((id) => !contributorIds.has(id));
+			if (eligibleAuthors.length === 0) {
+				throw new Error(`No eligible seed owner for ${ask.slug}`);
+			}
+			const createdById = eligibleAuthors[index % eligibleAuthors.length];
 
 			const result = await transaction`
 				insert into givetogive_ask (
@@ -277,29 +291,32 @@ try {
 					${ask.description},
 					${ask.difficulty},
 					${ask.estimatedMinutesToComplete},
-					${ask.status},
+					'not_started',
 					${goal.type},
 					${goal.goalAmount},
 					${goal.currency ?? null},
 					${createdById},
 					null
 				)
-				on conflict (slug) do update set
-					title = excluded.title,
-					description = excluded.description,
-					difficulty = excluded.difficulty,
-					estimated_minutes_to_complete = excluded.estimated_minutes_to_complete,
-					type = excluded.type,
-					goal_amount = excluded.goal_amount,
-					currency = excluded.currency,
-					fulfilled_by = null
+				on conflict (slug) do nothing
 			`;
 
 			insertedAskCount += result.count;
 		}
 
+		// Match application lock ordering before reading contribution capacity.
+		// Exact slugs avoid touching unrelated user-created Asks with a seed- prefix.
+		await transaction`
+			select id from givetogive_ask
+			where slug in ${transaction(sampleAsks.map(({ slug }) => slug))}
+			order by id
+			for update
+		`;
+
 		let contributionsInserted = 0;
 		for (const contribution of sampleContributions) {
+			if (!fakeUserIds.has(contribution.contributorId)) continue;
+			const goal = askGoals[contribution.askSlug];
 			const result = await transaction`
 				insert into givetogive_ask_contribution (
 					ask_id,
@@ -316,6 +333,15 @@ try {
 					${contribution.status ?? 'pledged'}
 				from givetogive_ask as asks
 				where asks.slug = ${contribution.askSlug}
+				and asks.created_by <> ${contribution.contributorId}
+				and asks.type = ${goal.type}
+				and asks.currency is not distinct from ${goal.currency ?? null}
+				and ${contribution.amount} <= asks.goal_amount - (
+					select coalesce(sum(existing.amount), 0)
+					from givetogive_ask_contribution as existing
+					where existing.ask_id = asks.id
+					and existing.status in ('pledged', 'completed')
+				)
 				and not exists (
 					select 1
 					from givetogive_ask_contribution as existing
@@ -330,24 +356,26 @@ try {
 		await transaction`
 			update givetogive_ask as asks
 			set status = case
-				when progress.amount >= asks.goal_amount then 'complete'
-				when progress.amount > 0 then 'in_progress'
+				when progress.completed_amount >= asks.goal_amount then 'complete'
+				when progress.active_amount > 0 then 'in_progress'
 				else 'not_started'
 			end
 			from (
 				select
-					ask_id,
-					coalesce(sum(amount) filter (where status <> 'cancelled'), 0)::int as amount
-				from givetogive_ask_contribution
-				group by ask_id
+					seed_asks.id as ask_id,
+					coalesce(sum(contributions.amount) filter (where contributions.status in ('pledged', 'completed')), 0) as active_amount,
+					coalesce(sum(contributions.amount) filter (where contributions.status = 'completed'), 0) as completed_amount
+				from givetogive_ask as seed_asks
+				left join givetogive_ask_contribution as contributions on contributions.ask_id = seed_asks.id
+				where seed_asks.slug in ${transaction(sampleAsks.map(({ slug }) => slug))}
+				group by seed_asks.id
 			) as progress
 			where asks.id = progress.ask_id
-			and asks.slug like 'seed-%'
 		`;
 
 		return {
 			authenticatedUsersUsed: authenticatedUsers.length,
-			fakeUsersUpserted,
+			fakeUsersInserted,
 			asksInserted: insertedAskCount,
 			contributionsInserted,
 			totalSeedAsks: sampleAsks.length,

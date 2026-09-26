@@ -1,0 +1,21 @@
+/* Keep every member action reachable instead of hiding sign-out on phones. */
+@media (max-width: 650px) {
+	.site-header__inner {
+		flex-wrap: wrap;
+		gap: 10px;
+		padding: 12px 0;
+	}
+
+	.site-header .site-nav {
+		flex: 1 0 100%;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
+
+	.site-header .site-nav > a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+	}
+}

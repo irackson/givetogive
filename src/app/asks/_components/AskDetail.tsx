@@ -8,7 +8,10 @@ import {
 	type AskType,
 } from '@/lib/asks';
 import { api } from '@/trpc/react';
+import '@/styles/lifecycle.css';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import {
 	Alert,
@@ -56,11 +59,59 @@ interface AskDetailValue {
 	updatedAt: string | null;
 	creatorName: string | null;
 	contributedAmount: number;
+	completedAmount: number;
 	contributions: Contribution[];
+	activities: Array<{
+		id: number;
+		type:
+			| 'ask_created'
+			| 'ask_updated'
+			| 'contribution_created'
+			| 'contribution_completed'
+			| 'contribution_cancelled';
+		metadata: Record<string, unknown> | null;
+		createdAt: string;
+		actorId: string;
+		actorName: string | null;
+		contributionId: number | null;
+	}>;
 }
 
 function statusLabel(status: string) {
-	return status.replace('_', ' ');
+	return status.replaceAll('_', ' ');
+}
+
+function activityLabel(activity: AskDetailValue['activities'][number]) {
+	const name = activity.actorName ?? 'A community member';
+	switch (activity.type) {
+		case 'ask_created':
+			return `${name} posted this Ask.`;
+		case 'ask_updated': {
+			const fields =
+				Array.isArray(activity.metadata?.['fields']) ?
+					activity.metadata['fields']
+						.filter(
+							(field): field is string =>
+								typeof field === 'string',
+						)
+						.map(
+							(field) =>
+								({
+									estimatedMinutesToComplete: 'time estimate',
+									goalAmount: 'goal',
+								})[field] ?? field,
+						)
+						.join(', ')
+				:	'details';
+			return `${name} updated the ${fields}.`;
+		}
+		case 'contribution_created':
+			return `${name} offered a contribution.`;
+		case 'contribution_completed':
+			return `${name} marked a contribution complete.`;
+		case 'contribution_cancelled':
+			return `${name} cancelled a contribution.`;
+	}
 }
 
 export function AskDetail({
@@ -71,6 +122,10 @@ export function AskDetail({
 	viewerId: string | null;
 }) {
 	const router = useRouter();
+	const utils = api.useUtils();
+	const [notice, setNotice] = useState('');
+	const [cancelling, setCancelling] = useState<Contribution | null>(null);
+	const [completing, setCompleting] = useState<Contribution | null>(null);
 	const [isOpen, setIsOpen] = useState(false);
 	const [amount, setAmount] = useState(() => {
 		const remaining = fromStoredAmount(
@@ -80,10 +135,43 @@ export function AskDetail({
 		return Math.min(remaining, ask.type === 'money' ? 25 : 1);
 	});
 	const [note, setNote] = useState('');
+	const [isEditing, setIsEditing] = useState(false);
+	const [editValues, setEditValues] = useState({
+		title: ask.title,
+		description: ask.description,
+		difficulty: ask.difficulty,
+		estimatedMinutesToComplete: ask.estimatedMinutesToComplete,
+		goalAmount: fromStoredAmount(ask.type, ask.goalAmount),
+	});
 	const createContribution = api.ask.createContribution.useMutation({
-		onSuccess: () => {
+		onSuccess: async () => {
 			setIsOpen(false);
 			setNote('');
+			setNotice(
+				'Your contribution has been pledged. Mark it complete after the help has been delivered.',
+			);
+			await utils.invalidate();
+			router.refresh();
+		},
+	});
+	const updateContribution = api.ask.updateContributionStatus.useMutation({
+		onSuccess: async (__data, variables) => {
+			setCancelling(null);
+			setCompleting(null);
+			setNotice(
+				variables.status === 'completed' ?
+					'Contribution marked complete. Thank you for following through.'
+				:	'Contribution cancelled. That amount is available for someone else to offer.',
+			);
+			await utils.invalidate();
+			router.refresh();
+		},
+	});
+	const updateAsk = api.ask.updateAsk.useMutation({
+		onSuccess: async () => {
+			setIsEditing(false);
+			setNotice('Your Ask has been updated. Its link stays the same.');
+			await utils.invalidate();
 			router.refresh();
 		},
 	});
@@ -94,6 +182,22 @@ export function AskDetail({
 	);
 	const isOwner = viewerId === ask.createdById;
 	const currency = ask.currency ?? 'USD';
+	const activeContributions = ask.contributions.filter(
+		(contribution) => contribution.status !== 'cancelled',
+	);
+	const supporterCount = new Set(
+		activeContributions.map((contribution) => contribution.contributorId),
+	).size;
+	const openContributionDialog = () => {
+		createContribution.reset();
+		setAmount(
+			Math.min(
+				fromStoredAmount(ask.type, remainingAmount),
+				ask.type === 'money' ? 25 : 1,
+			),
+		);
+		setIsOpen(true);
+	};
 
 	const submitContribution = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
@@ -103,6 +207,29 @@ export function AskDetail({
 			note: note || undefined,
 		});
 	};
+	const submitAskUpdate = (event: FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+		updateAsk.mutate({ askId: ask.id, ...editValues });
+	};
+	const visibleActivities =
+		ask.activities.some((activity) => activity.type === 'ask_created') ?
+			ask.activities
+		:	[
+				...ask.activities,
+				{
+					id: -ask.id,
+					type: 'ask_created' as const,
+					metadata: null,
+					createdAt: ask.createdAt,
+					actorId: ask.createdById,
+					actorName: ask.creatorName,
+					contributionId: null,
+				},
+			].sort(
+				(left, right) =>
+					new Date(right.createdAt).getTime() -
+					new Date(left.createdAt).getTime(),
+			);
 
 	return (
 		<div className={`ask-detail ask-detail--${ask.type}`}>
@@ -125,14 +252,16 @@ export function AskDetail({
 						<h1 className='display-title'>{ask.title}</h1>
 						<p className='ask-detail__byline'>
 							Asked by{' '}
-							<strong>
+							<Link
+								href={`/members/${ask.createdById}`}
+								className='member-link'>
 								{ask.creatorName ?? 'a community member'}
-							</strong>
+							</Link>
 						</p>
 					</div>
 
 					<aside className='contribution-panel'>
-						<p className='eyebrow'>Contribution progress</p>
+						<p className='eyebrow'>Pledged & completed</p>
 						<div className='contribution-panel__amounts'>
 							<strong>
 								{formatAskAmount(
@@ -151,15 +280,34 @@ export function AskDetail({
 							</span>
 						</div>
 						<LinearProgress
+							aria-label='Amount pledged or completed toward the goal'
 							variant='determinate'
 							value={progress}
 						/>
 						<p className='contribution-panel__remaining'>
 							{remainingAmount === 0 ?
-								'This ask has reached its goal.'
+								ask.status === 'complete' ?
+									'This Ask has been completed.'
+								:	'The goal is fully pledged. Delivery is still in progress.'
+
 							:	`${formatAskAmount(ask.type, remainingAmount, currency)} remains.`
 							}
 						</p>
+						<p className='contribution-panel__completed'>
+							{formatAskAmount(
+								ask.type,
+								ask.completedAmount,
+								currency,
+							)}{' '}
+							completed
+						</p>
+						{ask.type === 'money' && (
+							<p className='contribution-panel__disclaimer'>
+								Money offers are pledges arranged between
+								members. GiveToGive does not collect or transfer
+								payments.
+							</p>
+						)}
 
 						{viewerId === null ?
 							<Button
@@ -180,10 +328,12 @@ export function AskDetail({
 							<Alert
 								severity='success'
 								className='detail-state'>
-								The neighborhood met this goal.
+								{ask.status === 'complete' ?
+									'The neighborhood completed this goal.'
+								:	'This goal is fully pledged.'}
 							</Alert>
 						:	<Button
-								onClick={() => setIsOpen(true)}
+								onClick={openContributionDialog}
 								variant='contained'
 								className='detail-offer-button'
 								startIcon={<VolunteerActivismIcon />}>
@@ -195,6 +345,23 @@ export function AskDetail({
 			</section>
 
 			<section className='page-wrap ask-detail__content'>
+				{notice && (
+					<Alert
+						className='lifecycle-notice'
+						severity='success'
+						role='status'
+						onClose={() => setNotice('')}>
+						{notice}
+					</Alert>
+				)}
+				{updateContribution.error && !cancelling && !completing && (
+					<Alert
+						className='lifecycle-notice'
+						severity='error'
+						onClose={() => updateContribution.reset()}>
+						{updateContribution.error.message}
+					</Alert>
+				)}
 				<div className='ask-detail__story'>
 					<p className='eyebrow'>The full ask</p>
 					<h2 className='section-title'>Here is what would help.</h2>
@@ -212,9 +379,31 @@ export function AskDetail({
 						</div>
 						<div>
 							<span>Supporters</span>
-							<strong>{ask.contributions.length}</strong>
+							<strong>{supporterCount}</strong>
 						</div>
 					</div>
+					{isOwner && (
+						<Button
+							variant='outlined'
+							startIcon={<EditRoundedIcon />}
+							onClick={() => {
+								updateAsk.reset();
+								setEditValues({
+									title: ask.title,
+									description: ask.description,
+									difficulty: ask.difficulty,
+									estimatedMinutesToComplete:
+										ask.estimatedMinutesToComplete,
+									goalAmount: fromStoredAmount(
+										ask.type,
+										ask.goalAmount,
+									),
+								});
+								setIsEditing(true);
+							}}>
+							Edit this Ask
+						</Button>
+					)}
 				</div>
 
 				<div className='contribution-wall'>
@@ -244,14 +433,19 @@ export function AskDetail({
 										{String(index + 1).padStart(2, '0')}
 									</span>
 									<div>
-										<strong>
+										<Link
+											href={`/members/${contribution.contributorId}`}
+											className='member-link'>
 											{contribution.contributorName ??
 												'Community member'}
-										</strong>
+										</Link>
 										<p>
 											{contribution.note ??
 												'Shared a contribution with this Ask.'}
 										</p>
+										<small>
+											{statusLabel(contribution.status)}
+										</small>
 									</div>
 									<span className='contribution-list__amount'>
 										{formatAskAmount(
@@ -260,16 +454,81 @@ export function AskDetail({
 											currency,
 										)}
 									</span>
+									{contribution.status === 'pledged' &&
+										(viewerId ===
+											contribution.contributorId ||
+											isOwner) && (
+											<div className='contribution-list__actions'>
+												{contribution.status ===
+													'pledged' && (
+													<Button
+														size='small'
+														startIcon={
+															<CheckCircleRoundedIcon />
+														}
+														disabled={
+															updateContribution.isPending
+														}
+														onClick={() => {
+															updateContribution.reset();
+															setCompleting(
+																contribution,
+															);
+														}}>
+														Mark complete
+													</Button>
+												)}
+												{viewerId ===
+													contribution.contributorId && (
+													<Button
+														size='small'
+														color='error'
+														disabled={
+															updateContribution.isPending
+														}
+														onClick={() => {
+															updateContribution.reset();
+															setCancelling(
+																contribution,
+															);
+														}}>
+														Cancel
+													</Button>
+												)}
+											</div>
+										)}
 								</li>
 							))}
 						</ol>
 					}
 				</div>
+
+				<div className='activity-history'>
+					<p className='eyebrow'>Activity history</p>
+					<h2 className='section-title'>How this Ask has moved</h2>
+					<ol>
+						{visibleActivities.map((activity) => (
+							<li key={activity.id}>
+								<strong>{activityLabel(activity)}</strong>
+								<time dateTime={activity.createdAt}>
+									{new Intl.DateTimeFormat('en', {
+										dateStyle: 'medium',
+										timeStyle: 'short',
+										timeZone: 'UTC',
+									}).format(new Date(activity.createdAt))}
+									{' UTC'}
+								</time>
+							</li>
+						))}
+					</ol>
+				</div>
 			</section>
 
 			<Dialog
 				open={isOpen}
-				onClose={() => setIsOpen(false)}
+				onClose={() => {
+					if (!createContribution.isPending) setIsOpen(false);
+				}}
 				fullWidth
 				maxWidth='sm'>
 				<Box
@@ -332,7 +591,9 @@ export function AskDetail({
 						</Stack>
 					</DialogContent>
 					<DialogActions sx={{ px: 3, pb: 3 }}>
-						<Button onClick={() => setIsOpen(false)}>
+						<Button
+							disabled={createContribution.isPending}
+							onClick={() => setIsOpen(false)}>
 							Not yet
 						</Button>
 						<Button
@@ -346,6 +607,220 @@ export function AskDetail({
 						</Button>
 					</DialogActions>
 				</Box>
+			</Dialog>
+
+			<Dialog
+				open={isEditing}
+				onClose={() => {
+					if (!updateAsk.isPending) setIsEditing(false);
+				}}
+				fullWidth
+				maxWidth='sm'>
+				<Box
+					component='form'
+					onSubmit={submitAskUpdate}>
+					<DialogTitle>Update your Ask</DialogTitle>
+					<DialogContent>
+						<Stack
+							spacing={2.2}
+							sx={{ pt: 1 }}>
+							<TextField
+								label='Title'
+								inputProps={{ maxLength: 256 }}
+								value={editValues.title}
+								onChange={(event) =>
+									setEditValues((values) => ({
+										...values,
+										title: event.target.value,
+									}))
+								}
+								required
+							/>
+							<TextField
+								label='Description'
+								inputProps={{ maxLength: 20_000 }}
+								value={editValues.description}
+								onChange={(event) =>
+									setEditValues((values) => ({
+										...values,
+										description: event.target.value,
+									}))
+								}
+								multiline
+								rows={4}
+								required
+							/>
+							<TextField
+								label='Difficulty (1–5)'
+								value={editValues.difficulty}
+								onChange={(event) =>
+									setEditValues((values) => ({
+										...values,
+										difficulty: Number(event.target.value),
+									}))
+								}
+								type='number'
+								inputProps={{ min: 1, max: 5, step: 1 }}
+								required
+							/>
+							<TextField
+								label='Time estimate (minutes)'
+								value={editValues.estimatedMinutesToComplete}
+								onChange={(event) =>
+									setEditValues((values) => ({
+										...values,
+										estimatedMinutesToComplete: Number(
+											event.target.value,
+										),
+									}))
+								}
+								type='number'
+								inputProps={{ min: 1, max: 1_000_000, step: 1 }}
+								required
+							/>
+							<TextField
+								label={`Goal (${getAskUnitLabel(ask.type, currency)})`}
+								helperText='The goal cannot be lower than existing pledges and completed contributions.'
+								value={editValues.goalAmount}
+								onChange={(event) =>
+									setEditValues((values) => ({
+										...values,
+										goalAmount: Number(event.target.value),
+									}))
+								}
+								type='number'
+								inputProps={{
+									min: ask.type === 'money' ? 0.01 : 1,
+									step: ask.type === 'money' ? 0.01 : 1,
+								}}
+								required
+							/>
+							{updateAsk.error && (
+								<Alert severity='error'>
+									{updateAsk.error.message}
+								</Alert>
+							)}
+						</Stack>
+					</DialogContent>
+					<DialogActions sx={{ px: 3, pb: 3 }}>
+						<Button
+							disabled={updateAsk.isPending}
+							onClick={() => setIsEditing(false)}>
+							Cancel
+						</Button>
+						<Button
+							type='submit'
+							variant='contained'
+							disabled={updateAsk.isPending}>
+							{updateAsk.isPending ? 'Saving...' : 'Save changes'}
+						</Button>
+					</DialogActions>
+				</Box>
+			</Dialog>
+			<Dialog
+				open={completing !== null}
+				onClose={() => {
+					if (!updateContribution.isPending) setCompleting(null);
+				}}
+				fullWidth
+				maxWidth='xs'>
+				<DialogTitle>Mark this contribution complete?</DialogTitle>
+				<DialogContent>
+					<Typography>
+						Confirm that this help has been{' '}
+						{isOwner ? 'received' : 'delivered'}. The completed
+						contribution will become part of this Ask’s history and
+						can no longer be cancelled.
+					</Typography>
+					{ask.type === 'money' && (
+						<Typography
+							color='text.secondary'
+							sx={{ mt: 2 }}>
+							This records a contribution arranged outside
+							GiveToGive. No payment is collected or sent here.
+						</Typography>
+					)}
+					{updateContribution.error && (
+						<Alert
+							severity='error'
+							sx={{ mt: 2 }}>
+							{updateContribution.error.message}
+						</Alert>
+					)}
+				</DialogContent>
+				<DialogActions sx={{ px: 3, pb: 3 }}>
+					<Button
+						disabled={updateContribution.isPending}
+						onClick={() => setCompleting(null)}>
+						Not yet
+					</Button>
+					<Button
+						variant='contained'
+						disabled={updateContribution.isPending}
+						onClick={() => {
+							if (completing)
+								updateContribution.mutate({
+									contributionId: completing.id,
+									status: 'completed',
+								});
+						}}>
+						{updateContribution.isPending ?
+							'Saving...'
+						:	'Mark complete'}
+					</Button>
+				</DialogActions>
+			</Dialog>
+			<Dialog
+				open={cancelling !== null}
+				onClose={() => {
+					if (!updateContribution.isPending) setCancelling(null);
+				}}
+				fullWidth
+				maxWidth='xs'>
+				<DialogTitle>Cancel your pledge?</DialogTitle>
+				<DialogContent>
+					<Typography>
+						This releases your{' '}
+						{cancelling ?
+							formatAskAmount(
+								ask.type,
+								cancelling.amount,
+								currency,
+							)
+						:	'contribution'}{' '}
+						so another neighbor can offer help. The cancellation
+						will remain in this Ask’s activity history.
+					</Typography>
+					{updateContribution.error && (
+						<Alert
+							severity='error'
+							sx={{ mt: 2 }}>
+							{updateContribution.error.message}
+						</Alert>
+					)}
+				</DialogContent>
+				<DialogActions sx={{ px: 3, pb: 3 }}>
+					<Button
+						disabled={updateContribution.isPending}
+						onClick={() => setCancelling(null)}>
+						Keep my pledge
+					</Button>
+					<Button
+						variant='contained'
+						color='error'
+						disabled={updateContribution.isPending}
+						onClick={() => {
+							if (cancelling)
+								updateContribution.mutate({
+									contributionId: cancelling.id,
+									status: 'cancelled',
+								});
+						}}>
+						{updateContribution.isPending ?
+							'Cancelling...'
+						:	'Cancel pledge'}
+					</Button>
+				</DialogActions>
 			</Dialog>
 		</div>
 	);

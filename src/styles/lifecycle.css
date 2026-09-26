@@ -1,0 +1,80 @@
+.ask-detail .member-link {
+	font-weight: 750;
+	text-decoration: underline;
+	text-decoration-color: color-mix(in srgb, var(--ink) 30%, transparent);
+	text-underline-offset: 4px;
+}
+.ask-detail .member-link:hover {
+	text-decoration-color: currentColor;
+}
+.ask-detail .lifecycle-notice {
+	grid-column: 1 / -1;
+}
+.ask-detail .contribution-panel__completed {
+	font-size: 14px;
+	font-weight: 750;
+}
+.ask-detail .contribution-panel__disclaimer {
+	margin: 16px 0;
+	color: var(--muted-ink);
+	font-size: 12px;
+	line-height: 1.6;
+}
+.ask-detail .contribution-list li small {
+	display: inline-block;
+	margin-top: 8px;
+	color: var(--muted-ink);
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+.ask-detail .contribution-list__actions {
+	display: flex;
+	grid-column: 2 / 4;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.ask-detail .activity-history {
+	grid-column: 2;
+	padding-bottom: 80px;
+}
+.ask-detail .activity-history ol {
+	display: grid;
+	gap: 0;
+	margin: 24px 0 0;
+	padding: 0;
+	border-left: 2px solid var(--ink);
+	list-style: none;
+}
+.ask-detail .activity-history li {
+	position: relative;
+	display: grid;
+	gap: 5px;
+	padding: 0 0 24px 25px;
+}
+.ask-detail .activity-history li::before {
+	position: absolute;
+	top: 4px;
+	left: -7px;
+	width: 12px;
+	height: 12px;
+	border: 2px solid var(--ink);
+	border-radius: 50%;
+	background: var(--saffron);
+	content: '';
+}
+.ask-detail .activity-history time {
+	color: var(--muted-ink);
+	font-size: 12px;
+}
+@media (max-width: 1120px) {
+	.ask-detail .activity-history {
+		grid-column: 1 / -1;
+	}
+}
+@media (max-width: 680px) {
+	.ask-detail .contribution-list__actions {
+		grid-column: 2;
+	}
+}

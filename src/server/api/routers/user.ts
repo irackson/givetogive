@@ -1,5 +1,9 @@
 import { env } from '@/env';
-import { createTRPCRouter, publicProcedure } from '@/server/api/trpc';
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+} from '@/server/api/trpc';
 import {
 	credentialsSchema,
 	registrationSchema,
@@ -9,9 +13,9 @@ import { hashPassword } from '@/server/auth/password';
 import { recordRateLimitAttempt } from '@/server/auth/rate-limit';
 import { createAuthToken, hashAuthToken } from '@/server/auth/tokens';
 import { hasDatabaseErrorCode } from '@/server/db/errors';
-import { authTokens, users } from '@/server/db/schema';
+import { askContributions, asks, authTokens, users } from '@/server/db/schema';
 import { TRPCError } from '@trpc/server';
-import { and, eq, gt, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 function createAuthUrl(pathname: string, token: string) {
@@ -56,6 +60,121 @@ function tooManyRequests() {
 }
 
 export const userRouter = createTRPCRouter({
+	getProfile: publicProcedure
+		.input(
+			z.object({
+				id: z.string().min(1).max(255),
+				page: z.number().int().min(1).max(10000).default(1),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			// Explicit projection keeps account credentials and contact details private.
+			const [member] = await ctx.db
+				.select({
+					id: users.id,
+					name: users.name,
+					bio: users.bio,
+					location: users.location,
+					joinedAt: users.joinedAt,
+					emailConfirmed: sql<boolean>`${users.emailVerified} IS NOT NULL`,
+				})
+				.from(users)
+				.where(eq(users.id, input.id))
+				.limit(1);
+
+			if (!member) {
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: 'Member not found.',
+				});
+			}
+
+			const isOwner = ctx.session?.user.id === member.id;
+			const historyFilter = and(
+				eq(askContributions.contributorId, member.id),
+				isOwner ? undefined : eq(askContributions.status, 'completed'),
+			);
+			const [history, [contributionStats], [askStats]] =
+				await Promise.all([
+					ctx.db
+						.select({
+							id: askContributions.id,
+							amount: askContributions.amount,
+							status: askContributions.status,
+							createdAt: askContributions.createdAt,
+							askSlug: asks.slug,
+							askTitle: asks.title,
+							askType: asks.type,
+							currency: asks.currency,
+						})
+						.from(askContributions)
+						.innerJoin(asks, eq(asks.id, askContributions.askId))
+						.where(historyFilter)
+						.orderBy(
+							desc(askContributions.createdAt),
+							desc(askContributions.id),
+						)
+						.limit(20)
+						.offset((input.page - 1) * 20),
+					ctx.db
+						.select({
+							completed: sql<number>`count(*) filter (where ${askContributions.status} = 'completed')::int`,
+							pledged: sql<number>`count(*) filter (where ${askContributions.status} = 'pledged')::int`,
+							cancelled: sql<number>`count(*) filter (where ${askContributions.status} = 'cancelled')::int`,
+						})
+						.from(askContributions)
+						.where(eq(askContributions.contributorId, member.id)),
+					ctx.db
+						.select({ total: sql<number>`count(*)::int` })
+						.from(asks)
+						.where(eq(asks.createdById, member.id)),
+				]);
+			const completed = contributionStats?.completed ?? 0;
+			const pledged = contributionStats?.pledged ?? 0;
+			const cancelled = contributionStats?.cancelled ?? 0;
+
+			return {
+				...member,
+				isOwner,
+				history,
+				historyTotal:
+					isOwner ? completed + pledged + cancelled : completed,
+				stats: {
+					asksPosted: askStats?.total ?? 0,
+					completed,
+					// Pending and cancelled offers are visible only to their contributor.
+					...(isOwner ? { pledged, cancelled } : {}),
+				},
+			};
+		}),
+
+	updateProfile: protectedProcedure
+		.input(
+			z.object({
+				name: z.string().trim().min(2).max(80),
+				bio: z.string().trim().max(500),
+				location: z.string().trim().max(120),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const [profile] = await ctx.db
+				.update(users)
+				.set({
+					name: input.name,
+					bio: input.bio || null,
+					location: input.location || null,
+				})
+				.where(eq(users.id, ctx.session.user.id))
+				.returning({ id: users.id });
+			if (!profile) {
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: 'Member not found.',
+				});
+			}
+			return profile;
+		}),
+
 	register: publicProcedure
 		.input(registrationSchema)
 		.mutation(async ({ ctx, input: { email, name, password } }) => {
@@ -212,34 +331,28 @@ export const userRouter = createTRPCRouter({
 		.input(z.object({ token: z.string().min(32).max(128) }))
 		.mutation(async ({ ctx, input: { token } }) => {
 			const tokenHash = hashAuthToken(token);
-			const [record] = await ctx.db
-				.select({ id: authTokens.id, userId: authTokens.userId })
-				.from(authTokens)
-				.where(
-					and(
-						eq(authTokens.tokenHash, tokenHash),
-						eq(authTokens.purpose, 'email_verification'),
-						gt(authTokens.expiresAt, new Date()),
-					),
-				)
-				.limit(1);
-
-			if (!record) {
-				throw new TRPCError({
-					code: 'BAD_REQUEST',
-					message:
-						'This verification link is invalid or has expired.',
-				});
-			}
-
 			await ctx.db.transaction(async (transaction) => {
+				const [record] = await transaction
+					.delete(authTokens)
+					.where(
+						and(
+							eq(authTokens.tokenHash, tokenHash),
+							eq(authTokens.purpose, 'email_verification'),
+							gt(authTokens.expiresAt, new Date()),
+						),
+					)
+					.returning({ userId: authTokens.userId });
+				if (!record) {
+					throw new TRPCError({
+						code: 'BAD_REQUEST',
+						message:
+							'This verification link is invalid or has expired.',
+					});
+				}
 				await transaction
 					.update(users)
 					.set({ emailVerified: new Date() })
 					.where(eq(users.id, record.userId));
-				await transaction
-					.delete(authTokens)
-					.where(eq(authTokens.id, record.id));
 			});
 
 			return { success: true };
@@ -254,28 +367,25 @@ export const userRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input: { token, password } }) => {
 			const tokenHash = hashAuthToken(token);
-			const [record] = await ctx.db
-				.select({ id: authTokens.id, userId: authTokens.userId })
-				.from(authTokens)
-				.where(
-					and(
-						eq(authTokens.tokenHash, tokenHash),
-						eq(authTokens.purpose, 'password_reset'),
-						gt(authTokens.expiresAt, new Date()),
-					),
-				)
-				.limit(1);
-
-			if (!record) {
-				throw new TRPCError({
-					code: 'BAD_REQUEST',
-					message:
-						'This password reset link is invalid or has expired.',
-				});
-			}
-
 			const hashedPassword = await hashPassword(password);
 			await ctx.db.transaction(async (transaction) => {
+				const [record] = await transaction
+					.delete(authTokens)
+					.where(
+						and(
+							eq(authTokens.tokenHash, tokenHash),
+							eq(authTokens.purpose, 'password_reset'),
+							gt(authTokens.expiresAt, new Date()),
+						),
+					)
+					.returning({ userId: authTokens.userId });
+				if (!record) {
+					throw new TRPCError({
+						code: 'BAD_REQUEST',
+						message:
+							'This password reset link is invalid or has expired.',
+					});
+				}
 				await transaction
 					.update(users)
 					.set({ hashedPassword })

@@ -10,7 +10,7 @@ export default defineConfig({
 	retries: process.env['CI'] ? 2 : 0,
 	reporter: process.env['CI'] ? 'github' : 'list',
 	use: {
-		baseURL: 'http://127.0.0.1:3100',
+		baseURL: process.env['PLAYWRIGHT_BASE_URL'] ?? 'http://127.0.0.1:3100',
 		trace: 'retain-on-failure',
 		screenshot: 'only-on-failure',
 		video: 'retain-on-failure',
@@ -21,7 +21,7 @@ export default defineConfig({
 			use: { ...devices['Desktop Chrome'] },
 		},
 	],
-	webServer: {
+	...(process.env['PLAYWRIGHT_BASE_URL'] ? {} : { webServer: {
 		command: 'npm run dev -- --hostname 127.0.0.1 --port 3100',
 		url: 'http://127.0.0.1:3100',
 		timeout: 120_000,
@@ -31,5 +31,5 @@ export default defineConfig({
 			AUTH_EMAIL_TEST_MODE: 'true',
 			NEXTAUTH_URL: 'http://127.0.0.1:3100',
 		},
-	},
+	} }),
 });

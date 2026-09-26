@@ -1,4 +1,5 @@
 import { SigninForm } from '@/app/signin/SigninForm';
+import { safeCallbackPath } from '@/lib/safeCallbackPath';
 
 export default async function SigninPage({
 	searchParams,
@@ -8,7 +9,7 @@ export default async function SigninPage({
 	const { callbackUrl } = await searchParams;
 	return (
 		<SigninForm
-			callbackUrl={callbackUrl?.startsWith('/') ? callbackUrl : '/'}
+			callbackUrl={safeCallbackPath(callbackUrl)}
 		/>
 	);
 }

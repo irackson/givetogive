@@ -69,7 +69,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 		},
 	},
 	session: { strategy: 'jwt' },
-	pages: { signIn: '/signin' },
+	pages: { signIn: '/signin', signOut: '/signout', error: '/auth-error' },
 	trustHost: true,
 	providers: [
 		CredentialsProvider({

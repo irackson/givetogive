@@ -4,6 +4,7 @@ import {
 	check,
 	index,
 	integer,
+	jsonb,
 	pgTableCreator,
 	primaryKey,
 	serial,
@@ -19,7 +20,6 @@ import { z } from 'zod';
 export const createTable = pgTableCreator((name) => `givetogive_${name}`);
 export const askTypeSchema = z.enum(ASK_TYPES);
 
-//! TODO fix with https://chatgpt.com/c/6726f09e-d8b4-800d-9645-cc1ba73bce8c after drizzle fixes db:migrate error
 export const asks = createTable(
 	'ask',
 	{
@@ -111,6 +111,8 @@ export const asksRelations = relations(asks, ({ many, one }) => ({
 		references: [users.id],
 	}),
 	contributions: many(askContributions),
+	activities: many(askActivities),
+	saves: many(savedAsks),
 }));
 
 export const users = createTable(
@@ -122,12 +124,16 @@ export const users = createTable(
 			.$defaultFn(() => crypto.randomUUID()),
 		name: varchar('name', { length: 255 }),
 		email: varchar('email', { length: 255 }).notNull(),
+		bio: text('bio'),
+		location: varchar('location', { length: 120 }),
 		hashedPassword: varchar('hashed_password', { length: 255 }),
 		emailVerified: timestamp('email_verified', {
 			mode: 'date',
 			withTimezone: true,
 		}),
 		image: varchar('image', { length: 255 }),
+		joinedAt: timestamp('joined_at', { withTimezone: true })
+			.default(sql`CURRENT_TIMESTAMP`),
 	},
 	(user) => ({
 		emailLowerUniqueIndex: uniqueIndex('user_email_lower_unique_idx').on(
@@ -139,6 +145,32 @@ export const users = createTable(
 export const usersRelations = relations(users, ({ many }) => ({
 	accounts: many(accounts),
 	contributions: many(askContributions),
+	askActivities: many(askActivities),
+	savedAsks: many(savedAsks),
+}));
+
+export const savedAsks = createTable(
+	'saved_ask',
+	{
+		userId: varchar('user_id', { length: 255 })
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		askId: integer('ask_id')
+			.notNull()
+			.references(() => asks.id, { onDelete: 'cascade' }),
+		createdAt: timestamp('created_at', { withTimezone: true })
+			.default(sql`CURRENT_TIMESTAMP`)
+			.notNull(),
+	},
+	(savedAsk) => ({
+		compoundKey: primaryKey({ columns: [savedAsk.userId, savedAsk.askId] }),
+		askIdIdx: index('saved_ask_ask_idx').on(savedAsk.askId),
+	}),
+);
+
+export const savedAsksRelations = relations(savedAsks, ({ one }) => ({
+	user: one(users, { fields: [savedAsks.userId], references: [users.id] }),
+	ask: one(asks, { fields: [savedAsks.askId], references: [asks.id] }),
 }));
 
 export const askContributions = createTable(
@@ -203,6 +235,57 @@ export const askContributionsRelations = relations(
 		}),
 	}),
 );
+
+export type AskActivityType =
+	| 'ask_created'
+	| 'ask_updated'
+	| 'contribution_created'
+	| 'contribution_completed'
+	| 'contribution_cancelled';
+
+export const askActivities = createTable(
+	'ask_activity',
+	{
+		id: serial('id').primaryKey(),
+		askId: integer('ask_id')
+			.notNull()
+			.references(() => asks.id, { onDelete: 'cascade' }),
+		actorId: varchar('actor_id', { length: 255 })
+			.notNull()
+			.references(() => users.id),
+		contributionId: integer('contribution_id').references(
+			() => askContributions.id,
+			{ onDelete: 'set null' },
+		),
+		type: varchar('type', { length: 40 })
+			.notNull()
+			.$type<AskActivityType>(),
+		metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+		createdAt: timestamp('created_at', { withTimezone: true })
+			.default(sql`CURRENT_TIMESTAMP`)
+			.notNull(),
+	},
+	(activity) => ({
+		askIdIdx: index('ask_activity_ask_idx').on(activity.askId),
+		actorIdIdx: index('ask_activity_actor_idx').on(activity.actorId),
+		typeCheck: check(
+			'ask_activity_type_check',
+			sql`${activity.type} IN ('ask_created', 'ask_updated', 'contribution_created', 'contribution_completed', 'contribution_cancelled')`,
+		),
+	}),
+);
+
+export const askActivitiesRelations = relations(askActivities, ({ one }) => ({
+	ask: one(asks, { fields: [askActivities.askId], references: [asks.id] }),
+	actor: one(users, {
+		fields: [askActivities.actorId],
+		references: [users.id],
+	}),
+	contribution: one(askContributions, {
+		fields: [askActivities.contributionId],
+		references: [askContributions.id],
+	}),
+}));
 
 export const authTokens = createTable(
 	'auth_token',

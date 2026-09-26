@@ -12,7 +12,13 @@ export function createSlugBase(title: string) {
 		.slice(0, MAX_SLUG_BASE_LENGTH)
 		.replace(/-+$/g, '');
 
-	return slug || 'ask';
+	const base = slug || 'ask';
+	// Numeric paths are reserved for legacy ID lookup. Keep the creation
+	// action name available without making a member's Ask link ambiguous.
+	if (/^\d+$/.test(base) || base === 'create') {
+		return `ask-${base}`.slice(0, MAX_SLUG_BASE_LENGTH);
+	}
+	return base;
 }
 
 export function createSlugCandidate(base: string, sequence: number) {

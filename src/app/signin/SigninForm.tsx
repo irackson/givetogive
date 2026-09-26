@@ -32,6 +32,8 @@ export function SigninForm({ callbackUrl }: { callbackUrl: string }) {
 			}
 			router.push(callbackUrl);
 			router.refresh();
+		} catch {
+			setError('We could not reach the sign-in service. Please try again.');
 		} finally {
 			setPending(false);
 		}

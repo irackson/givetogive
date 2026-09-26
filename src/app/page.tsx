@@ -62,7 +62,7 @@ export default async function Home() {
 				</div>
 				<div className='home-ways__grid'>
 					<Link
-						href='/asks'
+						href='/asks?type=time'
 						className='way-card way-card--time'>
 						<span>01</span>
 						<h3>Time &amp; tasks</h3>
@@ -72,7 +72,7 @@ export default async function Home() {
 						</p>
 					</Link>
 					<Link
-						href='/asks'
+						href='/asks?type=item'
 						className='way-card way-card--things'>
 						<span>02</span>
 						<h3>Items &amp; resources</h3>
@@ -82,13 +82,13 @@ export default async function Home() {
 						</p>
 					</Link>
 					<Link
-						href='/asks'
+						href='/asks?type=money'
 						className='way-card way-card--funds'>
 						<span>03</span>
-						<h3>Shared funds</h3>
+						<h3>Money pledges</h3>
 						<p>
-							Small contributions add up when someone needs a
-							clear financial boost.
+							Offer an amount toward a specific need. Members
+							arrange payment directly; no money moves through this site.
 						</p>
 					</Link>
 				</div>

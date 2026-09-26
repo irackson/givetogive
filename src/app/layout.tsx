@@ -3,6 +3,7 @@ import { SiteHeader } from '@/app/_components/SiteHeader';
 import { ThemeRegistry } from '@/app/ThemeRegistry';
 import { getServerAuthSession } from '@/server/auth';
 import '@/styles/globals.css';
+import '@/styles/header.css';
 import { TRPCReactProvider } from '@/trpc/react';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
 import { GeistSans } from 'geist/font/sans';
@@ -32,6 +33,7 @@ export default async function RootLayout({
 							<div className='site-shell'>
 								<SiteHeader
 									memberName={session?.user?.name ?? null}
+									memberId={session?.user?.id ?? null}
 								/>
 								<main className='site-main'>{children}</main>
 								<SiteFooter />
