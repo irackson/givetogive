@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 
-export default function MemberError({ reset }: { reset: () => void }) {
+export default function MemberError({ retry }: { retry: () => void }) {
 	return (
 		<section className='page-wrap profile-error'>
 			<p className='eyebrow'>A little interruption</p>
 			<h1 className='section-title'>We couldn’t load this profile.</h1>
 			<p>Please try again in a moment.</p>
 			<button
-				onClick={reset}
+				onClick={retry}
 				className='button-link button-link--primary'>
 				Try again
 			</button>{' '}

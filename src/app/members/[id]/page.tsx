@@ -120,7 +120,7 @@ export default async function MemberProfilePage({
 						<p className='profile-history__explanation'>
 							{profile.isOwner ?
 								'Your pending and cancelled offers are visible here only to you. Completed contributions appear on your public profile.'
-							:	'Completed contributions recorded by this member and the Ask owner.'
+							:	'Completed contributions recorded by the contributor or Ask owner.'
 							}
 						</p>
 						{profile.history.length === 0 ?
