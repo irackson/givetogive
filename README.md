@@ -103,6 +103,8 @@ Use a deliberately selected database, never an unrelated production connection.
 
 - `/` - home and authentication status
 - `/signin` - email/password and Discord sign-in
+- `/signout` - branded confirmation, cancellation, and signed-out state
+- `/auth-error` - generic authentication recovery
 - `/signup` - create an email/password account
 - `/forgot-password` - request a password reset
 - `/reset-password` - finish a password reset from a tokenized link
@@ -145,6 +147,24 @@ remains only for migration compatibility and is not used by the workflow.
 
 See [the capability outline](docs/feature-outline.md) for the release's
 feature-by-feature provenance, routes, and intentional limits.
+
+## Release walkthrough
+
+See [the release report](docs/release-report.md) for verification evidence and
+the current production deployment. The published-site PDF is generated from
+real browser captures, including mobile views and open dialogs.
+
+With the target database deliberately selected, set `PLAYWRIGHT_BASE_URL`
+to the published site and `WALKTHROUGH_CAPTURE=1`, then run:
+
+```bash
+npx playwright test tests/e2e/walkthrough.spec.ts
+python scripts/build-walkthrough.py
+```
+
+The PDF builder needs `reportlab` and `Pillow`. It rejects incomplete captures
+or captures with reported errors/unfinished cleanup. Intermediate screenshots
+stay in ignored `tmp/walkthrough`; the PDF is in `output/pdf`.
 
 ## Project links
 

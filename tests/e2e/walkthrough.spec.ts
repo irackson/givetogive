@@ -67,6 +67,8 @@ test('capture the published GiveToGive walkthrough', async ({
 		return result.replace(/(token=)[^\s&]+/g, '$1[redacted]').slice(0, 500);
 	};
 	for (const surface of pages) {
+		surface.setDefaultTimeout(20_000);
+		surface.setDefaultNavigationTimeout(40_000);
 		surface.on('pageerror', (error) =>
 			errors.push(
 				`Page error on ${safePath(surface.url())}: ${safeMessage(error.message)}`,
@@ -453,7 +455,7 @@ test('capture the published GiveToGive walkthrough', async ({
 			await capture(page, title, caption);
 		}
 		await navigate(page, '/verify-email?token=invalid-example-placeholder-not-an-auth-token');
-		await expect(page.getByRole('alert')).toBeVisible();
+		await expect(page.locator('main').getByRole('alert')).toBeVisible();
 		await capture(
 			page,
 			'Account — invalid verification link',
@@ -462,7 +464,7 @@ test('capture the published GiveToGive walkthrough', async ({
 		await navigate(page, '/reset-password?token=invalid-example-placeholder-not-an-auth-token');
 		await page.getByLabel('New password').fill(members[2].password);
 		await page.getByRole('button', { name: 'Update password' }).click();
-		await expect(page.getByRole('alert')).toBeVisible();
+		await expect(page.locator('main').getByRole('alert')).toBeVisible();
 		await page.getByLabel('New password').fill('');
 		await capture(
 			page,
@@ -541,7 +543,7 @@ test('capture the published GiveToGive walkthrough', async ({
 			.getByLabel('Title', { exact: true })
 			.fill('A small project for our block');
 		await createDialog
-			.getByLabel('Description', { exact: true })
+			.getByRole('textbox', { name: /^Description/ })
 			.fill(
 				'Tell neighbors what you need, why it matters, and what a helpful contribution looks like.',
 			);
@@ -592,7 +594,7 @@ test('capture the published GiveToGive walkthrough', async ({
 		);
 		await owner
 			.getByRole('dialog')
-			.getByLabel('Description', { exact: true })
+			.getByRole('textbox', { name: /^Description/ })
 			.fill(
 				'We need two helping hands to arrange tables and label the book corner. Meet at the community garden before the neighborhood swap.',
 			);

@@ -20,6 +20,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "tmp/walkthrough/manifest.json"
 OUTPUT = ROOT / "output/pdf/givetogive-published-walkthrough.pdf"
 manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+if manifest.get("status") != "complete" or manifest.get("cleanup") != "complete" or manifest.get("errors"):
+    raise ValueError("Only a completed, cleaned-up, error-free capture can be published")
 OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 
 INK = colors.HexColor("#202742")
@@ -30,7 +32,7 @@ MUTED = colors.HexColor("#53617B")
 PAGE_W, PAGE_H = 1008, 720
 styles = getSampleStyleSheet()
 styles.add(ParagraphStyle("Cover", fontName="Times-Bold", fontSize=49, leading=53, textColor=INK, spaceAfter=24))
-styles.add(ParagraphStyle("Section", fontName="Times-Bold", fontSize=28, leading=32, textColor=INK, spaceAfter=14))
+styles.add(ParagraphStyle("Section", fontName="Times-Bold", fontSize=28, leading=32, textColor=INK, spaceAfter=14, keepWithNext=True))
 styles.add(ParagraphStyle("ViewTitle", fontName="Times-Bold", fontSize=25, leading=29, textColor=INK, spaceAfter=8))
 styles.add(ParagraphStyle("BodyCopy", fontName="Helvetica", fontSize=11, leading=16, textColor=INK, spaceAfter=9))
 styles.add(ParagraphStyle("Caption", fontName="Helvetica", fontSize=10, leading=14, textColor=MUTED, spaceAfter=8))
@@ -44,7 +46,7 @@ def plain(value):
 
 
 def rich(value):
-    value = escape(plain(value))
+    value = escape(plain(value)).replace("\n", "<br/>")
     value = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", value)
     value = re.sub(r"`(.*?)`", r'<font color="#233EB8">\1</font>', value)
     return value
@@ -68,7 +70,7 @@ def chrome(canvas, doc):
 
 
 story = [Spacer(1, 40), para("RELEASE WALKTHROUGH", "Label"),
-         para("Useful things.<br/>Finished workflows.<br/>A neighborly place.", "Cover"),
+         para("Useful things.\nFinished workflows.\nA neighborly place.", "Cover"),
          para("GiveToGive - published-site visual and capability guide", "Section"),
          para(f"Captured from {manifest['baseURL']} on {manifest['capturedAt']}", "BodyCopy"),
          para(f"{len(manifest['views'])} browser views: public pages, signed-in experiences, open dialogs, recovery states, and mobile layouts."),
@@ -78,17 +80,21 @@ story = [Spacer(1, 40), para("RELEASE WALKTHROUGH", "Label"),
          PageBreak()]
 
 for index, view in enumerate(manifest["views"], 1):
-    story += [para(f"{index:02d} / {view['title']}", "ViewTitle"),
-              para(view["caption"], "Caption")]
+    heading = para(f"{index:02d} / {view['title']}", "ViewTitle")
+    caption = para(view["caption"], "Caption")
+    route = para(view["route"], "Caption")
+    story += [heading, caption]
     image_path = Path(view["image"])
     if not image_path.is_absolute():
         image_path = ROOT / image_path
     with PILImage.open(image_path) as im:
         width, height = im.size
-    scale = min(928 / width, 542 / height)
+    text_height = sum(part.wrap(928, 650)[1] + part.getSpaceAfter() for part in [heading, caption, route])
+    image_height = min(542, 630 - text_height - 7)
+    scale = min(928 / width, image_height / height)
     shot = Image(str(image_path), width=width * scale, height=height * scale)
     shot.hAlign = "CENTER"
-    story += [shot, Spacer(1, 7), para(view["route"], "Caption"), PageBreak()]
+    story += [shot, Spacer(1, 7), route, PageBreak()]
 
 story += [para("Capability appendix", "Section"),
           para("A complete inventory of what the current release does, what was completed from the three spinoff tasks, and what is intentionally not implemented.")]

@@ -5,6 +5,10 @@ starting point for this release. It distinguishes working baseline features
 from unmerged work in the three referenced task worktrees. It describes
 application behavior, not a guarantee that every future need is implemented.
 
+"Existed before" means before this integration pass, not necessarily before
+the broader revival. For example, the visual redesign was created earlier in
+the revival at `bb600ca`, and typed contributions/runtime updates at `979a793`.
+
 ## Tags
 
 - **existed before** — working code was already on baseline `main`.
@@ -59,7 +63,7 @@ application behavior, not a guarantee that every future need is implemented.
 | Terminal and idempotent transitions | brand new                                  | Completed/cancelled records cannot switch terminal states. Repeating the same authorized action succeeds without duplicate activity.                                                    |
 | Concurrency controls                | newly finished                             | Writes lock the Ask consistently before updating contributions, preventing competing offers from overfilling capacity.                                                                  |
 | Owner edits                         | partly implemented before → newly finished | Update title, description, difficulty, time estimate, and goal. Cannot lower the goal below active offers. Raising the goal can reopen a completed Ask. Type and currency remain fixed. |
-| Activity timeline                   | partly implemented before → newly finished | Ask creation/edits and contribution offer/completion/cancellation records, linked to actors' profiles. Dates render consistently in UTC.                                                |
+| Activity timeline                   | partly implemented before → newly finished | Ask creation/edits and contribution offer/completion/cancellation records, attributed to actors. Dates render consistently in UTC.                                                      |
 | Contributor/owner profile links     | newly finished                             | Ask detail connects people to public profiles rather than leaving names as dead ends.                                                                                                   |
 | Contribution notes                  | existed before / newly finished            | Optional notes accompany offers; privacy is restricted to the Ask owner and the note's contributor. Public totals and participation remain visible.                                     |
 | Existing status reconciliation      | brand new                                  | Migration recalculates stored Ask statuses using completed rather than merely pledged amounts.                                                                                          |
@@ -115,7 +119,7 @@ Location is a self-written profile field, not geolocation or geographic matching
 - **newly finished:** additive saved-Ask/activity/profile migration integrated
   with the existing migration sequence; contribution status reconciliation.
 - **brand new:** focused unit tests and combined browser/API coverage for
-  ownership, privacy, terminal-state races, callback safety, filters and history.
+  ownership, privacy, terminal states, pledge/token races, callback safety, filters and history.
   Synthetic test records are scoped to exact generated member IDs for cleanup.
 - **existed before:** `.vscode/settings.json` was already removed from Git
   tracking and ignored at this release's starting baseline.
@@ -148,5 +152,16 @@ monitoring.
 
 ## Verification record
 
-Final build, lint, test counts, deployment identity, published-site checks, and
-PDF walkthrough are recorded in the release report after verification completes.
+| Check | Verified result |
+| --- | --- |
+| Unit tests | 16 passed |
+| Local browser tests | 16 passed, including signup, email verification and password reset via development preview links |
+| Production browser/API regression | 12 passed; development email-preview tests intentionally skipped |
+| Production walkthrough | 62 desktop/mobile views and dialog states, zero unexpected browser/network errors, synthetic records cleaned up |
+| Build / TypeScript / ESLint | Passed |
+| Dependency audit | 0 vulnerabilities reported |
+| Database | 11 migrations applied; seed rerun without duplicates; no self-contributions, overfilled goals or stale statuses |
+
+See `docs/release-report.md` for deployment identity, archive readiness,
+cleanup details, and honest validation limits. The PDF captures the application
+release; subsequent documentation-only commits do not change its UI.
