@@ -10,6 +10,7 @@
 /playwright-report/
 /test-results/
 /output/signin-recovery-*.png
+/output/screenshots/
 
 # generated verification artifacts
 /tmp/
@@ -56,3 +57,14 @@ chrome-debug-profile
 
 # personal editor appearance
 .vscode/settings.json
+
+# local simulation runtime, models, and credentials
+/tools/simulation/node_modules/
+/tools/simulation/.runtime/
+/tools/simulation/.state/
+/tools/simulation/.env*
+/.neon
+/.stripe/
+.env.staging
+.env.ci
+/.swc
