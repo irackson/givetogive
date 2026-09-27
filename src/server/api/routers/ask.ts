@@ -25,6 +25,13 @@ import {
 import { TRPCError } from '@trpc/server';
 import { and, desc, eq, ilike, lte, ne, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import { recordEvent } from '@/server/observability/events';
+import {
+	askPaymentProgress,
+	assertLegacyContributionsAllowed,
+	fundingStatus,
+	syncPaymentAskGoal,
+} from '@/server/payments/ask-funding';
 
 const MAX_SLUG_ATTEMPTS = 100;
 
@@ -79,6 +86,12 @@ async function syncAskStatus(
 	askId: number,
 	goalAmount: number,
 ) {
+	const paymentProgress = await syncPaymentAskGoal(
+		transaction,
+		askId,
+		goalAmount,
+	);
+	if (paymentProgress) return paymentProgress;
 	const [progress] = await transaction
 		.select({
 			amount: sql<number>`coalesce(sum(${askContributions.amount}), 0)::int`,
@@ -150,6 +163,20 @@ export const askRouter = createTRPCRouter({
 							actorId: ctx.session.user.id,
 							type: 'ask_created',
 						});
+						await recordEvent(
+							{
+								actorId: ctx.session.user.id,
+								entityType: 'ask',
+								entityId: String(doc.newlyCreatedAskId),
+								action: 'ask.created',
+								outcome: 'success',
+								details: {
+									type: input.type,
+									goalAmount: storedGoal,
+								},
+							},
+							transaction,
+						);
 
 						return {
 							newlyCreatedAskId: doc.newlyCreatedAskId,
@@ -205,6 +232,7 @@ export const askRouter = createTRPCRouter({
 						message: 'You cannot contribute to your own Ask.',
 					});
 				}
+				await assertLegacyContributionsAllowed(transaction, ask.id);
 
 				if (!isValidContributionAmount(ask.type, input.amount)) {
 					throw new TRPCError({
@@ -275,6 +303,21 @@ export const askRouter = createTRPCRouter({
 					type: 'contribution_created',
 					metadata: { amount: storedAmount },
 				});
+				await recordEvent(
+					{
+						actorId: ctx.session.user.id,
+						entityType: 'contribution',
+						entityId: String(contribution.id),
+						action: 'contribution.created',
+						outcome: 'success',
+						details: {
+							askId: ask.id,
+							amount: storedAmount,
+							type: ask.type,
+						},
+					},
+					transaction,
+				);
 
 				return {
 					contributionId: contribution.id,
@@ -327,6 +370,7 @@ export const askRouter = createTRPCRouter({
 					});
 				}
 				const result = { ask, contribution };
+				await assertLegacyContributionsAllowed(transaction, ask.id);
 
 				const isContributor =
 					result.contribution.contributorId === ctx.session.user.id;
@@ -375,6 +419,21 @@ export const askRouter = createTRPCRouter({
 						:	'contribution_cancelled',
 					metadata: { amount: result.contribution.amount },
 				});
+				await recordEvent(
+					{
+						actorId: ctx.session.user.id,
+						entityType: 'contribution',
+						entityId: String(input.contributionId),
+						action: `contribution.${input.status}`,
+						outcome: 'success',
+						details: {
+							askId: ask.id,
+							amount: contribution.amount,
+							type: ask.type,
+						},
+					},
+					transaction,
+				);
 
 				return syncAskStatus(
 					transaction,
@@ -405,6 +464,7 @@ export const askRouter = createTRPCRouter({
 						.optional(),
 					goalAmount: z.number().positive().max(1_000_000).optional(),
 				})
+				.strict()
 				.refine(
 					({ askId: _askId, ...updates }) =>
 						Object.values(updates).some(
@@ -509,6 +569,17 @@ export const askRouter = createTRPCRouter({
 					type: 'ask_updated',
 					metadata: { fields: changedFields },
 				});
+				await recordEvent(
+					{
+						actorId: ctx.session.user.id,
+						entityType: 'ask',
+						entityId: String(ask.id),
+						action: 'ask.updated',
+						outcome: 'success',
+						details: { fields: changedFields },
+					},
+					transaction,
+				);
 				return syncAskStatus(transaction, ask.id, storedGoal);
 			});
 		}),
@@ -521,32 +592,53 @@ export const askRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (input.saved) {
-				const [ask] = await ctx.db
-					.select({ id: asks.id })
-					.from(asks)
-					.where(eq(asks.id, input.askId))
-					.limit(1);
-				if (!ask)
-					throw new TRPCError({
-						code: 'NOT_FOUND',
-						message: 'Ask not found.',
-					});
-				await ctx.db
-					.insert(savedAsks)
-					.values({ askId: input.askId, userId: ctx.session.user.id })
-					.onConflictDoNothing();
-			} else {
-				await ctx.db
-					.delete(savedAsks)
-					.where(
-						and(
-							eq(savedAsks.askId, input.askId),
-							eq(savedAsks.userId, ctx.session.user.id),
-						),
+			return ctx.db.transaction(async (transaction) => {
+				let changed = false;
+				if (input.saved) {
+					const [ask] = await transaction
+						.select({ id: asks.id })
+						.from(asks)
+						.where(eq(asks.id, input.askId))
+						.limit(1);
+					if (!ask)
+						throw new TRPCError({
+							code: 'NOT_FOUND',
+							message: 'Ask not found.',
+						});
+					const inserted = await transaction
+						.insert(savedAsks)
+						.values({
+							askId: input.askId,
+							userId: ctx.session.user.id,
+						})
+						.onConflictDoNothing()
+						.returning();
+					changed = inserted.length > 0;
+				} else {
+					const deleted = await transaction
+						.delete(savedAsks)
+						.where(
+							and(
+								eq(savedAsks.askId, input.askId),
+								eq(savedAsks.userId, ctx.session.user.id),
+							),
+						)
+						.returning();
+					changed = deleted.length > 0;
+				}
+				if (changed)
+					await recordEvent(
+						{
+							actorId: ctx.session.user.id,
+							entityType: 'ask',
+							entityId: String(input.askId),
+							action: input.saved ? 'ask.saved' : 'ask.unsaved',
+							outcome: 'success',
+						},
+						transaction,
 					);
-			}
-			return { saved: input.saved };
+				return { saved: input.saved };
+			});
 		}),
 
 	getAsks: publicProcedure
@@ -585,7 +677,7 @@ export const askRouter = createTRPCRouter({
 					sql`exists (select 1 from ${savedAsks} where ${savedAsks.askId} = ${asks.id} and ${savedAsks.userId} = ${userId})`
 				:	undefined,
 			);
-			return ctx.db
+			const rows = await ctx.db
 				.select({
 					id: asks.id,
 					slug: asks.slug,
@@ -612,6 +704,31 @@ export const askRouter = createTRPCRouter({
 				.groupBy(asks.id)
 				.orderBy(desc(asks.createdAt), desc(asks.id))
 				.limit(100);
+			const funding = await askPaymentProgress(
+				ctx.db,
+				rows.map((row) => row.id),
+			);
+			return rows.map((row) => {
+				const progress = funding.get(row.id);
+				return {
+					...row,
+					paymentEnabled: Boolean(progress),
+					verifiedFundingAmount: progress?.verifiedFundingAmount ?? 0,
+					pendingFundingAmount: progress?.pendingFundingAmount ?? 0,
+					...(progress ?
+						{
+							goalAmount: progress.goalAmount,
+							contributedAmount: progress.verifiedFundingAmount,
+							completedAmount: progress.verifiedFundingAmount,
+							status: fundingStatus(
+								progress.verifiedFundingAmount,
+								progress.pendingFundingAmount,
+								progress.goalAmount,
+							),
+						}
+					:	{}),
+				};
+			});
 		}),
 
 	getAsk: publicProcedure
@@ -685,21 +802,42 @@ export const askRouter = createTRPCRouter({
 				.where(eq(askActivities.askId, result.ask.id))
 				.orderBy(desc(askActivities.createdAt), desc(askActivities.id));
 
+			const funding = (
+				await askPaymentProgress(ctx.db, [result.ask.id])
+			).get(result.ask.id);
 			return {
 				...result.ask,
 				creatorName: result.creatorName,
-				contributedAmount,
-				completedAmount,
-				status: getAskStatus(
-					contributedAmount,
-					result.ask.goalAmount,
-					completedAmount,
-				),
+				paymentEnabled: Boolean(funding),
+				verifiedFundingAmount: funding?.verifiedFundingAmount ?? 0,
+				pendingFundingAmount: funding?.pendingFundingAmount ?? 0,
+				goalAmount: funding?.goalAmount ?? result.ask.goalAmount,
+				contributedAmount:
+					funding?.verifiedFundingAmount ?? contributedAmount,
+				completedAmount:
+					funding?.verifiedFundingAmount ?? completedAmount,
+				status:
+					funding ?
+						fundingStatus(
+							funding.verifiedFundingAmount,
+							funding.pendingFundingAmount,
+							funding.goalAmount,
+						)
+					:	getAskStatus(
+							contributedAmount,
+							result.ask.goalAmount,
+							completedAmount,
+						),
 				contributions: contributions.map((contribution) => ({
 					...contribution,
 					// Notes can contain coordination details intended only for these two members.
-					note: ctx.session?.user.id === result.ask.createdById ||
-						ctx.session?.user.id === contribution.contributorId ? contribution.note : null,
+					note:
+						(
+							ctx.session?.user.id === result.ask.createdById ||
+							ctx.session?.user.id === contribution.contributorId
+						) ?
+							contribution.note
+						:	null,
 				})),
 				activities,
 			};

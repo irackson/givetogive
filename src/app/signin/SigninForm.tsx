@@ -2,7 +2,7 @@
 
 import { AuthFrame } from '@/app/_components/AuthFrame';
 import { Alert, Box, Button, Divider, Stack, TextField } from '@mui/material';
-import { signIn } from 'next-auth/react';
+import { getSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
@@ -30,10 +30,17 @@ export function SigninForm({ callbackUrl }: { callbackUrl: string }) {
 				);
 				return;
 			}
-			router.push(callbackUrl);
+			const session = await getSession();
+			router.push(
+				session?.access === 'billing_only' ?
+					'/account/billing'
+				:	callbackUrl,
+			);
 			router.refresh();
 		} catch {
-			setError('We could not reach the sign-in service. Please try again.');
+			setError(
+				'We could not reach the sign-in service. Please try again.',
+			);
 		} finally {
 			setPending(false);
 		}
@@ -101,7 +108,9 @@ export function SigninForm({ callbackUrl }: { callbackUrl: string }) {
 					<Button
 						variant='outlined'
 						onClick={() =>
-							void signIn('discord', { redirectTo: callbackUrl })
+							void signIn('discord', {
+								redirectTo: `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`,
+							})
 						}>
 						Continue with Discord
 					</Button>

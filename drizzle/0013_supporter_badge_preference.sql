@@ -1,0 +1,1 @@
+ALTER TABLE "givetogive_user" ADD COLUMN "show_supporter_badge" boolean DEFAULT false NOT NULL;

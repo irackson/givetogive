@@ -197,22 +197,33 @@ export function ClientFormFields({ onCancel }: ClientFormFieldsProps) {
 							)}
 						</Field>
 						{type === 'money' && (
-							<Field name='currency'>
-								{({ state, handleChange, handleBlur }) => (
-									<TextField
-										label='Currency'
-										value={state.value}
-										onChange={(event) =>
-											handleChange(
-												event.target.value.toUpperCase(),
-											)
-										}
-										onBlur={handleBlur}
-										inputProps={{ maxLength: 3 }}
-										fullWidth
-									/>
-								)}
-							</Field>
+							<>
+								<Alert severity='info'>
+									Creating a money Ask does not start
+									collecting payments. Set up your receiving
+									account, then explicitly enable verified
+									payments for an eligible USD Ask. Until
+									then, offers are off-platform pledges. An
+									Ask with legacy contributions cannot be
+									converted into paid records.
+								</Alert>
+								<Field name='currency'>
+									{({ state, handleChange, handleBlur }) => (
+										<TextField
+											label='Currency'
+											value={state.value}
+											onChange={(event) =>
+												handleChange(
+													event.target.value.toUpperCase(),
+												)
+											}
+											onBlur={handleBlur}
+											inputProps={{ maxLength: 3 }}
+											fullWidth
+										/>
+									)}
+								</Field>
+							</>
 						)}
 					</>
 				)}

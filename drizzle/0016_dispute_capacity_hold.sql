@@ -1,0 +1,1 @@
+ALTER TABLE "givetogive_payment" ADD COLUMN "dispute_pending_amount" integer DEFAULT 0 NOT NULL;

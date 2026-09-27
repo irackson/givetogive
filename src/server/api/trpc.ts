@@ -7,11 +7,20 @@
  * need to use are documented accordingly near the end.
  */
 
-import { getServerAuthSession } from '@/server/auth';
+import { getBillingAuthSession } from '@/server/auth';
+import { activeSession, sessionContexts } from '@/server/auth/session-policy';
+import type { Session } from 'next-auth';
 import { db } from '@/server/db';
 import { initTRPC, TRPCError } from '@trpc/server';
 import superjson from 'superjson';
 import { ZodError } from 'zod';
+import {
+	requireActiveUser,
+	requireBillingIdentity,
+} from '@/server/security/authorization';
+import { recordRequestMetric } from '@/server/observability/metrics';
+export type ApplicationDatabase =
+	typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
  * 1. CONTEXT
@@ -25,12 +34,21 @@ import { ZodError } from 'zod';
  *
  * @see https://trpc.io/docs/server/context
  */
-export const createTRPCContext = async (opts: { headers: Headers }) => {
-	const session = await getServerAuthSession();
+type TRPCContext = {
+	db: ApplicationDatabase;
+	session: Session | null;
+	/** Kept separate so public owner-only projections never see frozen identities. */
+	billingSession?: Session | null;
+	headers: Headers;
+};
+export const createTRPCContext = async (opts: {
+	headers: Headers;
+}): Promise<TRPCContext> => {
+	const session = await getBillingAuthSession();
 
 	return {
-		db,
-		session,
+		db: db as ApplicationDatabase,
+		...sessionContexts(session),
 		...opts,
 	};
 };
@@ -80,24 +98,18 @@ export const createCallerFactory = t.createCallerFactory;
 export const createTRPCRouter = t.router;
 
 /**
- * Middleware for timing procedure execution and adding an artificial delay in development.
- *
- * You can remove this if you don't like it, but it can help catch unwanted waterfalls by simulating
- * network latency that would occur in production but not in local development.
+ * Measure actual procedure execution without synthetic delay or sensitive inputs.
  */
-const timingMiddleware = t.middleware(async ({ next, path }) => {
+const timingMiddleware = t.middleware(async ({ next, path, ctx }) => {
 	const start = Date.now();
-
-	if (t._config.isDev) {
-		// artificial delay in dev
-		const waitMs = Math.floor(Math.random() * 400) + 100;
-		await new Promise((resolve) => setTimeout(resolve, waitMs));
-	}
 
 	const result = await next();
 
 	const end = Date.now();
 	console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
+	// A caller inside a transaction must not wait on a second connection from the
+	// same pool. MCP has separate run telemetry; this series covers top-level calls.
+	if (ctx.db === db) await recordRequestMetric(path, result.ok, end - start);
 
 	return result;
 });
@@ -109,7 +121,11 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-export const publicProcedure = t.procedure.use(timingMiddleware);
+export const publicProcedure = t.procedure
+	.use(timingMiddleware)
+	.use(({ ctx, next }) =>
+		next({ ctx: { session: activeSession(ctx.session) } }),
+	);
 
 /**
  * Protected (authenticated) procedure
@@ -121,14 +137,34 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  */
 export const protectedProcedure = t.procedure
 	.use(timingMiddleware)
-	.use(({ ctx, next }) => {
+	.use(async ({ ctx, next }) => {
 		if (!ctx.session || !ctx.session.user) {
 			throw new TRPCError({ code: 'UNAUTHORIZED' });
 		}
+		await requireActiveUser(
+			ctx.session.user.id,
+			ctx.session.user.sessionVersion,
+			ctx.db,
+		);
 		return next({
 			ctx: {
 				// infers the `session` as non-nullable
 				session: { ...ctx.session, user: ctx.session.user },
 			},
 		});
+	});
+
+/** Only own billing reads and narrowly checked stop-billing operations may use this. */
+export const billingManagementProcedure = t.procedure
+	.use(timingMiddleware)
+	.use(async ({ ctx, next }) => {
+		const identity = ctx.billingSession ?? ctx.session;
+		if (!identity?.user?.id) throw new TRPCError({ code: 'UNAUTHORIZED' });
+		await requireBillingIdentity(
+			identity.user.id,
+			identity.user.sessionVersion,
+			identity.access,
+			ctx.db,
+		);
+		return next({ ctx: { billingSession: identity } });
 	});

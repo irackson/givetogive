@@ -12,11 +12,13 @@ production readiness from the large amount of implemented local code.
   `f6638fe0b1845ae9cceb937959138af38d1ba971` at
   <https://givetogive.vercel.app>. Production has **not** received migrations
   `0011` through `0018`.
-- This checkpoint pushes only this handoff and safe ignore rules. The payment,
+- Remote `main` was verified at signed commit `e2cd44d30fd62ab65a611aa1adbfdeba7f42afd5`,
+  containing only this handoff and safe ignore rules. The payment,
   auth, admin, and simulation implementation is **not production-ready** and
   must not be pushed into an automatic production deployment yet.
-- A separate local-only signed implementation checkpoint is planned immediately
-  after that push, subject to the credential scan. Inspect `git status`,
+- The credential scan classified the remaining password match as a deliberate
+  redaction-test sentinel, not an account password. This implementation is being
+  saved in a separate local-only signed checkpoint. Inspect `git status`,
   `git log origin/main..main`, and the final chat report to confirm it exists.
   Its subject is `Checkpoint isolated payments and simulation work (not production ready)`.
   A local recovery bundle, if created, is `tmp/checkpoints/payments-pause.bundle`.

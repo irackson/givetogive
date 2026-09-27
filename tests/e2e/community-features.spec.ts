@@ -5,7 +5,15 @@ import { makeMembers, cleanMembers, login, rpc, testSql } from './fixtures';
 let members: Awaited<ReturnType<typeof makeMembers>>;
 const description = 'Neighbors can share practical help and make this community project happen.';
 
-test.beforeAll(async () => { members = await makeMembers(); });
+test.beforeAll(async () => {
+	members = await makeMembers();
+	// Own the browse fixtures instead of depending on an unrelated seed run.
+	for (const type of ['time', 'task', 'item', 'money', 'resource']) {
+		await testSql`INSERT INTO givetogive_ask
+			(title,slug,description,type,goal_amount,currency,difficulty,estimated_minutes_to_complete,created_by)
+			VALUES (${`Fixture ${type}`},${`browser-fixture-${members[0].id}-${type}`},${description},${type},${type === 'money' ? 1000 : 2},${type === 'money' ? 'USD' : null},2,30,${members[0].id})`;
+	}
+});
 test.afterAll(async () => { if (members) await cleanMembers(members.map((member) => member.id)); });
 
 async function createAsk(page: Page, suffix: string, type = 'task', goalAmount = 2) {

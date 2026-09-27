@@ -1,0 +1,1 @@
+ALTER TABLE "givetogive_payment" ADD COLUMN "entitlement_period_end" timestamp with time zone;

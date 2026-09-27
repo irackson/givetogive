@@ -1,4 +1,5 @@
 import { env } from '@/env';
+import { applicationEnvironment } from '@/lib/environment';
 import {
 	createTRPCRouter,
 	protectedProcedure,
@@ -14,13 +15,17 @@ import { recordRateLimitAttempt } from '@/server/auth/rate-limit';
 import { createAuthToken, hashAuthToken } from '@/server/auth/tokens';
 import { hasDatabaseErrorCode } from '@/server/db/errors';
 import { askContributions, asks, authTokens, users } from '@/server/db/schema';
+import { supporterRecognition } from '@/server/payments/coverage';
+import { recordEvent } from '@/server/observability/events';
 import { TRPCError } from '@trpc/server';
 import { and, desc, eq, gt, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 function createAuthUrl(pathname: string, token: string) {
 	const configuredUrl =
-		process.env['VERCEL_PROJECT_PRODUCTION_URL'] ?? env.NEXTAUTH_URL;
+		env.APP_URL ??
+		process.env['VERCEL_PROJECT_PRODUCTION_URL'] ??
+		env.NEXTAUTH_URL;
 	const baseUrl =
 		configuredUrl.startsWith('http') ? configuredUrl : (
 			`https://${configuredUrl}`
@@ -44,10 +49,20 @@ async function deliverToken(
 	try {
 		return await sendAuthEmail({ to: email, url, purpose });
 	} catch (error) {
-		console.error('Auth email delivery failed', error);
+		// Database/provider errors can contain query parameters or authentication links.
+		console.error(
+			'Auth email delivery failed',
+			error instanceof Error ? error.name : 'UnknownError',
+		);
 		return {
 			delivered: false,
-			previewUrl: env.NODE_ENV === 'development' ? url : undefined,
+			previewUrl:
+				(
+					env.NODE_ENV === 'development' &&
+					applicationEnvironment() === 'development'
+				) ?
+					url
+				:	undefined,
 		};
 	}
 }
@@ -76,6 +91,7 @@ export const userRouter = createTRPCRouter({
 					bio: users.bio,
 					location: users.location,
 					joinedAt: users.joinedAt,
+					showSupporterBadge: users.showSupporterBadge,
 					emailConfirmed: sql<boolean>`${users.emailVerified} IS NOT NULL`,
 				})
 				.from(users)
@@ -90,6 +106,9 @@ export const userRouter = createTRPCRouter({
 			}
 
 			const isOwner = ctx.session?.user.id === member.id;
+			const recognition = await supporterRecognition(member.id, ctx.db);
+			const ownSupporterTier = recognition.tier;
+			const { showSupporterBadge, ...publicMember } = member;
 			const historyFilter = and(
 				eq(askContributions.contributorId, member.id),
 				isOwner ? undefined : eq(askContributions.status, 'completed'),
@@ -134,7 +153,18 @@ export const userRouter = createTRPCRouter({
 			const cancelled = contributionStats?.cancelled ?? 0;
 
 			return {
-				...member,
+				...publicMember,
+				supporterTier:
+					showSupporterBadge && ownSupporterTier !== 'neighbor' ?
+						ownSupporterTier
+					:	null,
+				...(isOwner ?
+					{
+						showSupporterBadge,
+						ownSupporterTier,
+						ownRecognitionStatus: recognition.status,
+					}
+				:	{}),
 				isOwner,
 				history,
 				historyTotal:
@@ -154,25 +184,42 @@ export const userRouter = createTRPCRouter({
 				name: z.string().trim().min(2).max(80),
 				bio: z.string().trim().max(500),
 				location: z.string().trim().max(120),
+				showSupporterBadge: z.boolean().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const [profile] = await ctx.db
-				.update(users)
-				.set({
-					name: input.name,
-					bio: input.bio || null,
-					location: input.location || null,
-				})
-				.where(eq(users.id, ctx.session.user.id))
-				.returning({ id: users.id });
-			if (!profile) {
-				throw new TRPCError({
-					code: 'NOT_FOUND',
-					message: 'Member not found.',
-				});
-			}
-			return profile;
+			return ctx.db.transaction(async (tx) => {
+				const [profile] = await tx
+					.update(users)
+					.set({
+						name: input.name,
+						bio: input.bio || null,
+						location: input.location || null,
+						...(input.showSupporterBadge === undefined ?
+							{}
+						:	{ showSupporterBadge: input.showSupporterBadge }),
+					})
+					.where(eq(users.id, ctx.session.user.id))
+					.returning({ id: users.id });
+				if (!profile) {
+					throw new TRPCError({
+						code: 'NOT_FOUND',
+						message: 'Member not found.',
+					});
+				}
+				await recordEvent(
+					{
+						actorId: ctx.session.user.id,
+						entityType: 'user',
+						entityId: ctx.session.user.id,
+						action: 'profile_updated',
+						outcome: 'success',
+						summary: 'Member updated their profile preferences.',
+					},
+					tx,
+				);
+				return profile;
+			});
 		}),
 
 	register: publicProcedure
@@ -388,7 +435,10 @@ export const userRouter = createTRPCRouter({
 				}
 				await transaction
 					.update(users)
-					.set({ hashedPassword })
+					.set({
+						hashedPassword,
+						sessionVersion: sql`${users.sessionVersion} + 1`,
+					})
 					.where(eq(users.id, record.userId));
 				await transaction
 					.delete(authTokens)

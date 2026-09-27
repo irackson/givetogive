@@ -9,6 +9,7 @@ import { type ReactNode, useState } from 'react';
 import SuperJSON from 'superjson';
 
 import { createQueryClient } from './query-client';
+import { getAdminElevation } from '@/lib/admin-elevation';
 
 let clientQueryClientSingleton: QueryClient | undefined = undefined;
 const getQueryClient = () => {
@@ -43,9 +44,8 @@ export function TRPCReactProvider(props: { children: ReactNode }) {
 		api.createClient({
 			links: [
 				loggerLink({
-					enabled: (op) =>
-						process.env.NODE_ENV === 'development' ||
-						(op.direction === 'down' && op.result instanceof Error),
+					// Inputs/results may contain passwords, enrollment secrets or Checkout links.
+					enabled: () => false,
 				}),
 				unstable_httpBatchStreamLink({
 					transformer: SuperJSON,
@@ -53,6 +53,8 @@ export function TRPCReactProvider(props: { children: ReactNode }) {
 					headers: () => {
 						const headers = new Headers();
 						headers.set('x-trpc-source', 'nextjs-react');
+						const elevation = getAdminElevation();
+						if (elevation) headers.set('x-admin-elevation', elevation);
 						return headers;
 					},
 				}),

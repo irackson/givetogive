@@ -1,5 +1,6 @@
 import { env } from '@/env';
 import type { NextConfig } from 'next';
+import { withWorkflow } from 'workflow/next';
 
 /**
  * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially useful
@@ -9,6 +10,14 @@ console.info(
 	`Loaded with environment: ${env.NODE_ENV} (from ${import.meta.url})`,
 );
 const config: NextConfig = {
+	async headers() {
+		return [{ source: '/(.*)', headers: [
+			{ key: 'X-Content-Type-Options', value: 'nosniff' },
+			{ key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+			{ key: 'X-Frame-Options', value: 'DENY' },
+			...(env.APP_ENV === 'staging' || env.APP_ENV === 'test' ? [{ key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' }] : []),
+		] }];
+	},
 	compiler: {
 		// Enables the styled-components SWC transform
 		styledComponents: true,
@@ -32,7 +41,7 @@ const config: NextConfig = {
 	},
 	logging: {
 		fetches: {
-			fullUrl: true,
+			fullUrl: false,
 		},
 	},
 	devIndicators: {
@@ -40,4 +49,4 @@ const config: NextConfig = {
 	},
 };
 
-export default config;
+export default withWorkflow(config);

@@ -5,10 +5,12 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import {
 	Alert,
 	Button,
+	Checkbox,
 	Dialog,
 	DialogActions,
 	DialogContent,
 	DialogTitle,
+	FormControlLabel,
 	Stack,
 	TextField,
 } from '@mui/material';
@@ -19,10 +21,16 @@ export function ProfileEditor({
 	bio,
 	location,
 	name,
+	showSupporterBadge,
+	supporterTier,
+	recognitionStatus,
 }: {
 	bio: string | null;
 	location: string | null;
 	name: string;
+	showSupporterBadge: boolean;
+	supporterTier: 'neighbor' | 'supporter' | 'sustainer';
+	recognitionStatus: 'ready' | 'pending';
 }) {
 	const router = useRouter();
 	const [isOpen, setIsOpen] = useState(false);
@@ -30,6 +38,7 @@ export function ProfileEditor({
 	const [draftName, setDraftName] = useState(name);
 	const [draftBio, setDraftBio] = useState(bio ?? '');
 	const [draftLocation, setDraftLocation] = useState(location ?? '');
+	const [draftBadge, setDraftBadge] = useState(showSupporterBadge);
 	const updateProfile = api.user.updateProfile.useMutation({
 		onSuccess: () => {
 			setIsOpen(false);
@@ -41,6 +50,7 @@ export function ProfileEditor({
 		setDraftName(name);
 		setDraftBio(bio ?? '');
 		setDraftLocation(location ?? '');
+		setDraftBadge(showSupporterBadge);
 		updateProfile.reset();
 		setSaved(false);
 		setIsOpen(true);
@@ -55,6 +65,7 @@ export function ProfileEditor({
 				name: draftName,
 				bio: draftBio,
 				location: draftLocation,
+				showSupporterBadge: draftBadge,
 			});
 	};
 	return (
@@ -120,6 +131,29 @@ export function ProfileEditor({
 								rows={4}
 								disabled={updateProfile.isPending}
 							/>
+							<FormControlLabel
+								control={
+									<Checkbox
+										checked={draftBadge}
+										onChange={(event) =>
+											setDraftBadge(event.target.checked)
+										}
+										disabled={updateProfile.isPending}
+									/>
+								}
+								label='Show my supporter badge on my public profile'
+							/>
+							<p className='profile-history__explanation'>
+								{recognitionStatus === 'pending' ?
+									'Your paid recognition is being reconciled. This does not mean your membership was downgraded. Your badge preference is preserved while verification completes.'
+								: supporterTier === 'neighbor' ?
+									'You currently participate as a free Neighbor. Your preference will apply if you become a paid supporter.'
+								:	`Your current paid recognition is ${supporterTier === 'sustainer' ? 'Sustainer' : 'Supporter'}.`
+								}{' '}
+								A badge appears only while paid support is
+								recognized. It is not identity verification, a
+								safety rating, or priority for receiving help.
+							</p>
 							{updateProfile.error && (
 								<Alert severity='error'>
 									{updateProfile.error.message}

@@ -42,8 +42,10 @@ export default defineConfig([
 		},
 	},
 	globalIgnores([
+		'tools/simulation/**',
 		'chrome-debug-profile/**',
 		'.next/**',
+		'src/app/.well-known/workflow/**',
 		'drizzle/**',
 		'next-env.d.ts',
 	]),

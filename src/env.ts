@@ -9,6 +9,41 @@ export const env = createEnv({
 	 * isn't built with invalid env vars.
 	 */
 	server: {
+		APP_ENV: z
+			.enum(['development', 'staging', 'production', 'test'])
+			.optional(),
+		APP_URL: z.string().url().optional(),
+		CRON_SECRET: z.string().min(32).optional(),
+		DATABASE_URL_UNPOOLED: z.string().url().optional(),
+		DATABASE_IDENTITY: z.string().optional(),
+		SIMULATION_ENABLED: z.enum(['true', 'false']).optional(),
+		STAGING_ACCESS_SECRET: z.string().min(32).optional(),
+		ADMIN_ENCRYPTION_KEY: z.string().min(32).optional(),
+		STRIPE_SECRET_KEY: z.string().optional(),
+		STRIPE_WEBHOOK_SECRET: z.string().optional(),
+		STRIPE_V2_WEBHOOK_SECRET: z.string().optional(),
+		STRIPE_PORTAL_CONFIGURATION_ID: z.string().optional(),
+		STRIPE_CANCELLATION_PORTAL_CONFIGURATION_ID: z.string().optional(),
+		STRIPE_PLATFORM_ACCOUNT_ID: z.string().optional(),
+		STRIPE_PUBLISHABLE_KEY: z.string().optional(),
+		STRIPE_SUPPORTER_PRICE_ID: z.string().optional(),
+		STRIPE_SUSTAINER_PRICE_ID: z.string().optional(),
+		STRIPE_PROCESSING_BPS: z.coerce
+			.number()
+			.int()
+			.min(0)
+			.max(5000)
+			.optional(),
+		STRIPE_PROCESSING_FIXED_CENTS: z.coerce
+			.number()
+			.int()
+			.min(0)
+			.max(10000)
+			.optional(),
+		PAYMENTS_ENABLED: z.enum(['true', 'false']).optional(),
+		SUPPORTERS_ENABLED: z.enum(['true', 'false']).optional(),
+		FUNDS_ENABLED: z.enum(['true', 'false']).optional(),
+		STRIPE_LIVE_APPROVED: z.enum(['true', 'false']).optional(),
 		DATABASE_DATABASE: z.string(),
 		DATABASE_USER: z.string(),
 		DATABASE_PASSWORD: z.string(),
@@ -51,6 +86,32 @@ export const env = createEnv({
 	 * middlewares) or client-side so we need to destruct manually.
 	 */
 	runtimeEnv: {
+		APP_ENV: process.env['APP_ENV'],
+		APP_URL: process.env['APP_URL'],
+		CRON_SECRET: process.env['CRON_SECRET'],
+		DATABASE_URL_UNPOOLED: process.env['DATABASE_URL_UNPOOLED'],
+		DATABASE_IDENTITY: process.env['DATABASE_IDENTITY'],
+		SIMULATION_ENABLED: process.env['SIMULATION_ENABLED'],
+		STAGING_ACCESS_SECRET: process.env['STAGING_ACCESS_SECRET'],
+		ADMIN_ENCRYPTION_KEY: process.env['ADMIN_ENCRYPTION_KEY'],
+		STRIPE_SECRET_KEY: process.env['STRIPE_SECRET_KEY'],
+		STRIPE_WEBHOOK_SECRET: process.env['STRIPE_WEBHOOK_SECRET'],
+		STRIPE_V2_WEBHOOK_SECRET: process.env['STRIPE_V2_WEBHOOK_SECRET'],
+		STRIPE_PORTAL_CONFIGURATION_ID:
+			process.env['STRIPE_PORTAL_CONFIGURATION_ID'],
+		STRIPE_CANCELLATION_PORTAL_CONFIGURATION_ID:
+			process.env['STRIPE_CANCELLATION_PORTAL_CONFIGURATION_ID'],
+		STRIPE_PLATFORM_ACCOUNT_ID: process.env['STRIPE_PLATFORM_ACCOUNT_ID'],
+		STRIPE_PUBLISHABLE_KEY: process.env['STRIPE_PUBLISHABLE_KEY'],
+		STRIPE_SUPPORTER_PRICE_ID: process.env['STRIPE_SUPPORTER_PRICE_ID'],
+		STRIPE_SUSTAINER_PRICE_ID: process.env['STRIPE_SUSTAINER_PRICE_ID'],
+		STRIPE_PROCESSING_BPS: process.env['STRIPE_PROCESSING_BPS'],
+		STRIPE_PROCESSING_FIXED_CENTS:
+			process.env['STRIPE_PROCESSING_FIXED_CENTS'],
+		PAYMENTS_ENABLED: process.env['PAYMENTS_ENABLED'],
+		SUPPORTERS_ENABLED: process.env['SUPPORTERS_ENABLED'],
+		FUNDS_ENABLED: process.env['FUNDS_ENABLED'],
+		STRIPE_LIVE_APPROVED: process.env['STRIPE_LIVE_APPROVED'],
 		DATABASE_DATABASE: process.env['DATABASE_DATABASE'],
 		DATABASE_USER: process.env['DATABASE_USER'],
 		DATABASE_PASSWORD: process.env['DATABASE_PASSWORD'],

@@ -1,11 +1,17 @@
 import Link from 'next/link';
+import { SiteAccountMenu } from './SiteAccountMenu';
 
 interface SiteHeaderProps {
 	memberName?: string | null;
 	memberId?: string | null;
+	isAdmin?: boolean;
 }
 
-export function SiteHeader({ memberName, memberId }: SiteHeaderProps) {
+export function SiteHeader({
+	memberName,
+	memberId,
+	isAdmin = false,
+}: SiteHeaderProps) {
 	return (
 		<header className='site-header'>
 			<div className='site-header__inner'>
@@ -23,6 +29,8 @@ export function SiteHeader({ memberName, memberId }: SiteHeaderProps) {
 					className='site-nav'
 					aria-label='Primary navigation'>
 					<Link href='/asks'>Browse asks</Link>
+					<Link href='/funds'>Community funds</Link>
+					<Link href='/support'>Support us</Link>
 					{memberId ?
 						<>
 							<Link
@@ -30,17 +38,11 @@ export function SiteHeader({ memberName, memberId }: SiteHeaderProps) {
 								className='nav-action'>
 								Post an ask
 							</Link>
-							<Link
-								href={`/members/${memberId}`}
-								className='nav-profile'
-								title={`View ${memberName ?? 'your'} profile and contributions`}>
-								My profile
-							</Link>
-							<Link
-								href='/signout'
-								className='nav-account'>
-								Sign out
-							</Link>
+							<SiteAccountMenu
+								memberId={memberId}
+								memberName={memberName ?? null}
+								isAdmin={isAdmin}
+							/>
 						</>
 					:	<>
 							<Link href='/signin'>Sign in</Link>

@@ -31,6 +31,10 @@ import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
 import { AskTypeGlyph } from './AskTypeGlyph';
+import {
+	AskPaymentPanel,
+	type AskPaymentState,
+} from '@/app/_components/payments/AskPaymentPanel';
 
 interface Contribution {
 	id: number;
@@ -117,9 +121,11 @@ function activityLabel(activity: AskDetailValue['activities'][number]) {
 export function AskDetail({
 	ask,
 	viewerId,
+	paymentState,
 }: {
 	ask: AskDetailValue;
 	viewerId: string | null;
+	paymentState: AskPaymentState | null;
 }) {
 	const router = useRouter();
 	const utils = api.useUtils();
@@ -181,6 +187,7 @@ export function AskDetail({
 		100,
 	);
 	const isOwner = viewerId === ask.createdById;
+	const verifiedPayments = Boolean(paymentState?.funding.enabled);
 	const currency = ask.currency ?? 'USD';
 	const activeContributions = ask.contributions.filter(
 		(contribution) => contribution.status !== 'cancelled',
@@ -260,87 +267,110 @@ export function AskDetail({
 						</p>
 					</div>
 
-					<aside className='contribution-panel'>
-						<p className='eyebrow'>Pledged & completed</p>
-						<div className='contribution-panel__amounts'>
-							<strong>
-								{formatAskAmount(
-									ask.type,
-									ask.contributedAmount,
-									currency,
-								)}
-							</strong>
-							<span>
-								of{' '}
-								{formatAskAmount(
-									ask.type,
-									ask.goalAmount,
-									currency,
-								)}
-							</span>
-						</div>
-						<LinearProgress
-							aria-label='Amount pledged or completed toward the goal'
-							variant='determinate'
-							value={progress}
+					{verifiedPayments && paymentState ?
+						<AskPaymentPanel
+							askId={ask.id}
+							slug={ask.slug}
+							title={ask.title}
+							isOwner={isOwner}
+							signedIn={viewerId !== null}
+							state={paymentState}
 						/>
-						<p className='contribution-panel__remaining'>
-							{remainingAmount === 0 ?
-								ask.status === 'complete' ?
-									'This Ask has been completed.'
-								:	'The goal is fully pledged. Delivery is still in progress.'
-
-							:	`${formatAskAmount(ask.type, remainingAmount, currency)} remains.`
-							}
-						</p>
-						<p className='contribution-panel__completed'>
-							{formatAskAmount(
-								ask.type,
-								ask.completedAmount,
-								currency,
-							)}{' '}
-							completed
-						</p>
-						{ask.type === 'money' && (
-							<p className='contribution-panel__disclaimer'>
-								Money offers are pledges arranged between
-								members. GiveToGive does not collect or transfer
-								payments.
+					:	<aside className='contribution-panel'>
+							<p className='eyebrow'>
+								{ask.type === 'money' ?
+									'Off-platform pledges · not verified payments'
+								:	'Pledged & completed'}
 							</p>
-						)}
+							<div className='contribution-panel__amounts'>
+								<strong>
+									{formatAskAmount(
+										ask.type,
+										ask.contributedAmount,
+										currency,
+									)}
+								</strong>
+								<span>
+									of{' '}
+									{formatAskAmount(
+										ask.type,
+										ask.goalAmount,
+										currency,
+									)}
+								</span>
+							</div>
+							<LinearProgress
+								aria-label='Amount pledged or completed toward the goal'
+								variant='determinate'
+								value={progress}
+							/>
+							<p className='contribution-panel__remaining'>
+								{remainingAmount === 0 ?
+									ask.status === 'complete' ?
+										'This Ask has been completed.'
+									:	'The goal is fully pledged. Delivery is still in progress.'
 
-						{viewerId === null ?
-							<Button
-								href={`/signin?callbackUrl=${encodeURIComponent(`/asks/${ask.slug}`)}`}
-								variant='contained'
-								className='detail-offer-button'
-								startIcon={<VolunteerActivismIcon />}>
-								Sign in to offer help
-							</Button>
-						: isOwner ?
-							<Alert
-								severity='info'
-								className='detail-state'>
-								This is your Ask. Community contributions will
-								appear below.
-							</Alert>
-						: remainingAmount === 0 ?
-							<Alert
-								severity='success'
-								className='detail-state'>
-								{ask.status === 'complete' ?
-									'The neighborhood completed this goal.'
-								:	'This goal is fully pledged.'}
-							</Alert>
-						:	<Button
-								onClick={openContributionDialog}
-								variant='contained'
-								className='detail-offer-button'
-								startIcon={<VolunteerActivismIcon />}>
-								Offer a contribution
-							</Button>
-						}
-					</aside>
+								:	`${formatAskAmount(ask.type, remainingAmount, currency)} remains.`
+								}
+							</p>
+							<p className='contribution-panel__completed'>
+								{formatAskAmount(
+									ask.type,
+									ask.completedAmount,
+									currency,
+								)}{' '}
+								completed
+							</p>
+							{ask.type === 'money' && (
+								<p className='contribution-panel__disclaimer'>
+									This Ask uses off-platform pledges arranged
+									between members. These amounts are
+									self-reported, not Stripe payments, and are
+									excluded from verified giving totals.
+								</p>
+							)}
+
+							{viewerId === null ?
+								<Button
+									href={`/signin?callbackUrl=${encodeURIComponent(`/asks/${ask.slug}`)}`}
+									variant='contained'
+									className='detail-offer-button'
+									startIcon={<VolunteerActivismIcon />}>
+									Sign in to offer help
+								</Button>
+							: isOwner ?
+								<Alert
+									severity='info'
+									className='detail-state'>
+									This is your Ask. Community contributions
+									will appear below.
+									{ask.type === 'money' && (
+										<p>
+											<Link href='/account/receiving'>
+												Set up receiving and review
+												payment eligibility ↗
+											</Link>
+										</p>
+									)}
+								</Alert>
+							: remainingAmount === 0 ?
+								<Alert
+									severity='success'
+									className='detail-state'>
+									{ask.status === 'complete' ?
+										'The neighborhood completed this goal.'
+									:	'This goal is fully pledged.'}
+								</Alert>
+							:	<Button
+									onClick={openContributionDialog}
+									variant='contained'
+									className='detail-offer-button'
+									startIcon={<VolunteerActivismIcon />}>
+									Offer a contribution
+								</Button>
+							}
+						</aside>
+					}
 				</div>
 			</section>
 
@@ -378,8 +408,16 @@ export function AskDetail({
 							</strong>
 						</div>
 						<div>
-							<span>Supporters</span>
-							<strong>{supporterCount}</strong>
+							<span>
+								{verifiedPayments ?
+									'Progress source'
+								:	'Contributors'}
+							</span>
+							<strong>
+								{verifiedPayments ?
+									'Verified payments'
+								:	supporterCount}
+							</strong>
 						</div>
 					</div>
 					{isOwner && (
@@ -406,102 +444,131 @@ export function AskDetail({
 					)}
 				</div>
 
-				<div className='contribution-wall'>
-					<div className='contribution-wall__heading'>
-						<div>
-							<p className='eyebrow'>The reply wall</p>
-							<h2 className='section-title'>
-								Neighbors who stepped up
-							</h2>
-						</div>
-						<span>
-							{ask.contributions.length} contribution
-							{ask.contributions.length === 1 ? '' : 's'}
-						</span>
+				{verifiedPayments ?
+					<div className='contribution-wall'>
+						<p className='eyebrow'>Financial privacy</p>
+						<h2 className='section-title'>
+							Real help. Private receipts.
+						</h2>
+						<p>
+							Verified totals are shared above. Payment details,
+							receipts, and donor identities are not published on
+							the reply wall. A Checkout return page never marks a
+							gift complete; Stripe confirmation does.
+						</p>
 					</div>
-					{ask.contributions.length === 0 ?
-						<div className='contribution-wall__empty'>
-							<p>
-								There is room for the first reply. A small share
-								can move this one forward.
-							</p>
+				:	<div className='contribution-wall'>
+						<div className='contribution-wall__heading'>
+							<div>
+								<p className='eyebrow'>The reply wall</p>
+								<h2 className='section-title'>
+									Neighbors who stepped up
+								</h2>
+							</div>
+							<span>
+								{ask.contributions.length} contribution
+								{ask.contributions.length === 1 ? '' : 's'}
+							</span>
 						</div>
-					:	<ol className='contribution-list'>
-							{ask.contributions.map((contribution, index) => (
-								<li key={contribution.id}>
-									<span className='contribution-list__number'>
-										{String(index + 1).padStart(2, '0')}
-									</span>
-									<div>
-										<Link
-											href={`/members/${contribution.contributorId}`}
-											className='member-link'>
-											{contribution.contributorName ??
-												'Community member'}
-										</Link>
-										<p>
-											{contribution.note ??
-												'Shared a contribution with this Ask.'}
-										</p>
-										<small>
-											{statusLabel(contribution.status)}
-										</small>
-									</div>
-									<span className='contribution-list__amount'>
-										{formatAskAmount(
-											ask.type,
-											contribution.amount,
-											currency,
-										)}
-									</span>
-									{contribution.status === 'pledged' &&
-										(viewerId ===
-											contribution.contributorId ||
-											isOwner) && (
-											<div className='contribution-list__actions'>
-												{contribution.status ===
-													'pledged' && (
-													<Button
-														size='small'
-														startIcon={
-															<CheckCircleRoundedIcon />
-														}
-														disabled={
-															updateContribution.isPending
-														}
-														onClick={() => {
-															updateContribution.reset();
-															setCompleting(
-																contribution,
-															);
-														}}>
-														Mark complete
-													</Button>
+						{ask.type === 'money' && (
+							<Alert severity='info'>
+								Off-platform contribution history. “Completed”
+								means a member reported delivery; it does not
+								prove a verified Stripe payment.
+							</Alert>
+						)}
+						{ask.contributions.length === 0 ?
+							<div className='contribution-wall__empty'>
+								<p>
+									There is room for the first reply. A small
+									share can move this one forward.
+								</p>
+							</div>
+						:	<ol className='contribution-list'>
+								{ask.contributions.map(
+									(contribution, index) => (
+										<li key={contribution.id}>
+											<span className='contribution-list__number'>
+												{String(index + 1).padStart(
+													2,
+													'0',
 												)}
-												{viewerId ===
-													contribution.contributorId && (
-													<Button
-														size='small'
-														color='error'
-														disabled={
-															updateContribution.isPending
-														}
-														onClick={() => {
-															updateContribution.reset();
-															setCancelling(
-																contribution,
-															);
-														}}>
-														Cancel
-													</Button>
-												)}
+											</span>
+											<div>
+												<Link
+													href={`/members/${contribution.contributorId}`}
+													className='member-link'>
+													{contribution.contributorName ??
+														'Community member'}
+												</Link>
+												<p>
+													{contribution.note ??
+														'Shared a contribution with this Ask.'}
+												</p>
+												<small>
+													{statusLabel(
+														contribution.status,
+													)}
+												</small>
 											</div>
-										)}
-								</li>
-							))}
-						</ol>
-					}
-				</div>
+											<span className='contribution-list__amount'>
+												{formatAskAmount(
+													ask.type,
+													contribution.amount,
+													currency,
+												)}
+											</span>
+											{contribution.status ===
+												'pledged' &&
+												(viewerId ===
+													contribution.contributorId ||
+													isOwner) && (
+													<div className='contribution-list__actions'>
+														{contribution.status ===
+															'pledged' && (
+															<Button
+																size='small'
+																startIcon={
+																	<CheckCircleRoundedIcon />
+																}
+																disabled={
+																	updateContribution.isPending
+																}
+																onClick={() => {
+																	updateContribution.reset();
+																	setCompleting(
+																		contribution,
+																	);
+																}}>
+																Mark complete
+															</Button>
+														)}
+														{viewerId ===
+															contribution.contributorId && (
+															<Button
+																size='small'
+																color='error'
+																disabled={
+																	updateContribution.isPending
+																}
+																onClick={() => {
+																	updateContribution.reset();
+																	setCancelling(
+																		contribution,
+																	);
+																}}>
+																Cancel
+															</Button>
+														)}
+													</div>
+												)}
+										</li>
+									),
+								)}
+							</ol>
+						}
+					</div>
+				}
 
 				<div className='activity-history'>
 					<p className='eyebrow'>Activity history</p>
@@ -541,6 +608,14 @@ export function AskDetail({
 						<Stack
 							spacing={2.2}
 							sx={{ pt: 1 }}>
+							{ask.type === 'money' && (
+								<Alert severity='info'>
+									This is an off-platform pledge, not a
+									payment. No money is collected here. Arrange
+									delivery with the Ask owner and mark it
+									complete only after delivery.
+								</Alert>
+							)}
 							<Typography color='text.secondary'>
 								{formatAskAmount(
 									ask.type,
@@ -680,7 +755,12 @@ export function AskDetail({
 							/>
 							<TextField
 								label={`Goal (${getAskUnitLabel(ask.type, currency)})`}
-								helperText='The goal cannot be lower than existing pledges and completed contributions.'
+								helperText={
+									verifiedPayments ?
+										'The verified payment goal is locked after enrollment.'
+									:	'The goal cannot be lower than existing pledges and completed contributions.'
+								}
+								disabled={verifiedPayments}
 								value={editValues.goalAmount}
 								onChange={(event) =>
 									setEditValues((values) => ({

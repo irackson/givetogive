@@ -8,6 +8,7 @@ import { TRPCReactProvider } from '@/trpc/react';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
 import { GeistSans } from 'geist/font/sans';
 import { type Metadata } from 'next';
+import { connection } from 'next/server';
 import type { ReactNode } from 'react';
 
 export const metadata: Metadata = {
@@ -19,6 +20,8 @@ export const metadata: Metadata = {
 export default async function RootLayout({
 	children,
 }: Readonly<{ children: ReactNode }>) {
+	// Nonce-based CSP requires a fresh render for every document request.
+	await connection();
 	const session = await getServerAuthSession();
 
 	return (
@@ -34,6 +37,7 @@ export default async function RootLayout({
 								<SiteHeader
 									memberName={session?.user?.name ?? null}
 									memberId={session?.user?.id ?? null}
+									isAdmin={session?.user?.role === 'admin'}
 								/>
 								<main className='site-main'>{children}</main>
 								<SiteFooter />

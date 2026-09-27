@@ -9,8 +9,13 @@ Asks, member profiles, and multiple partial contributions toward each Ask goal.
 Contributors and Ask owners can record completion; contributors can cancel
 their own pledges. Both changes appear in activity history. PostgreSQL
 persistence is handled through Drizzle ORM.
-Money Asks record off-platform pledges only: payments, community funds, and
-subscriptions are not implemented.
+The published baseline records off-platform money pledges. The current working
+implementation adds gated Stripe payments, supporter billing, community funds,
+administration, and a local multi-agent simulator. It is **not a completed
+live-money release**: sandbox end-to-end validation and operator prerequisites
+are still required. Legacy pledges are never presented as processed payments.
+See [the implementation contract](docs/payments-implementation-plan.md) and
+[the payments runbook](docs/payments-runbook.md) for acceptance and live gates.
 
 ## Requirements
 
@@ -69,6 +74,10 @@ subscriptions are not implemented.
 | `npm run lint`        | Run ESLint                                     |
 | `npm test`            | Run unit tests and Playwright end-to-end tests |
 | `npm run test:unit`   | Run filter, callback and lifecycle unit tests  |
+| `npm run test:integration` | Run database/concurrency tests against isolated CI only |
+| `npm run dev:staging` | Develop against the isolated synthetic stage on port 3010 |
+| `npm run build:staging` | Build using isolated stage settings |
+| `npm run start:staging` | Serve that production build locally on port 3010 |
 | `npm run test:e2e`    | Run the Playwright browser/API suite           |
 | `npm run db:generate` | Generate a Drizzle migration                   |
 | `npm run db:migrate`  | Apply pending database migrations              |
@@ -87,17 +96,27 @@ typed Ask creation, partial contributions, completion/cancellation, concurrent
 pledges, ownership rules, URL filters, private saves, profile editing, history
 pagination, and one-time password-reset tokens.
 
-The local test server uses `AUTH_EMAIL_TEST_MODE`, so no real emails are sent
-while development-only preview links exercise verification and reset flows.
-Production ignores that flag and never exposes those preview links.
+Browser tests require `.env.ci.local` or explicitly loaded `.env.staging.local`.
+They reject the root production-like connection, verify the exact isolated
+database/role/marker, and never fall back to `.env.local`. Staging/test emails
+are encrypted in a private sink; only the trusted test runner decrypts their
+one-time verification/reset links. These URLs are not exposed to browsers or
+public APIs, including when testing a production build.
 
 To run the release browser/API checks against an existing deployment, set
-`PLAYWRIGHT_BASE_URL` to its full URL before `npm run test:e2e`. This disables
-the automatic local server and skips the development-preview email tests.
-The fixture database in `.env.local` must be the deployment's database. These
-tests make real writes: they create synthetic members and Asks, exercise them,
-and clean up the exact generated member IDs and related records afterward.
-Use a deliberately selected database, never an unrelated production connection.
+`PLAYWRIGHT_BASE_URL` to the **isolated staging** URL. This disables the automatic
+local server. Explicitly load its matching environment before Playwright:
+
+```powershell
+$env:PLAYWRIGHT_BASE_URL = 'http://localhost:3010'
+node --env-file=.env.staging.local node_modules/@playwright/test/cli.js test
+```
+
+These tests make real synthetic writes and clean up their exact generated
+identities. Financial and MCP integration audit records are immutable: their
+CI fixtures are retired, not erased. Raw browser traces/videos are disabled
+because they could retain passwords, authentication links, and TOTP secrets.
+Never aim this harness at the production site.
 
 ## Current routes
 
@@ -116,6 +135,15 @@ Use a deliberately selected database, never an unrelated production connection.
 - `/members/[id]` - public profile, owner editing, and paginated contribution history
 - `/api/auth/[...nextauth]` - Auth.js handlers
 - `/api/trpc/[trpc]` - tRPC API handler
+- `/giving`, `/giving/[id]` - own verified gifts, pending states, receipts
+- `/support`, `/account/billing` - supporter plans and recurring commitments
+- `/funds`, `/funds/[slug]` - community fund information and public allocations
+- `/account/receiving` - recipient readiness and gated Stripe onboarding
+- `/account/security` - authenticator setup, sensitive-action elevation, session revocation
+- `/admin/*` - role-protected analytics, activity, members, payments, funds, operations and simulations
+- `/mcp` - versioned, scoped, staging-only member tools
+- `/api/simulation/*` - authenticated runner manifest, telemetry and control
+- `/api/stripe/*` - webhook intake and authenticated recovery
 
 ## Ask and contribution model
 
@@ -155,12 +183,42 @@ the current production deployment. The published-site PDF is generated from
 real browser captures, including mobile views and open dialogs.
 
 With the target database deliberately selected, set `PLAYWRIGHT_BASE_URL`
-to the published site and `WALKTHROUGH_CAPTURE=1`, then run:
+to the isolated staging site and `WALKTHROUGH_CAPTURE=1`, then run:
 
 ```bash
 npx playwright test tests/e2e/walkthrough.spec.ts
 python scripts/build-walkthrough.py
 ```
+
+The existing PDF describes the earlier published baseline, not proof that new
+Stripe flows passed. Updated payment screenshots must be labeled with their
+actual environment and distinguish unconfigured, sandbox and live behavior.
+
+For the current payments work, read [measured verification](docs/payments-verification.md),
+[feature provenance](docs/payments-feature-outline.md), and the
+[acceptance checklist](docs/payments-implementation-plan.md). These distinguish
+implemented code, genuine hosted checks, provider-stub tests, and unfinished
+Stripe/autonomous-simulation acceptance.
+
+Generate the separate, explicitly partial staging walkthrough with the isolated
+staging environment loaded, `PLAYWRIGHT_BASE_URL` set to the protected staging
+origin, and `PAYMENTS_WALKTHROUGH_CAPTURE=1`:
+
+```powershell
+node --env-file=.env.staging.local node_modules/@playwright/test/cli.js test tests/e2e/payments-walkthrough.spec.ts
+python scripts/build-payments-walkthrough.py
+```
+
+The output is `output/pdf/givetogive-payments-staging-walkthrough.pdf`. It does
+not overwrite or claim to supersede the prior published-site guide.
+
+## Simulated community
+
+See [the simulation guide](docs/simulation.md). One local model serves 100
+independently scheduled Strands agents with separate accounts and checkpoints;
+100 agents do not mean 100 model copies or simultaneous GPU generations.
+Benchmarks and the hosted 100-agent soak are separate acceptance gates. No paid
+model fallback, production targeting, or fabricated paid tiers is permitted.
 
 The PDF builder needs `reportlab` and `Pillow`. It rejects incomplete captures
 or captures with reported errors/unfinished cleanup. Intermediate screenshots

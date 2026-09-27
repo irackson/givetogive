@@ -54,6 +54,7 @@
     "useUnknownInCatchVariables": true
   },
   "exclude": [
+    "tools/simulation/**",
     "node_modules",
     "**/node_modules/*",
     "chrome-debug-profile",

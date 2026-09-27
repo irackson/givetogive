@@ -1,0 +1,33 @@
+import { start } from 'workflow/api';
+import { acceptStripeWebhook } from '@/server/payments/webhooks';
+import { stripeWebhookWorkflow } from '@/workflows/payments';
+
+export const runtime = 'nodejs';
+
+export async function POST(request: Request) {
+	const signature = request.headers.get('stripe-signature');
+	if (!signature)
+		return Response.json({ error: 'Missing signature.' }, { status: 400 });
+	const payload = await request.text();
+	if (payload.length > 1_000_000) return new Response(null, { status: 413 });
+	let id: string | null;
+	try {
+		id = await acceptStripeWebhook(payload, signature, true);
+	} catch {
+		return Response.json(
+			{ error: 'Event could not be verified or persisted.' },
+			{ status: 400 },
+		);
+	}
+	if (id) {
+		try {
+			await start(stripeWebhookWorkflow, [id]);
+		} catch {
+			return Response.json(
+				{ error: 'Processing unavailable; retry delivery.' },
+				{ status: 503 },
+			);
+		}
+	}
+	return Response.json({ received: true });
+}

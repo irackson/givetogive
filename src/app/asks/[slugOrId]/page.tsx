@@ -25,6 +25,13 @@ export default async function AskDetailPage(props: {
 			notFound();
 		throw error;
 	});
+	const paymentState =
+		ask.type === 'money' ?
+			{
+				funding: await api.billing.askFunding({ askId: ask.id }),
+				availability: await api.billing.availability(),
+			}
+		:	null;
 
 	return (
 		<AskDetail
@@ -42,6 +49,7 @@ export default async function AskDetailPage(props: {
 				})),
 			}}
 			viewerId={session?.user?.id ?? null}
+			paymentState={paymentState}
 		/>
 	);
 }

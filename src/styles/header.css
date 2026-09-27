@@ -1,3 +1,18 @@
+.nav-member-menu {
+	border: 1px solid var(--ink);
+	border-radius: 999px;
+	padding: 10px 15px;
+	background: var(--paper);
+	color: var(--ink);
+	font: inherit;
+	font-weight: 700;
+	cursor: pointer;
+	min-height: 44px;
+}
+.nav-member-menu:focus-visible {
+	outline: 3px solid var(--cobalt);
+	outline-offset: 3px;
+}
 /* Keep every member action reachable instead of hiding sign-out on phones. */
 @media (max-width: 650px) {
 	.site-header__inner {
@@ -10,7 +25,7 @@
 		flex: 1 0 100%;
 		justify-content: space-between;
 		flex-wrap: wrap;
-		gap: 4px;
+		gap: 4px 8px;
 	}
 
 	.site-header .site-nav > a {

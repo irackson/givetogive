@@ -1,6 +1,7 @@
 import { ASK_TYPES, type AskType } from '@/lib/asks';
 import { relations, sql } from 'drizzle-orm';
 import {
+	boolean,
 	check,
 	index,
 	integer,
@@ -123,6 +124,16 @@ export const users = createTable(
 			.primaryKey()
 			.$defaultFn(() => crypto.randomUUID()),
 		name: varchar('name', { length: 255 }),
+		role: varchar('role', { length: 16 })
+			.notNull()
+			.default('member')
+			.$type<'member' | 'admin'>(),
+		sessionVersion: integer('session_version').notNull().default(0),
+		frozenAt: timestamp('frozen_at', { withTimezone: true }),
+		isSynthetic: boolean('is_synthetic').notNull().default(false),
+		showSupporterBadge: boolean('show_supporter_badge')
+			.notNull()
+			.default(false),
 		email: varchar('email', { length: 255 }).notNull(),
 		bio: text('bio'),
 		location: varchar('location', { length: 120 }),
@@ -132,8 +143,9 @@ export const users = createTable(
 			withTimezone: true,
 		}),
 		image: varchar('image', { length: 255 }),
-		joinedAt: timestamp('joined_at', { withTimezone: true })
-			.default(sql`CURRENT_TIMESTAMP`),
+		joinedAt: timestamp('joined_at', { withTimezone: true }).default(
+			sql`CURRENT_TIMESTAMP`,
+		),
 	},
 	(user) => ({
 		emailLowerUniqueIndex: uniqueIndex('user_email_lower_unique_idx').on(

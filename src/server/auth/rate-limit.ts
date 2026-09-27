@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 
 import { db } from '@/server/db';
 import { authRateLimits } from '@/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 const WINDOW_MS = 15 * 60 * 1000;
 const BLOCK_MS = 15 * 60 * 1000;
@@ -44,39 +44,39 @@ export async function recordRateLimitAttempt(
 ) {
 	const key = createRateLimitKey(scope, identifier, headers);
 	const now = new Date();
-	const [existing] = await db
-		.select()
-		.from(authRateLimits)
-		.where(eq(authRateLimits.key, key))
-		.limit(1);
-
-	if (existing?.blockedUntil && existing.blockedUntil > now) return false;
-
-	const isNewWindow =
-		!existing ||
-		now.getTime() - existing.windowStartedAt.getTime() >= WINDOW_MS;
-	const attempts = isNewWindow ? 1 : existing.attempts + 1;
-	const blockedUntil =
-		attempts >= limit ? new Date(now.getTime() + BLOCK_MS) : null;
-
-	await db
+	// Raw SQL parameters bypass Drizzle's timestamp column encoder. postgres-js
+	// needs serialized timestamps here, not JavaScript Date objects.
+	const nowIso = now.toISOString();
+	const expired = sql`${authRateLimits.windowStartedAt} <= ${new Date(now.getTime() - WINDOW_MS).toISOString()}::timestamptz`;
+	const blocked = sql`${authRateLimits.blockedUntil} > ${nowIso}::timestamptz`;
+	const nextAttempts = sql`case when ${blocked} then ${authRateLimits.attempts} when ${expired} then 1 else ${authRateLimits.attempts} + 1 end`;
+	const [record] = await db
 		.insert(authRateLimits)
 		.values({
 			key,
-			attempts,
-			windowStartedAt: isNewWindow ? now : existing.windowStartedAt,
-			blockedUntil,
+			attempts: 1,
+			windowStartedAt: now,
+			blockedUntil:
+				limit <= 1 ? new Date(now.getTime() + BLOCK_MS) : null,
 		})
 		.onConflictDoUpdate({
 			target: authRateLimits.key,
 			set: {
-				attempts,
-				windowStartedAt: isNewWindow ? now : existing.windowStartedAt,
-				blockedUntil,
+				attempts: nextAttempts,
+				windowStartedAt: sql`case when ${expired} and not coalesce(${blocked}, false) then ${nowIso}::timestamptz else ${authRateLimits.windowStartedAt} end`,
+				blockedUntil: sql`case when ${blocked} then ${authRateLimits.blockedUntil} when ${nextAttempts} >= ${limit} then ${new Date(now.getTime() + BLOCK_MS).toISOString()}::timestamptz else null end`,
 			},
+		})
+		.returning({
+			attempts: authRateLimits.attempts,
+			blockedUntil: authRateLimits.blockedUntil,
 		});
 
-	return attempts < limit;
+	return Boolean(
+		record &&
+		record.attempts < limit &&
+		(!record.blockedUntil || record.blockedUntil <= now),
+	);
 }
 
 export async function clearRateLimit(

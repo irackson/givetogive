@@ -2,6 +2,10 @@ import 'server-only';
 
 import { env } from '@/env';
 import type { AuthTokenPurpose } from '@/server/auth/tokens';
+import { applicationEnvironment } from '@/lib/environment';
+import { db } from '@/server/db';
+import { emailSink } from '@/server/db/operations-schema';
+import { sealSecret } from '@/server/security/crypto';
 
 interface AuthEmailInput {
 	to: string;
@@ -12,7 +16,8 @@ interface AuthEmailInput {
 type AuthEmailProvider = 'gmail' | 'resend' | 'test';
 
 function getEmailProvider(): AuthEmailProvider | undefined {
-	if (env.AUTH_EMAIL_TEST_MODE === 'true' && env.NODE_ENV === 'development') return 'test';
+	if (env.AUTH_EMAIL_TEST_MODE === 'true' && env.NODE_ENV === 'development')
+		return 'test';
 
 	if (
 		env.GOOGLE_CLIENT_ID &&
@@ -49,12 +54,14 @@ async function getGoogleAccessToken() {
 	});
 	const payload: unknown = await response.json().catch(() => undefined);
 	const accessToken =
-		typeof payload === 'object' &&
-		payload !== null &&
-		'access_token' in payload &&
-		typeof payload.access_token === 'string'
-			? payload.access_token
-			: undefined;
+		(
+			typeof payload === 'object' &&
+			payload !== null &&
+			'access_token' in payload &&
+			typeof payload.access_token === 'string'
+		) ?
+			payload.access_token
+		:	undefined;
 
 	if (!response.ok || !accessToken) {
 		throw new Error(
@@ -69,7 +76,7 @@ async function sendWithGmail({ to, url, purpose }: AuthEmailInput) {
 	const subject =
 		purpose === 'email_verification' ?
 			'Verify your GiveToGive email'
-		:		'Reset your GiveToGive password';
+		:	'Reset your GiveToGive password';
 	const action =
 		purpose === 'email_verification' ? 'Verify email' : 'Reset password';
 	const message = [
@@ -87,15 +94,19 @@ async function sendWithGmail({ to, url, purpose }: AuthEmailInput) {
 		{
 			method: 'POST',
 			headers: {
-				Authorization: `Bearer ${accessToken}`,
+				'Authorization': `Bearer ${accessToken}`,
 				'Content-Type': 'application/json',
 			},
-			body: JSON.stringify({ raw: Buffer.from(message).toString('base64url') }),
+			body: JSON.stringify({
+				raw: Buffer.from(message).toString('base64url'),
+			}),
 		},
 	);
 
 	if (!response.ok) {
-		throw new Error(`Gmail delivery failed with status ${response.status}.`);
+		throw new Error(
+			`Gmail delivery failed with status ${response.status}.`,
+		);
 	}
 }
 
@@ -103,13 +114,13 @@ async function sendWithResend({ to, url, purpose }: AuthEmailInput) {
 	const subject =
 		purpose === 'email_verification' ?
 			'Verify your GiveToGive email'
-		:		'Reset your GiveToGive password';
+		:	'Reset your GiveToGive password';
 	const action =
 		purpose === 'email_verification' ? 'Verify email' : 'Reset password';
 	const response = await fetch('https://api.resend.com/emails', {
 		method: 'POST',
 		headers: {
-			Authorization: `Bearer ${env.RESEND_API_KEY}`,
+			'Authorization': `Bearer ${env.RESEND_API_KEY}`,
 			'Content-Type': 'application/json',
 			'User-Agent': 'GiveToGive/1.0',
 		},
@@ -122,11 +133,23 @@ async function sendWithResend({ to, url, purpose }: AuthEmailInput) {
 	});
 
 	if (!response.ok) {
-		throw new Error(`Resend delivery failed with status ${response.status}.`);
+		throw new Error(
+			`Resend delivery failed with status ${response.status}.`,
+		);
 	}
 }
 
 export async function sendAuthEmail({ to, url, purpose }: AuthEmailInput) {
+	if (['staging', 'test'].includes(applicationEnvironment())) {
+		await db
+			.insert(emailSink)
+			.values({
+				to,
+				purpose,
+				urlCiphertext: sealSecret(url, 'staging-email'),
+			});
+		return { delivered: true, previewUrl: undefined };
+	}
 	const provider = getEmailProvider();
 
 	if (provider === 'gmail') {
@@ -137,6 +160,12 @@ export async function sendAuthEmail({ to, url, purpose }: AuthEmailInput) {
 
 	return {
 		delivered: Boolean(provider),
-		previewUrl: env.NODE_ENV === 'development' ? url : undefined,
+		previewUrl:
+			(
+				env.NODE_ENV === 'development' &&
+				applicationEnvironment() === 'development'
+			) ?
+				url
+			:	undefined,
 	};
 }

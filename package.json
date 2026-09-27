@@ -8,11 +8,16 @@
 	},
 	"scripts": {
 		"dev": "next dev",
+		"dev:staging": "node --env-file=.env.staging.local scripts/run-local-staging.mjs",
 		"build": "next build",
+		"build:staging": "node --env-file=.env.staging.local scripts/run-local-staging.mjs build",
+		"start:staging": "node --env-file=.env.staging.local scripts/run-local-staging.mjs start",
+		"typecheck": "next typegen && tsc --noEmit",
 		"start": "next start",
 		"lint": "eslint .",
 		"test": "npm run test:unit && npm run test:e2e",
 		"test:unit": "node --test tests/unit/*.test.ts",
+		"test:integration": "node --env-file=.env.ci.local --import ./tests/integration/server-context.mjs --import tsx --test tests/integration/*.test.ts",
 		"test:e2e": "playwright test",
 		"db:generate": "dotenv -e .env.local -- drizzle-kit generate",
 		"db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",
@@ -28,9 +33,12 @@
 		"@emotion/react": "^11.13.3",
 		"@emotion/server": "11.11.0",
 		"@emotion/styled": "^11.13.0",
+		"@modelcontextprotocol/sdk": "1.30.1",
 		"@mui/icons-material": "^6.1.6",
 		"@mui/material": "^6.1.6",
 		"@mui/material-nextjs": "9.4.0",
+		"@stripe/connect-js": "3.4.6",
+		"@stripe/react-connect-js": "3.4.4",
 		"@t3-oss/env-nextjs": "0.13.11",
 		"@tanstack/react-form": "1.33.5",
 		"@tanstack/react-query": "5.103.2",
@@ -42,11 +50,14 @@
 		"geist": "1.7.2",
 		"next": "16.3.6",
 		"next-auth": "5.0.0-beta.32",
+		"otplib": "13.5.0",
 		"postgres": "3.4.9",
 		"react": "19.3.0",
 		"react-dom": "19.3.0",
 		"server-only": "^0.0.1",
+		"stripe": "22.6.2",
 		"superjson": "2.2.6",
+		"workflow": "4.8.9",
 		"zod": "4.6.5"
 	},
 	"devDependencies": {
@@ -63,6 +74,7 @@
 		"prettier": "3.9.9",
 		"prettier-plugin-tailwindcss": "^0.6.8",
 		"tailwindcss": "^3.4.14",
+		"tsx": "4.23.12",
 		"typescript": "5.9.3"
 	},
 	"ct3aMetadata": {
@@ -70,6 +82,15 @@
 	},
 	"packageManager": "npm@10.8.3",
 	"overrides": {
+		"@workflow/core": {
+			"nanoid": "5.1.16"
+		},
+		"@workflow/world-local": {
+			"undici": "7.30.0"
+		},
+		"@workflow/world-vercel": {
+			"undici": "7.30.0"
+		},
 		"esbuild": "0.25.12"
 	}
 }

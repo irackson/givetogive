@@ -70,6 +70,17 @@ export default async function MemberProfilePage({
 					<div className='profile-identity'>
 						<p className='eyebrow'>GiveToGive member</p>
 						<h1 className='display-title'>{name}</h1>
+						{profile.supporterTier && (
+							<p
+								className='profile-supporter-badge'
+								title='Optional recognition for paid support. Not identity verification or priority for help.'>
+								<span aria-hidden='true'>✳</span>{' '}
+								{profile.supporterTier === 'sustainer' ?
+									'Sustainer'
+								:	'Supporter'}{' '}
+								· supports GiveToGive
+							</p>
+						)}
 						{profile.location && (
 							<p className='profile-location'>
 								<LocationOnRoundedIcon fontSize='small' />
@@ -82,6 +93,15 @@ export default async function MemberProfilePage({
 							name={name}
 							bio={profile.bio}
 							location={profile.location}
+							showSupporterBadge={
+								profile.showSupporterBadge ?? false
+							}
+							supporterTier={
+								profile.ownSupporterTier ?? 'neighbor'
+							}
+							recognitionStatus={
+								profile.ownRecognitionStatus ?? 'pending'
+							}
 						/>
 					)}
 				</div>
@@ -100,6 +120,28 @@ export default async function MemberProfilePage({
 								:	'This member has not added an introduction yet.')}
 						</p>
 					</section>
+					{profile.isOwner && (
+						<section className='profile-about'>
+							<p className='eyebrow'>Only for you</p>
+							<h2 className='section-title'>
+								Your personal impact.
+							</h2>
+							<p>
+								Your verified financial giving is kept separate
+								from public offers and off-platform pledges.
+								Only you can see your payment receipts and
+								pending gifts.
+							</p>
+							<div className='profile-pagination'>
+								<Link href='/giving'>
+									View your giving & receipts ↗
+								</Link>
+								<Link href='/account/billing'>
+									Manage membership ↗
+								</Link>
+							</div>
+						</section>
+					)}
 					<section
 						className='profile-history'
 						id='contributions'>
@@ -257,6 +299,8 @@ export default async function MemberProfilePage({
 					<p className='trust-card__note'>
 						Activity reflects records on GiveToGive. It is not a
 						rating or a guarantee of future help.
+						{profile.supporterTier &&
+							' The optional supporter badge recognizes financial support, not identity or priority for help.'}
 					</p>
 				</aside>
 			</section>

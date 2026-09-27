@@ -2,10 +2,18 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 import { getServerAuthSession } from '@/server/auth';
+import { publicPaymentConfiguration } from '@/server/payments/config';
 
 export default async function Home() {
 	const session = await getServerAuthSession();
 	const firstName = session?.user?.name?.split(' ')[0];
+	const availability = publicPaymentConfiguration();
+	const moneyDescription =
+		!availability.askPayments ?
+			'Offer an amount toward a specific need. Ask payments are not enabled here; members arrange these pledges off-platform.'
+		: availability.livemode ?
+			'Give through secure Checkout on eligible Asks, with fees shown before you pay. Other money Asks remain off-platform pledges.'
+		:	'Try sandbox Checkout on eligible Asks. No real money moves in test mode; other money Asks remain off-platform pledges.';
 
 	return (
 		<div className='home-page'>
@@ -85,11 +93,14 @@ export default async function Home() {
 						href='/asks?type=money'
 						className='way-card way-card--funds'>
 						<span>03</span>
-						<h3>Money pledges</h3>
-						<p>
-							Offer an amount toward a specific need. Members
-							arrange payment directly; no money moves through this site.
-						</p>
+						<h3>
+							{availability.askPayments ?
+								availability.livemode ?
+									'Money gifts'
+								:	'Test giving'
+							:	'Money pledges'}
+						</h3>
+						<p>{moneyDescription}</p>
 					</Link>
 				</div>
 			</section>

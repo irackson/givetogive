@@ -1,16 +1,16 @@
 import { expect, test, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { cleanMembers, testSql } from './fixtures';
+import { cleanMembers, latestEmailLink, testSql } from './fixtures';
 
 const runId = `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
 const password = `E2e-${randomUUID()}!`;
 const replacementPassword = `New-e2e-${randomUUID()}!`;
 const owner = {
-	email: `givetogive-e2e-owner-${runId}@example.com`,
+	email: `givetogive-e2e-owner-${runId}@example.invalid`,
 	name: 'E2E Ask Owner',
 };
 const neighbor = {
-	email: `givetogive-e2e-neighbor-${runId}@example.com`,
+	email: `givetogive-e2e-neighbor-${runId}@example.invalid`,
 	name: 'E2E Neighbor',
 };
 const askTitle = `E2E porch repair ${runId}`;
@@ -25,13 +25,17 @@ async function signUp(page: Page, member: typeof owner) {
 	await expect(
 		page.getByText('Email delivery is not configured yet.'),
 	).toHaveCount(0);
+	await testSql`UPDATE givetogive_user SET is_synthetic=true WHERE email=${member.email}`;
 }
 
-async function verifyEmailFromPreview(page: Page) {
-	await page
-		.getByRole('link', { name: 'Open the development verification link' })
-		.click();
-	await expect(page.getByText('Email verified. You can now sign in.')).toBeVisible();
+async function verifyEmailFromSink(page: Page, email: string) {
+	await expect(
+		page.getByRole('link', { name: /Open the development/ }),
+	).toHaveCount(0);
+	await page.goto(await latestEmailLink(email, 'email_verification'));
+	await expect(
+		page.getByText('Email verified. You can now sign in.'),
+	).toBeVisible();
 }
 
 async function signIn(page: Page, email: string, value = password) {
@@ -43,12 +47,14 @@ async function signIn(page: Page, email: string, value = password) {
 }
 
 test.describe.serial('GiveToGive member flows', () => {
-	test.skip(Boolean(process.env['PLAYWRIGHT_BASE_URL']), 'Development email previews are intentionally unavailable in production.');
 	test.afterAll(async () => {
-		const members = await testSql`SELECT id FROM givetogive_user WHERE email IN (${owner.email}, ${neighbor.email})`;
+		const members =
+			await testSql`SELECT id FROM givetogive_user WHERE email IN (${owner.email}, ${neighbor.email})`;
 		await cleanMembers(members.map((member) => String(member['id'])));
 	});
-	test('renders every public route without a framework error', async ({ page }) => {
+	test('renders every public route without a framework error', async ({
+		page,
+	}) => {
 		const consoleErrors: string[] = [];
 		page.on('console', (message) => {
 			if (message.type() === 'error') consoleErrors.push(message.text());
@@ -67,11 +73,15 @@ test.describe.serial('GiveToGive member flows', () => {
 			await expect(page.locator('body')).not.toBeEmpty();
 			await expect(page.locator('[data-nextjs-dialog]')).toHaveCount(0);
 		}
-		await expect(page.getByRole('heading', { name: 'Resend verification.' })).toBeVisible();
+		await expect(
+			page.getByRole('heading', { name: 'Resend verification.' }),
+		).toBeVisible();
 		expect(consoleErrors).toEqual([]);
 	});
 
-	test('recovers an unverified sign-in, verifies email, and signs in', async ({ page }) => {
+	test('recovers an unverified sign-in, verifies email, and signs in', async ({
+		page,
+	}) => {
 		await signUp(page, owner);
 		await page.goto('/signin');
 		await page.getByLabel('Email').fill(owner.email);
@@ -84,11 +94,13 @@ test.describe.serial('GiveToGive member flows', () => {
 		await error.getByRole('link', { name: 'Resend verification' }).click();
 		await expect(page).toHaveURL(/\/verify-email$/);
 		await page.getByLabel('Email').fill(owner.email);
-		await page.getByRole('button', { name: 'Send verification link' }).click();
+		await page
+			.getByRole('button', { name: 'Send verification link' })
+			.click();
 		await expect(
 			page.getByText('If that account still needs verification'),
 		).toBeVisible();
-		await verifyEmailFromPreview(page);
+		await verifyEmailFromSink(page, owner.email);
 		await signIn(page, owner.email);
 		await expect(page.getByText('Welcome back, E2E.')).toBeVisible();
 	});
@@ -106,7 +118,9 @@ test.describe.serial('GiveToGive member flows', () => {
 			.fill('A small porch repair needs two neighbors with basic tools.');
 		await page.getByLabel('Goal (tasks)').fill('2');
 		await page.getByRole('button', { name: 'Create Ask' }).click();
-		await expect(page.getByRole('heading', { name: askTitle })).toBeVisible();
+		await expect(
+			page.getByRole('heading', { name: askTitle }),
+		).toBeVisible();
 		const askUrl = page.url();
 		await expect(page.getByText('This is your Ask.')).toBeVisible();
 
@@ -114,14 +128,16 @@ test.describe.serial('GiveToGive member flows', () => {
 		const neighborPage = await neighborContext.newPage();
 		try {
 			await signUp(neighborPage, neighbor);
-			await verifyEmailFromPreview(neighborPage);
+			await verifyEmailFromSink(neighborPage, neighbor.email);
 			await signIn(neighborPage, neighbor.email);
 			await neighborPage.goto(askUrl);
 			await neighborPage
 				.getByRole('button', { name: 'Offer a contribution' })
 				.click();
 			await expect(
-				neighborPage.getByRole('heading', { name: 'Your part of the help' }),
+				neighborPage.getByRole('heading', {
+					name: 'Your part of the help',
+				}),
 			).toBeVisible();
 			await neighborPage.getByLabel('Amount (tasks)').fill('1');
 			await neighborPage
@@ -131,7 +147,9 @@ test.describe.serial('GiveToGive member flows', () => {
 				.getByRole('button', { name: 'Confirm contribution' })
 				.click();
 			await expect(
-				neighborPage.getByText('I can bring the right screws and lend a hand.'),
+				neighborPage.getByText(
+					'I can bring the right screws and lend a hand.',
+				),
 			).toBeVisible();
 			await expect(neighborPage.getByText('in progress')).toBeVisible();
 		} finally {
@@ -139,22 +157,29 @@ test.describe.serial('GiveToGive member flows', () => {
 		}
 	});
 
-	test('resets a password through the emailed development link', async ({ page }) => {
+	test('resets a password through the private isolated email sink', async ({
+		page,
+	}) => {
 		await page.goto('/forgot-password');
 		await page.getByLabel('Email').fill(owner.email);
 		await page.getByRole('button', { name: 'Send reset link' }).click();
 		await expect(
 			page.getByText('If an account exists for that email'),
 		).toBeVisible();
-		await page
-			.getByRole('link', { name: 'Open the development reset link' })
-			.click();
+		await expect(
+			page.getByRole('link', { name: /Open the development/ }),
+		).toHaveCount(0);
+		await page.goto(await latestEmailLink(owner.email, 'password_reset'));
 		await page.waitForLoadState('networkidle');
 		await page.getByLabel('New password').fill(replacementPassword);
-		await expect(page.getByLabel('New password')).toHaveValue(replacementPassword);
+		await expect(page.getByLabel('New password')).toHaveValue(
+			replacementPassword,
+		);
 		await page.getByRole('button', { name: 'Update password' }).click();
 		await expect(
-			page.getByText('Your password has been updated. You can sign in now.'),
+			page.getByText(
+				'Your password has been updated. You can sign in now.',
+			),
 		).toBeVisible();
 		await signIn(page, owner.email, replacementPassword);
 	});

@@ -360,6 +360,16 @@ export function RenderAsksIndex({
 									</span>
 								</div>
 								<div className='ask-card__progress'>
+									{ask.type === 'money' && (
+										<p>
+											<strong>
+												{ask.paymentEnabled ?
+													'Verified net funding'
+												:	'Off-platform pledges · not verified payments'
+												}
+											</strong>
+										</p>
+									)}
 									<div>
 										<strong>
 											{formatAskAmount(
@@ -381,17 +391,32 @@ export function RenderAsksIndex({
 									<LinearProgress
 										variant='determinate'
 										value={progress}
-										aria-label={`${ask.title} contribution progress`}
+										aria-label={`${ask.title} ${ask.paymentEnabled ? 'verified net payment' : 'pledged and completed contribution'} progress`}
 									/>
 									<p>
 										{remaining === 0 ?
-											ask.status === 'complete' ?
+											ask.paymentEnabled ?
+												'The verified goal has been reached.'
+											: ask.status === 'complete' ?
 												'This goal has been completed.'
 											:	'The goal is fully pledged. Help is on its way.'
 
 										:	`${formatAskAmount(ask.type, remaining, ask.currency ?? 'USD')} still makes a difference.`
 										}
 									</p>
+									{ask.paymentEnabled &&
+										ask.pendingFundingAmount > 0 && (
+											<p>
+												{formatAskAmount(
+													'money',
+													ask.pendingFundingAmount,
+													ask.currency ?? 'USD',
+												)}{' '}
+												reserved during payment or
+												dispute review · not counted
+												above.
+											</p>
+										)}
 									{ask.completedAmount > 0 &&
 										ask.status !== 'complete' && (
 											<p>

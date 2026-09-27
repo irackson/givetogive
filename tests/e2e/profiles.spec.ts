@@ -22,7 +22,11 @@ test.beforeAll(async () => {
 		returning id
 	`;
 	askId = ask!.id;
-	for (const status of [...Array<string>(21).fill('completed'), 'pledged', 'cancelled']) {
+	for (const status of [
+		...Array<string>(21).fill('completed'),
+		'pledged',
+		'cancelled',
+	]) {
 		await sql`
 			insert into givetogive_ask_contribution (ask_id, contributor_id, amount, note, status)
 			values (${askId}, ${memberId}, 1, 'Private fixture note', ${status})
@@ -88,9 +92,7 @@ test('owner can edit public fields and inspect private contribution states', asy
 	await page.getByLabel('Name').fill('Unsaved name');
 	await page.getByRole('button', { name: 'Cancel', exact: true }).click();
 	await page.getByRole('button', { name: 'Edit profile' }).click();
-	await expect(page.getByLabel('Name')).toHaveValue(
-		'Profile Test Neighbor',
-	);
+	await expect(page.getByLabel('Name')).toHaveValue('Profile Test Neighbor');
 	await page.getByLabel('Name').fill('Updated Neighbor');
 	await page.getByLabel('Neighborhood or city').fill('Brooklyn');
 	await page
@@ -114,9 +116,11 @@ test('owner can edit public fields and inspect private contribution states', asy
 		page.getByRole('heading', { name: 'Updated Neighbor' }),
 	).toBeVisible();
 	await page.setViewportSize({ width: 390, height: 844 });
+	await page.getByRole('button', { name: 'My account' }).click();
 	await expect(
-		page.getByRole('link', { name: 'My profile', exact: true }),
+		page.getByRole('menuitem', { name: 'My profile & help' }),
 	).toBeVisible();
+	await page.keyboard.press('Escape');
 	expect(
 		await page.evaluate(
 			() => document.documentElement.scrollWidth <= window.innerWidth,

@@ -1,11 +1,11 @@
 import { env } from '@/env';
 import { credentialsSchema } from '@/server/auth/credentials';
 import { verifyPassword } from '@/server/auth/password';
+import { recordRateLimitAttempt } from '@/server/auth/rate-limit';
 import {
-	clearRateLimit,
-	isRateLimited,
-	recordRateLimitAttempt,
-} from '@/server/auth/rate-limit';
+	activeSession,
+	refreshIdentityToken,
+} from '@/server/auth/session-policy';
 import { db } from '@/server/db';
 import {
 	accounts,
@@ -14,7 +14,7 @@ import {
 	verificationTokens,
 } from '@/server/db/schema';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import NextAuth, { AuthError, type DefaultSession } from 'next-auth';
 import { type Adapter } from 'next-auth/adapters';
 import CredentialsProvider from 'next-auth/providers/credentials';
@@ -26,12 +26,16 @@ import DiscordProvider from 'next-auth/providers/discord';
  *
  * @see https://next-auth.js.org/getting-started/typescript#module-augmentation
  */
-declare module 'next-auth' {
+// Both next-auth and next-auth/react re-export the core Session type.
+declare module '@auth/core/types' {
 	interface Session extends DefaultSession {
+		/** Always supplied by Auth.js; optional only for trusted legacy server callers. */
+		access?: 'active' | 'billing_only';
 		user: {
 			id: string;
-			// ...other properties
-			// role: UserRole;
+			role: 'member' | 'admin';
+			sessionVersion: number;
+			authenticatedAt: number;
 		} & DefaultSession['user'];
 	}
 
@@ -44,10 +48,41 @@ declare module 'next-auth' {
 /**
  * Auth.js configuration and helpers shared by Server Components, tRPC, and the route handler.
  */
-export const { auth, handlers, signIn, signOut } = NextAuth({
+export const {
+	auth: getBillingAuthSession,
+	handlers,
+	signIn,
+	signOut,
+} = NextAuth({
 	callbacks: {
+		jwt: async ({ token, user }) => {
+			const id = user?.id ?? token.sub;
+			if (!id) return null;
+			const current = await db.query.users.findFirst({
+				where: eq(users.id, id),
+				columns: {
+					id: true,
+					sessionVersion: true,
+					role: true,
+					frozenAt: true,
+					emailVerified: true,
+				},
+			});
+			return refreshIdentityToken(token, current, Boolean(user));
+		},
 		session: ({ session, token }) => {
+			session.access =
+				token['access'] === 'billing_only' ? 'billing_only' : 'active';
 			if (token.sub) session.user.id = token.sub;
+			session.user.role = token['role'] === 'admin' ? 'admin' : 'member';
+			session.user.sessionVersion =
+				typeof token['sessionVersion'] === 'number' ?
+					token['sessionVersion']
+				:	0;
+			session.user.authenticatedAt =
+				typeof token['authenticatedAt'] === 'number' ?
+					token['authenticatedAt']
+				:	0;
 			return session;
 		},
 	},
@@ -65,7 +100,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 				error.type === 'CredentialsSignin'
 			)
 				return;
-			console.error(error);
+			// Never serialize Auth.js causes: a database/provider failure can include secrets.
+			console.error(
+				'Authentication failed',
+				error instanceof AuthError ? error.type : 'UnknownError',
+			);
 		},
 	},
 	session: { strategy: 'jwt' },
@@ -84,7 +123,14 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 				if (!parsedCredentials.success) return null;
 
 				const { email, password } = parsedCredentials.data;
-				if (await isRateLimited('sign-in', email, request.headers))
+				if (
+					!(await recordRateLimitAttempt(
+						'sign-in',
+						email,
+						request.headers,
+						11,
+					))
+				)
 					return null;
 				const [user] = await db
 					.select()
@@ -97,14 +143,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 					!(await verifyPassword(password, user.hashedPassword)) ||
 					!user.emailVerified
 				) {
-					await recordRateLimitAttempt(
-						'sign-in',
-						email,
-						request.headers,
-					);
 					return null;
 				}
-				await clearRateLimit('sign-in', email, request.headers);
 
 				return {
 					email: user.email,
@@ -133,4 +173,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 /**
  * Compatibility name used throughout the existing application.
  */
+export async function auth() {
+	return activeSession(await getBillingAuthSession());
+}
 export const getServerAuthSession = auth;
