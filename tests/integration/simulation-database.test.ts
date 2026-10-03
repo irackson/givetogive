@@ -30,12 +30,19 @@ import {
 import { createMemberMcpServer } from '../../src/server/mcp/server.ts';
 import { ingestSimulationEvents } from '../../src/server/simulation/endpoints.ts';
 import {
+	changeSimulationController,
+	requireControllerOwnership,
+	recoverSimulationController,
+	controllerRecoveryConfirmation,
+} from '../../src/server/simulation/controller.ts';
+import {
 	assertCiSimulationDatabase,
 	retireCiSimulationFixture,
 } from './simulation-fixture.ts';
 
 const runId = `ci-mcp-${randomUUID()}`;
 const terminalRunId = `ci-mcp-${randomUUID()}`;
+const controllerRunIds = [`ci-mcp-${randomUUID()}`, `ci-mcp-${randomUUID()}`];
 const terminalTokens = [
 	randomBytes(32).toString('hex'),
 	randomBytes(32).toString('hex'),
@@ -96,6 +103,24 @@ before(async () => {
 			userId: ids[1]!,
 			name: 'CI terminal member',
 		});
+		for (const id of controllerRunIds) {
+			await tx.insert(simulationRuns).values({
+				id,
+				name: 'CI community fencing fixture',
+				createdById: ids[0]!,
+				environment: 'staging',
+				databaseIdentity: id,
+				mode: 'scripted',
+				agentCount: 1,
+				status: 'created',
+			});
+			await tx.insert(simulationAgents).values({
+				id: `${id}-0`,
+				runId: id,
+				userId: ids[1]!,
+				name: 'CI shared controller member',
+			});
+		}
 		await tx.insert(apiTokens).values(
 			terminalTokens.map((token, index) => ({
 				id: randomUUID(),
@@ -164,10 +189,203 @@ after(async () => {
 		if (fixtureReady) {
 			await retireCiSimulationFixture(runId);
 			await retireCiSimulationFixture(terminalRunId);
+			for (const id of controllerRunIds)
+				await retireCiSimulationFixture(id);
 		}
 	} finally {
 		await db.$client.end();
 	}
+});
+
+test('server controller fencing is atomic across hosts, journals and overlapping cohorts; uncertain ownership never expires', async () => {
+	const runner = await resolveSimulationCredentials(
+		request(0),
+		'runner',
+		target,
+	);
+	const run = await db.query.simulationRuns.findFirst({
+		where: eq(simulationRuns.id, controllerRunIds[0]!),
+	});
+	const actor: SimulationActor = {
+		...runner,
+		run: run!,
+		target: { ...target, databaseIdentity: run!.databaseIdentity },
+	};
+	const command = {
+		runId: run!.id,
+		controllerId: randomUUID(),
+		journalId: randomUUID(),
+		programDigest: 'a'.repeat(64),
+		action: 'acquire' as const,
+	};
+	const competing = { ...command, controllerId: randomUUID() };
+	const outcomes = await Promise.allSettled([
+		changeSimulationController(actor, command),
+		changeSimulationController(actor, competing),
+	]);
+	assert.equal(
+		outcomes.filter((outcome) => outcome.status === 'fulfilled').length,
+		1,
+	);
+	let current = (await db.query.simulationRuns.findFirst({
+		where: eq(simulationRuns.id, run!.id),
+	}))!;
+	const owner = current.settings['controllerId'] as string;
+	const winner = { ...command, controllerId: owner };
+	const loser = {
+		...command,
+		controllerId:
+			owner === command.controllerId ?
+				competing.controllerId
+			:	command.controllerId,
+	};
+	assert.throws(() => requireControllerOwnership(current), /ownership/);
+	assert.throws(
+		() => requireControllerOwnership(current, loser.controllerId),
+		/ownership/,
+	);
+	requireControllerOwnership(current, owner);
+	await db
+		.update(simulationRuns)
+		.set({ lastHeartbeatAt: new Date(0) })
+		.where(eq(simulationRuns.id, run!.id));
+	await assert.rejects(changeSimulationController(actor, loser), /takeover/);
+	await assert.rejects(
+		changeSimulationController(actor, {
+			...winner,
+			journalId: randomUUID(),
+		}),
+		/journal/,
+	);
+	await assert.rejects(
+		changeSimulationController(actor, {
+			...winner,
+			programDigest: 'b'.repeat(64),
+		}),
+		/program/,
+	);
+	await assert.rejects(
+		changeSimulationController(actor, { ...loser, action: 'release' }),
+	);
+	const otherRun = (await db.query.simulationRuns.findFirst({
+		where: eq(simulationRuns.id, controllerRunIds[1]!),
+	}))!;
+	const otherActor: SimulationActor = {
+		...runner,
+		run: otherRun,
+		target: { ...target, databaseIdentity: otherRun.databaseIdentity },
+	};
+	await assert.rejects(
+		changeSimulationController(otherActor, {
+			...competing,
+			runId: otherRun.id,
+		}),
+		/another run/,
+	);
+	const event = {
+		id: randomUUID(),
+		agentId: 'runner',
+		sequence: 1,
+		kind: 'heartbeat',
+		state: 'idle',
+		occurredAt: new Date().toISOString(),
+		correlationId: randomUUID(),
+		summary: 'CI fenced heartbeat',
+		data: { actions: 0 },
+	};
+	const body = { runId: run!.id, events: [event] };
+	await assert.rejects(ingestSimulationEvents(actor, body));
+	await assert.rejects(
+		ingestSimulationEvents(actor, body, loser.controllerId),
+	);
+	await ingestSimulationEvents(actor, body, owner);
+	const recovery = {
+		runId: run!.id,
+		controllerId: owner,
+		confirmation: controllerRecoveryConfirmation,
+	};
+	await assert.rejects(
+		recoverSimulationController(ids[0]!, run!.databaseIdentity, recovery),
+		/recent controller/,
+	);
+	await assert.rejects(
+		recoverSimulationController(ids[1]!, run!.databaseIdentity, recovery),
+	);
+	await assert.rejects(
+		recoverSimulationController(ids[0]!, run!.databaseIdentity, {
+			...recovery,
+			confirmation: 'yes',
+		}),
+	);
+	current = (await db.query.simulationRuns.findFirst({
+		where: eq(simulationRuns.id, run!.id),
+	}))!;
+	await db
+		.update(simulationRuns)
+		.set({
+			lastHeartbeatAt: new Date(0),
+			settings: {
+				...current.settings,
+				controllerAcquiredAt: new Date(0).toISOString(),
+			},
+		})
+		.where(eq(simulationRuns.id, run!.id));
+	await assert.rejects(
+		recoverSimulationController(ids[0]!, 'wrong-database', recovery),
+	);
+	await assert.rejects(
+		recoverSimulationController(ids[0]!, run!.databaseIdentity, {
+			...recovery,
+			controllerId: randomUUID(),
+		}),
+	);
+	assert.deepEqual(
+		await recoverSimulationController(
+			ids[0]!,
+			run!.databaseIdentity,
+			recovery,
+		),
+		{ recovered: true, alreadyRecovered: false },
+	);
+	assert.deepEqual(
+		await recoverSimulationController(
+			ids[0]!,
+			run!.databaseIdentity,
+			recovery,
+		),
+		{ recovered: true, alreadyRecovered: true },
+	);
+	current = (await db.query.simulationRuns.findFirst({
+		where: eq(simulationRuns.id, run!.id),
+	}))!;
+	assert.equal(current.status, 'paused');
+	assert.deepEqual(
+		await (await ingestSimulationEvents(actor, body, owner)).json(),
+		{ acceptedIds: [event.id] },
+	);
+	await assert.rejects(
+		ingestSimulationEvents(
+			actor,
+			{ ...body, events: [{ ...event, id: randomUUID(), sequence: 2 }] },
+			owner,
+		),
+	);
+	await changeSimulationController(actor, loser);
+	await assert.rejects(
+		changeSimulationController(actor, { ...winner, action: 'release' }),
+	);
+	await assert.rejects(ingestSimulationEvents(actor, body, owner));
+	await changeSimulationController(actor, { ...loser, action: 'release' });
+	await db
+		.update(simulationRuns)
+		.set({ status: 'completed' })
+		.where(eq(simulationRuns.id, run!.id));
+	await assert.rejects(changeSimulationController(actor, loser));
+	current = (await db.query.simulationRuns.findFirst({
+		where: eq(simulationRuns.id, run!.id),
+	}))!;
+	assert.equal(current.settings['controllerId'], null);
+	assert.equal(current.settings['controllerJournalId'], command.journalId);
 });
 
 test('HTTP guard rejects CI environment; credential layer enforces origin, kind, and per-user scope', async () => {
@@ -476,9 +694,18 @@ test('runner telemetry is deduplicated, sequence-ordered, actor-bound, and nonfi
 				...event,
 				id: randomUUID(),
 				agentId: 'runner',
+				sequence: 199,
+				kind: 'heartbeat',
+				data: { cycles: 31, actions: 30, failures: 1, ramFreeGiB: 4 },
+			},
+			{
+				...event,
+				id: randomUUID(),
+				agentId: 'runner',
 				sequence: 200,
 				kind: 'run_paused',
 				state: 'paused',
+				data: {},
 			},
 		],
 	});
@@ -502,6 +729,14 @@ test('runner telemetry is deduplicated, sequence-ordered, actor-bound, and nonfi
 		)?.status,
 		'paused',
 	);
+	assert.deepEqual(
+		(
+			await db.query.simulationRuns.findFirst({
+				where: eq(simulationRuns.id, runId),
+			})
+		)?.metrics,
+		{ cycles: 31, actions: 30, failures: 1, ramFreeGiB: 4 },
+	);
 	await ingestSimulationEvents(runner, {
 		runId,
 		events: [
@@ -521,6 +756,14 @@ test('runner telemetry is deduplicated, sequence-ordered, actor-bound, and nonfi
 			})
 		)?.status,
 		'running',
+	);
+	assert.deepEqual(
+		(
+			await db.query.simulationRuns.findFirst({
+				where: eq(simulationRuns.id, runId),
+			})
+		)?.metrics,
+		{ cycles: 31, actions: 30, failures: 1, ramFreeGiB: 4 },
 	);
 });
 

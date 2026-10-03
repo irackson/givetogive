@@ -2,10 +2,14 @@ export class Semaphore {
   active = 0;
   private queue: Array<() => void> = [];
   limit: number;
-  constructor(limit: number) { this.limit = limit; }
+  private readonly maximum: number;
+  constructor(limit: number, maximum = 4) {
+    if (!Number.isInteger(maximum) || maximum < 1 || maximum > 30 || !Number.isInteger(limit) || limit < 1 || limit > maximum) throw new Error('Invalid concurrency limit.');
+    this.limit = limit; this.maximum = maximum;
+  }
   get waiting() { return this.queue.length; }
   resize(limit: number) {
-    if (!Number.isInteger(limit) || limit < 1 || limit > 4) throw new Error('Concurrency must be 1-4.');
+    if (!Number.isInteger(limit) || limit < 1 || limit > this.maximum) throw new Error(`Concurrency must be 1-${this.maximum}.`);
     this.limit = limit;
     this.drain();
   }

@@ -39,6 +39,11 @@ export function allowedCheckoutRequest(rawUrl: string, topLevelNavigation: boole
   let url: URL;
   try { url = new URL(rawUrl); } catch { return false; }
   if (url.origin === sandboxOrigin) return url.pathname === `/giving/${checkout.operationId}` || (!topLevelNavigation && /^\/(?:_next\/|api\/auth\/|api\/trpc\/|favicon)/.test(url.pathname));
+  // Observed dependencies of the genuine hosted Checkout page. These may load
+  // inside Checkout but can never receive our staging bypass or navigate the tab.
+  // Loading Stripe's fraud challenge is not permission to solve/bypass a CAPTCHA.
+  if (!topLevelNavigation && url.protocol === 'https:' && !url.username && !url.password && (!url.port || url.port === '443') &&
+    (['m.stripe.network', 'hcaptcha.com'].includes(url.hostname) || url.hostname.endsWith('.hcaptcha.com'))) return true;
   if (!stripeOwnedOrigin(url)) return false;
   return !topLevelNavigation || (url.origin === 'https://checkout.stripe.com' && url.pathname === `/c/pay/${checkout.sessionId}`);
 }

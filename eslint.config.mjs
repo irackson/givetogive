@@ -42,6 +42,7 @@ export default defineConfig([
 		},
 	},
 	globalIgnores([
+		'tmp/**',
 		'tools/simulation/**',
 		'chrome-debug-profile/**',
 		'.next/**',

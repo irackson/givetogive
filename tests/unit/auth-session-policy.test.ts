@@ -105,3 +105,22 @@ test('public/ordinary auth sessions never expose a billing-only identity', () =>
 		billingSession: null,
 	});
 });
+
+test('pre-payments JWTs stay valid for default-version members but cannot bypass revocation', () => {
+	const migratedMember: SessionIdentity = {
+		id: 'pre-payments-member', role: 'member', sessionVersion: 0,
+		frozenAt: null, emailVerified: new Date(),
+	};
+	// The published app's JWT did not include access, role or sessionVersion.
+	const legacy = { sub: migratedMember.id, name: 'Existing member' };
+	const refreshed = refreshIdentityToken(legacy, migratedMember, false)!;
+	assert.equal(refreshed.sub, migratedMember.id);
+	assert.equal(refreshed.name, legacy.name);
+	assert.equal(refreshed.access, 'active');
+	assert.equal(refreshed.role, 'member');
+	// Do not invent recent authentication for an old token; step-up still requires login.
+	assert.equal(refreshed.authenticatedAt, undefined);
+	assert.equal(refreshIdentityToken(legacy, { ...migratedMember, sessionVersion: 1 }, false), null);
+	assert.equal(refreshIdentityToken(legacy, { ...migratedMember, frozenAt: new Date() }, false), null);
+	assert.equal(refreshIdentityToken({ ...legacy, sub: 'another-member' }, migratedMember, false), null);
+});

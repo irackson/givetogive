@@ -19,6 +19,9 @@ const fixtureCards = { success: '4242424242424242', decline: '4000000000000002',
 export class StripeCheckoutDriver implements CheckoutDriver {
   private browser?: Browser; private context?: BrowserContext; private page?: Page; private checkout?: VerifiedCheckout;
   private bypass: string; private syntheticEmail: string;
+  readonly blockedHosts = new Set<string>();
+  readonly failedStatuses: number[] = [];
+  pageErrors = 0;
   constructor(bypass: string, syntheticEmail: string) {
     if (!syntheticEmail.endsWith('@givetogive.invalid')) throw new Error('Only a synthetic fixture email is allowed.');
     if (process.env.DEBUG || process.env.PWDEBUG) throw new Error('Disable Playwright/debug tracing before sandbox payment execution.');
@@ -28,15 +31,17 @@ export class StripeCheckoutDriver implements CheckoutDriver {
     this.checkout = checkout;
     this.browser = await chromium.launch({ headless: true });
     this.context = await this.browser.newContext({ acceptDownloads: false, serviceWorkers: 'block', locale: 'en-US', viewport: { width: 1280, height: 900 } });
+    this.context.on('response', response => { if (response.status() >= 400) this.failedStatuses.push(response.status()); });
     await this.context.route('**/*', async route => {
       const request = route.request(); const url = new URL(request.url());
       const top = request.isNavigationRequest() && request.frame().parentFrame() === null;
-      if (!allowedCheckoutRequest(request.url(), top, checkout) || (url.origin === sandboxOrigin && !['GET', 'HEAD'].includes(request.method()))) { await route.abort(); return; }
+      if (!allowedCheckoutRequest(request.url(), top, checkout) || (url.origin === sandboxOrigin && !['GET', 'HEAD'].includes(request.method()))) { this.blockedHosts.add(url.hostname); await route.abort(); return; }
       // The deployment bypass never travels to Stripe or any other external host.
       await route.continue({ headers: { ...request.headers(), ...(url.origin === sandboxOrigin ? protectionHeaders(this.bypass) : {}) } });
     });
     this.context.on('page', page => { if (this.page && page !== this.page) void page.close(); });
     this.page = await this.context.newPage();
+    this.page.on('pageerror', () => { this.pageErrors++; });
     await this.page.goto(checkout.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     if (new URL(this.page.url()).origin !== 'https://checkout.stripe.com') throw new Error('Unexpected Checkout origin.');
   }

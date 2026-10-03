@@ -36,6 +36,11 @@ test('payment navigation only permits the exact verified Checkout and its own st
   assert.equal(allowedCheckoutRequest(`${sandboxOrigin}/giving/${context.operationId}?checkout=returned`, true, verified), true);
   assert.equal(allowedCheckoutRequest(`${sandboxOrigin}/admin`, true, verified), false);
   assert.equal(allowedCheckoutRequest('https://givetogive.vercel.app/', false, verified), false);
+  for (const dependency of ['https://m.stripe.network/inner.html', 'https://hcaptcha.com/1/api.js', 'https://newassets.hcaptcha.com/captcha/v1/challenge.html']) {
+    assert.equal(allowedCheckoutRequest(dependency, false, verified), true);
+    assert.equal(allowedCheckoutRequest(dependency, true, verified), false);
+  }
+  for (const forbidden of ['http://hcaptcha.com/api.js', 'https://hcaptcha.com.evil.example/api.js', 'https://evil.example/m.stripe.network', 'https://user:password@hcaptcha.com/api.js', 'https://m.stripe.network:8443/inner.html']) assert.equal(allowedCheckoutRequest(forbidden, false, verified), false);
 });
 test('durable admission prevents repeated submission, budget reuse and cross-operation overdrafts', () => {
   const path = join(mkdtempSync(join(tmpdir(), 'g2g-budget-')), 'sandbox.sqlite');

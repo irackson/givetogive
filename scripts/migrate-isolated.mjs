@@ -2,6 +2,7 @@ import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { isolatedConfiguration, verifyIsolatedTarget } from './isolated-environment.ts';
+import { readMigrationFiles, verifyMigrationHistory } from './migration-history.ts';
 const configuration = isolatedConfiguration(process.env);
 const databaseName = configuration.database;
 const connection = postgres(configuration.directUrl, { max: 1, onnotice: () => {} });
@@ -9,6 +10,11 @@ try {
   // Existing markers are checked BEFORE the migrator can write anything.
   // Only a genuinely empty, separately owned database can bootstrap a marker.
   await verifyIsolatedTarget(connection, configuration, true);
+  const [{ historyTable }] = await connection`select to_regclass('drizzle.__drizzle_migrations')::text as "historyTable"`;
+  if (historyTable) {
+    const history = await connection`select hash,created_at from drizzle.__drizzle_migrations order by created_at,id`;
+    verifyMigrationHistory(readMigrationFiles(), history);
+  }
   await migrate(drizzle(connection), { migrationsFolder: './drizzle' });
   const markerEnvironment = process.env.APP_ENV === 'staging' ? 'staging' : 'test';
   const [marker] = await connection`select identity, environment, database_name from givetogive_environment_identity where id = 1`;

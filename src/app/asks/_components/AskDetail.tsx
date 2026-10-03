@@ -487,7 +487,11 @@ export function AskDetail({
 						:	<ol className='contribution-list'>
 								{ask.contributions.map(
 									(contribution, index) => (
-										<li key={contribution.id}>
+										<li
+											key={contribution.id}
+											data-contribution-id={
+												contribution.id
+											}>
 											<span className='contribution-list__number'>
 												{String(index + 1).padStart(
 													2,

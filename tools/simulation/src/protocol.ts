@@ -7,18 +7,22 @@ export const manifestSchema = z.object({
   databaseIdentity: z.string().min(1), stripeMode: z.enum(['test', 'unconfigured']), paymentsConfigured: z.boolean(),
   simulationEnabled: z.literal(true), mcpPath: z.literal('/mcp'),
   runStatus: z.string().optional(),
+  runId: z.string().optional(), mode: z.string().optional(), agentCount: z.number().int().optional(),
+  browserUsers: z.number().int().optional(),
+  members: z.array(z.object({ id: z.string(), userId: z.string() })).max(280).optional(),
 }).refine(value => value.stripeMode === 'test' || !value.paymentsConfigured, 'Unconfigured Stripe cannot enable payments.');
 export const credentialsSchema = z.object({
   clockControl: z.boolean().optional(),
   runId: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/).optional(),
-  mode: z.enum(['autonomous', 'deterministic']).optional(),
+  mode: z.enum(['autonomous', 'deterministic', 'scripted']).optional(),
   origin: z.url(), databaseIdentity: z.string().min(1), runnerToken: z.string().min(20),
   agents: z.array(z.object({
     id: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/), userId: z.string().min(1), token: z.string().min(20),
     storageStatePath: z.string().optional(), email: z.email().optional(), password: z.string().optional(),
     targetTier: z.enum(['neighbor', 'supporter', 'sustainer']).optional(),
-  })).min(1).max(100),
+  })).min(1).max(280),
 }).superRefine((value, ctx) => {
+  if (value.mode !== 'scripted' && value.agents.length > 100) ctx.addIssue({ code: 'custom', message: 'Legacy model runs are limited to 100 accounts.' });
   for (const field of ['id', 'userId', 'token'] as const) {
     if (new Set(value.agents.map((agent) => agent[field])).size !== value.agents.length)
       ctx.addIssue({ code: 'custom', message: `Every agent must have a unique ${field}` });

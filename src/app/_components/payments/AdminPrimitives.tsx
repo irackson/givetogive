@@ -3,6 +3,7 @@
 import { Alert, Button } from '@mui/material';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { entityHref } from '@/lib/simulation-presentation';
 import { EmptyState, StatusPill } from './PaymentPrimitives';
 
 export type ActivityItem = {
@@ -18,17 +19,6 @@ export type ActivityItem = {
 	occurredAt: Date | string;
 	details: Record<string, unknown>;
 };
-
-export function entityHref(type: string, id: string | null) {
-	if (!id) return null;
-	if (type === 'ask') return `/asks/${encodeURIComponent(id)}`;
-	if (type === 'user' || type === 'member')
-		return `/admin/users/${encodeURIComponent(id)}`;
-	if (type === 'payment') return `/admin/payments/${encodeURIComponent(id)}`;
-	if (type === 'simulation' || type === 'simulation_run')
-		return `/admin/simulations/${encodeURIComponent(id)}`;
-	return `/admin/activity?entityType=${encodeURIComponent(type)}&entityId=${encodeURIComponent(id)}`;
-}
 
 export function ActivityTimeline({
 	items,
@@ -47,7 +37,11 @@ export function ActivityTimeline({
 	return (
 		<ol className='admin-event-list'>
 			{items.map((item) => {
-				const href = entityHref(item.entityType, item.entityId);
+				const href = entityHref(
+					item.entityType,
+					item.entityId,
+					item.runId,
+				);
 				return (
 					<li
 						key={item.id}
@@ -92,7 +86,7 @@ export function ActivityTimeline({
 								{item.runId && (
 									<Link
 										className='text-link'
-										href={`/admin/simulations/${item.runId}`}>
+										href={`/admin/simulations/${encodeURIComponent(item.runId)}`}>
 										Simulation run ↗
 									</Link>
 								)}

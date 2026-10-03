@@ -129,6 +129,7 @@ export function simulationError(error: unknown) {
 		TOO_MANY_REQUESTS: 429,
 		NOT_FOUND: 404,
 		BAD_REQUEST: 400,
+		CONFLICT: 409,
 	};
 	const status =
 		message === 'BODY_TOO_LARGE' ? 413

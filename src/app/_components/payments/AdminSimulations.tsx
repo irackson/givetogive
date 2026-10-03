@@ -1,6 +1,7 @@
 'use client';
 
 import { api } from '@/trpc/react';
+import { simulationMetrics } from '@/lib/simulation-presentation';
 import {
 	Alert,
 	Button,
@@ -37,10 +38,11 @@ export function AdminSimulations() {
 	});
 	const [open, setOpen] = useState(false);
 	const [name, setName] = useState('');
-	const [mode, setMode] = useState<'autonomous' | 'deterministic'>(
-		'autonomous',
-	);
-	const [count, setCount] = useState(100);
+	const [mode, setMode] = useState<
+		'autonomous' | 'deterministic' | 'scripted'
+	>('scripted');
+	const [count, setCount] = useState(253);
+	const [browserUsers, setBrowserUsers] = useState(3);
 	const router = useRouter();
 	const create = api.admin.createSimulation.useMutation({
 		onSuccess: (run) => router.push(`/admin/simulations/${run.id}`),
@@ -57,10 +59,11 @@ export function AdminSimulations() {
 				</Button>
 			</div>
 			<p className='payment-note'>
-				Independent synthetic members, shared local inference. A hundred
-				active agents does not mean a hundred simultaneous model
-				generations. Payment actions are test-only; the local runner
-				must be connected to act.
+				An ongoing scripted community alongside real browser activity.
+				Start with 250 scripted members and three browser members,
+				scaling to 30 browsers after checking resource headroom. Every
+				account uses normal authentication. Payment actions are
+				test-only; the local runner must be connected to act.
 			</p>
 			{runs.error && (
 				<QueryError
@@ -115,6 +118,11 @@ export function AdminSimulations() {
 															'deterministic'
 														) ?
 															'Deterministic scenarios'
+														: (
+															run.mode ===
+															'scripted'
+														) ?
+															'Scripted + browser community'
 														:	'Autonomous community'}
 													</td>
 													<td>{run.agentCount}</td>
@@ -169,12 +177,16 @@ export function AdminSimulations() {
 							select
 							label='Simulation mode'
 							value={mode}
-							onChange={(event) =>
-								setMode(
-									event.target.value as
-										'autonomous' | 'deterministic',
-								)
-							}>
+							onChange={(event) => {
+								const next = event.target.value as
+									'autonomous' | 'deterministic' | 'scripted';
+								setMode(next);
+								setCount(next === 'scripted' ? 253 : 100);
+							}}>
+							<MenuItem value='scripted'>
+								Scripted + browser community · normal UI
+								authentication
+							</MenuItem>
 							<MenuItem value='autonomous'>
 								Autonomous community · model-selected actions
 							</MenuItem>
@@ -184,12 +196,15 @@ export function AdminSimulations() {
 						</TextField>
 						<TextField
 							select
-							label='Individual agents'
+							label='Total independent accounts'
 							value={count}
 							onChange={(event) =>
 								setCount(Number(event.target.value))
 							}>
-							{[10, 25, 100].map((value) => (
+							{(mode === 'scripted' ?
+								[10, 25, 100, 253, 280]
+							:	[10, 25, 100]
+							).map((value) => (
 								<MenuItem
 									key={value}
 									value={value}>
@@ -197,11 +212,32 @@ export function AdminSimulations() {
 								</MenuItem>
 							))}
 						</TextField>
+						{mode === 'scripted' && (
+							<TextField
+								select
+								label='Browser accounts'
+								value={Math.min(browserUsers, count)}
+								onChange={(event) =>
+									setBrowserUsers(Number(event.target.value))
+								}>
+								{Array.from(
+									{ length: Math.min(30, count) },
+									(__value, index) => index + 1,
+								).map((value) => (
+									<MenuItem
+										key={value}
+										value={value}>
+										{value}
+									</MenuItem>
+								))}
+							</TextField>
+						)}
 						<p className='payment-muted'>
-							Start with 10 agents, then 25 and 100 after checking
-							latency and resource headroom. No cloud model
-							fallback is used. New runs keep separate checkpoints
-							and histories.
+							{mode === 'scripted' ?
+								`${count - Math.min(browserUsers, count)} scripted accounts + ${Math.min(browserUsers, count)} browser accounts stay active together. Start with a small rehearsal, then ramp. No model server is required.`
+							:	'Legacy model/scenario runs retain their original transport and limits.'
+							}{' '}
+							New runs keep separate checkpoints and histories.
 						</p>
 						{create.error && (
 							<Alert severity='error'>
@@ -220,7 +256,12 @@ export function AdminSimulations() {
 						variant='contained'
 						disabled={create.isPending || name.trim().length < 3}
 						onClick={() =>
-							create.mutate({ name, mode, agentCount: count })
+							create.mutate({
+								name,
+								mode,
+								agentCount: count,
+								browserUsers: Math.min(browserUsers, count),
+							})
 						}>
 						{create.isPending ?
 							'Creating run…'
@@ -248,6 +289,14 @@ export function AdminSimulation({
 	const [concurrency, setConcurrency] = useState(1);
 	const [rate, setRate] = useState(1);
 	const [stopOpen, setStopOpen] = useState(false);
+	const [recoveryOwner, setRecoveryOwner] = useState<string | null>(null);
+	const [recoveryConfirmation, setRecoveryConfirmation] = useState('');
+	const recover = api.admin.recoverSimulationController.useMutation({
+		onSuccess: () => {
+			setRecoveryOwner(null);
+			void query.refetch();
+		},
+	});
 	const control = api.admin.controlSimulation.useMutation({
 		onSuccess: () => setStopOpen(false),
 	});
@@ -280,13 +329,14 @@ export function AdminSimulation({
 			totalRam - freeRam
 		:	undefined;
 	const commandPending = control.isPending;
-	const terminal = ['stopped', 'completed'].includes(run.status);
+	const terminal = ['stopped', 'completed', 'cancelled'].includes(run.status);
 	const controlsUnavailable =
 		commandPending ||
 		terminal ||
 		run.environment !== 'staging' ||
 		agents.length === 0;
 	const safeRunId = /^[a-zA-Z0-9_-]{1,64}$/.test(run.id);
+	const controllerOwner = run.settings['controllerId'];
 	return (
 		<>
 			<Link
@@ -304,6 +354,8 @@ export function AdminSimulation({
 					<p className='payment-muted'>
 						{run.mode === 'deterministic' ?
 							'Deterministic scenario run'
+						: run.mode === 'scripted' ?
+							'Scripted + browser community'
 						:	'Autonomous community'}{' '}
 						· {run.agentCount} individual agents · {run.environment}
 					</p>
@@ -326,6 +378,96 @@ export function AdminSimulation({
 					applied yet.
 				</Alert>
 			)}
+			{!agentId &&
+				!terminal &&
+				run.environment === 'staging' &&
+				run.mode === 'scripted' &&
+				typeof controllerOwner === 'string' && (
+					<Alert
+						severity={online ? 'info' : 'warning'}
+						action={
+							<Button
+								disabled={online || recover.isPending}
+								onClick={() => {
+									recover.reset();
+									setRecoveryConfirmation('');
+									setRecoveryOwner(controllerOwner);
+								}}>
+								Review controller recovery
+							</Button>
+						}>
+						This cohort has one server-owned controller. A stale
+						heartbeat does not authorize automatic takeover.
+					</Alert>
+				)}
+			<Dialog
+				open={recoveryOwner !== null}
+				onClose={() => {
+					if (!recover.isPending) setRecoveryOwner(null);
+				}}
+				maxWidth='sm'
+				fullWidth
+				aria-labelledby='controller-recovery-title'>
+				<DialogTitle id='controller-recovery-title'>
+					Recover a stopped controller
+				</DialogTitle>
+				<DialogContent>
+					<p>
+						Stop the previous runner on every machine. Preserve both
+						SQLite journals, review pending mutations against
+						authoritative site records, and wait at least two
+						minutes without controller contact. This action cannot
+						verify that a process stopped for you.
+					</p>
+					<p>
+						The run remains paused. Recovery never erases pending
+						intents or replays payments. If the journals are
+						missing, create a fresh run instead.
+					</p>
+					<p>
+						Type{' '}
+						<code>
+							CONTROLLER STOPPED AND PENDING ACTIONS REVIEWED
+						</code>{' '}
+						to confirm.
+					</p>
+					<TextField
+						fullWidth
+						label='Recovery confirmation'
+						value={recoveryConfirmation}
+						onChange={(event) =>
+							setRecoveryConfirmation(event.target.value)
+						}
+					/>
+					{recover.error && (
+						<Alert severity='error'>{recover.error.message}</Alert>
+					)}
+				</DialogContent>
+				<DialogActions>
+					<Button
+						disabled={recover.isPending}
+						onClick={() => setRecoveryOwner(null)}>
+						Cancel
+					</Button>
+					<Button
+						disabled={
+							recover.isPending ||
+							recoveryConfirmation !==
+								'CONTROLLER STOPPED AND PENDING ACTIONS REVIEWED'
+						}
+						onClick={() => {
+							if (recoveryOwner)
+								recover.mutate({
+									runId: run.id,
+									controllerId: recoveryOwner,
+									confirmation:
+										'CONTROLLER STOPPED AND PENDING ACTIONS REVIEWED',
+								});
+						}}>
+						Release reviewed controller and keep paused
+					</Button>
+				</DialogActions>
+			</Dialog>
 			{terminal && (
 				<Alert severity='info'>
 					This run is finished. Its history remains available, but its
@@ -361,18 +503,29 @@ export function AdminSimulation({
 							In PowerShell, enter the simulation directory, check
 							the environment, and start the local process:
 							{safeRunId && (
-								<pre>{`Set-Location tools/simulation\n$env:SIM_CREDENTIALS = '.state/runs/${run.id}/credentials.json'\n$env:SIM_PROTECTION_BYPASS_FILE = '.state/protection.json'\n$env:SIM_MODE = '${run.mode === 'deterministic' ? 'deterministic' : 'autonomous'}'\n$env:SIM_POPULATION = '${run.agentCount}'\nnpm run preflight\nnpm start`}</pre>
+								<pre>
+									{run.mode === 'scripted' ?
+										`Set-Location tools/simulation\n$env:SIM_CREDENTIALS = '.state/runs/${run.id}/credentials.json'\n$env:SIM_PROTECTION_BYPASS_FILE = '.state/protection.json'\n$env:SIM_BROWSER_USERS = '${Number(run.settings['browserUsers'] ?? 3)}'\n$env:SIM_BROWSER_CONCURRENCY = '${Math.min(3, Number(run.settings['browserUsers'] ?? 3))}'\nnpm run community:generate\nnpm run preflight\nnpm start`
+									:	`Set-Location tools/simulation\n$env:SIM_CREDENTIALS = '.state/runs/${run.id}/credentials.json'\n$env:SIM_PROTECTION_BYPASS_FILE = '.state/protection.json'\n$env:SIM_MODE = '${run.mode === 'deterministic' ? 'deterministic' : 'autonomous'}'\n$env:SIM_POPULATION = '${run.agentCount}'\nnpm run legacy:preflight\nnpm run legacy:start`
+									}
+								</pre>
 							)}
 						</li>
 					</ol>
 					<p className='admin-definition'>
 						{run.mode === 'deterministic' ?
 							'Deterministic scenarios do not require a model server.'
+						: run.mode === 'scripted' ?
+							'Scripted/browser runs use normal UI sessions and do not require local inference.'
 						:	'Autonomous runs require the configured local model server and sufficient available memory before starting.'
 						}{' '}
 						Only a fresh runner heartbeat confirms activity. Read
-						<code> docs/simulation.md </code> for the full
-						prerequisites and safe stop procedure.
+						<code>
+							{run.mode === 'scripted' ?
+								' docs/community-runner.md '
+							:	' docs/simulation.md '}
+						</code>{' '}
+						for the full prerequisites and safe stop procedure.
 					</p>
 				</Panel>
 			)}
@@ -519,14 +672,33 @@ export function AdminSimulation({
 							style={{ marginTop: 22 }}>
 							<TextField
 								select
-								label='Requested inference concurrency'
+								label={
+									run.mode === 'scripted' ?
+										'Requested browser concurrency'
+									:	'Requested inference concurrency'
+								}
 								disabled={controlsUnavailable}
 								value={concurrency}
 								size='small'
 								onChange={(event) =>
 									setConcurrency(Number(event.target.value))
 								}>
-								{[1, 2].map((value) => (
+								{(run.mode === 'scripted' ?
+									Array.from(
+										{
+											length: Math.min(
+												30,
+												Number(
+													run.settings[
+														'browserUsers'
+													] ?? 3,
+												),
+											),
+										},
+										(__value, index) => index + 1,
+									)
+								:	[1, 2]
+								).map((value) => (
 									<MenuItem
 										value={value}
 										key={value}>
@@ -588,39 +760,20 @@ export function AdminSimulation({
 						</p>
 					</Panel>
 					<div className='payment-grid'>
-						<MetricCard
-							label='Completed cycles'
-							value={
-								<NumericMetric
-									values={metrics}
-									name='cycles'
-								/>
-							}
-							explanation='Runner-reported completed observe / decide / act cycles across all registered agents.'
-							tone='leaf'
-						/>
-						<MetricCard
-							label='Waiting for inference'
-							value={
-								<NumericMetric
-									values={metrics}
-									name='inferenceQueued'
-								/>
-							}
-							explanation='Requests waiting for a shared local-model slot. Queued is not generating.'
-							tone='saffron'
-						/>
-						<MetricCard
-							label='Model requests active'
-							value={
-								<NumericMetric
-									values={metrics}
-									name='inferenceActive'
-								/>
-							}
-							explanation='Inference requests actually occupying a local model slot at the last heartbeat.'
-							tone='cobalt'
-						/>
+						{simulationMetrics(run.mode).map((metric) => (
+							<MetricCard
+								key={metric.name}
+								label={metric.label}
+								value={
+									<NumericMetric
+										values={metrics}
+										name={metric.name}
+									/>
+								}
+								explanation={metric.explanation}
+								tone={metric.tone}
+							/>
+						))}
 					</div>
 					<div className='payment-grid payment-grid--two'>
 						<Panel title='The laptop’s working room.'>
@@ -673,9 +826,15 @@ export function AdminSimulation({
 									</dd>
 								</div>
 								<div>
-									<dt>Model</dt>
+									<dt>
+										{run.mode === 'scripted' ?
+											'Activity driver'
+										:	'Model'}
+									</dt>
 									<dd>
-										{typeof metrics['model'] === 'string' ?
+										{run.mode === 'scripted' ?
+											'Recurring scripts + browser UI'
+										: typeof metrics['model'] === 'string' ?
 											metrics['model']
 										:	'Not reported'}
 									</dd>

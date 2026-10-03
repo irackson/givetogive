@@ -19,7 +19,8 @@ Tags describe origin, not deployment or acceptance:
   existing feature was completed in this implementation. It does not certify a
   whole untested provider workflow.
 
-Snapshot: payment code is gated; genuine Stripe sandbox acceptance and live-money
+Snapshot: protected staging's supporter gate is enabled in test mode; Ask/fund
+and production gates remain disabled. Full genuine Stripe sandbox acceptance and live-money
 approval remain outstanding. This document does not claim that these changes
 have replaced the public production release. Protected staging verification,
 the final PDF, deployment identity, and full acceptance results must be recorded
@@ -89,6 +90,12 @@ events and model statements are never authoritative financial success.
 
 ## MCP and local multi-agent simulation
 
+**October 1 accepted revision:** the required community is 250 ongoing scripted
+users and three browser users initially, configurable to 30 browsers. Scripts
+and browsers use normal independent member sessions and the same UI APIs. The
+Strands/local-model machinery below remains optional exploration, not the
+required member transport or a replacement for the mixed-community soak.
+
 | Capability | Tag | Implemented behavior and boundary |
 | --- | --- | --- |
 | Versioned member MCP API | brand new | Official SDK transport, strict schemas, scoped staging per-user tokens, revocation and shared authorized domain services. Tools browse Asks/profiles/funds/history and create/edit/save/contribute/complete/cancel as the authenticated member. |
@@ -97,16 +104,26 @@ events and model statements are never authoritative financial success.
 | Controlled sandbox checkout lane | brand new | Separate serial, fixed-scenario browser harness with server-attested owned test Checkout, finite persistent budgets, secret-isolated fixed test-card entry, and reconciliation-only handling after ambiguous submission. Local policy/driver tests pass; actual Stripe-hosted DOM/3DS/provider outcomes remain unverified. |
 | Tiny subscription-clock cohort | brand new | Explicit scoped operator endpoint creates/reads/advances one named test clock for a deterministic cohort of at most three synthetic members. Own-account binding occurs before first Checkout. Clock controls are not model tools; the 100-agent baseline has no clock scope. Actual renewals/cancellations remain unverified. |
 | Independent agents | brand new | Up to 100 Strands TypeScript agent instances with distinct synthetic accounts, personas, goals, budgets, memory and checkpoints. They share bounded local inference capacity, not one conversation or 100 loaded model copies. |
+| Ongoing scripted and browser community | brand new | Up to 280 independent normal-auth accounts, with 1–30 browser accounts and bounded browser/API pools. JSONL recurring rules react to current records and browser-created activity; exact references preserve returned IDs. No SQL activity, impersonation, privileged member token or fabricated entitlement. |
+| Cross-machine controller fencing | newly finished | One server-owned controller binds the cohort, program and both durable journals. Stale heartbeats never permit automatic takeover; reviewed recovery leaves the run paused and retains unresolved actions. |
+| Browser Ask identity and terminal connection state | newly finished | Save uses the exact canonical entity link even with duplicate titles. A completed/stopped runner is offline regardless of a recent heartbeat; terminal history remains available. |
+| Script/browser concurrency race handling | newly finished | An authoritative pre-admission target change waits for a new selection. A submitted or uncertain action still pauses rather than replaying; a real hosted stale-target regression proved zero browser POSTs. |
+| Browser streaming response verification | newly finished | Decodes the actual UI request-negotiated tRPC stream, including HTTP-200 application rejection. Captures the single response before success navigation discards it; forwarding disables retries/redirects, and entity/UI readback remains required. |
+| Full-community continuity evidence | brand new | All-participant warmup, least-recently-active endpoint, per-participant five-minute windows and action-gap checks distinguish an ongoing community from process uptime or a stopped browser. A 253-member run retained 39,591 successes but failed at 3,509 seconds after warmup; preserved unchanged and safely stopped. A fresh hour run remains required. |
+| Observation versus mutation recovery | newly finished | Failed allowlisted GETs before intent get three bounded retries and fresh selection. Unknown POSTs, admitted writes, auth errors and generic browser faults never replay. The first full-population read halt was preserved as a failed soak, not rewritten as success. |
+| Whole-history release check and isolated migration rehearsal | newly finished | Exact-old/current builds, real old→current→old auth/session/Ask browser compatibility and final 36-case CI browser regression pass. A fresh ready no-compute backup precedes actual production 0011–0018 migration: nineteen migrations, legacy data/unrelated schema preserved and safe member defaults. Public new-code rollout remains pending; all production money/simulation gates stay off. |
+| Offline Stop checkpoint and claim cleanup | newly finished | A fresh normal-admin recovery receipt permits control-only application of one reviewed queued Stop, without member authentication/activity. Terminal cleanup requires empty mutation/outbox state and dead recorded controllers; historical outcomes remain unchanged. Actual stranded 253-member recovery verified. |
+| Durable local supervision | newly finished | Fsynced start/progress/terminal milestones survive stdout loss; strict parent IPC requests the ordinary admission-stop/drain path rather than Windows force-kill signals. A detached child survived launcher exit in a measured probe. Hard OS termination still requires explicit recovery; this is not hour-soak acceptance. |
 | Local models/runtime | brand new | Native Windows llama.cpp with pinned/hash-checked Qwen3.5-4B and Gemma 4 E2B candidates, loopback-only model endpoint, bounded contexts/output, memory headroom guards and benchmark reports. No paid inference fallback or termination of Ian's apps. |
 | Execution and recovery | brand new | Local SQLite checkpoints/outbox, one mutation at a time per agent, scoped browser contexts, authenticated outbound telemetry, command cursors, finite retries/budgets and offline detection. No shell/SQL/unrestricted-HTTP tools for agents. |
 | Simulation control room | brand new | Create a run; inspect roster, individual agent and historical activity; start/pause/resume/stop; per-agent controls, activity/concurrency settings, freshness/connection states and completed-run replay boundaries. |
 | Deterministic versus autonomous modes | brand new | Explicitly distinct modes. Deterministic regression activity does not establish model-selected behavior, and a successful model tool selection does not establish successful site execution. |
 
-The requested 60 Neighbor / 25 Supporter / 15 Sustainer mix, recipient cohort and
+The requested approximately 60% Neighbor / 25% Supporter / 15% Sustainer mix, recipient cohort and
 cross-tier money interactions remain an acceptance target. Paid tiers must be
 earned through genuine Stripe test flows. Provisioned accounts alone do not
-prove the target, and 100 independent agents need not perform 100 concurrent
-inference requests on this machine.
+prove the target. Scripted accounts remain active alongside browsers; optional
+model agents share inference capacity rather than requiring one model per user.
 
 ## New and changed views
 
@@ -144,6 +161,14 @@ screenshots of successful provider use.
 | Local runtime: 27 passed | Agent isolation, scoped identity, strict tools, telemetry/checkpoint/budget safety, private controlled Checkout execution and explicit tiny clock cohorts. | Actual Stripe-hosted browser behavior or a completed autonomous 100-member run. |
 | Local model probe | One real Gemma single-tool selection was valid after a compatibility fix, approximately 49.8 seconds for that decision. Earlier Qwen/Gemma probes failed or timed out. | Reliable broad tool selection, adversarial robustness, acceptable throughput or actual site execution. |
 
+October 2 follow-up: root unit 106/106, tools 50/50 and isolated integration
+121/121 passed; types/lint/guarded build passed. A real ten-member, three-browser
+mixed run completed 137 successes with no failures and clean journals. Three
+normal-member Checkout preparations, unpaid abandonment/cancellation and genuine
+signed expiry delivery were verified. No paid subscription or main money path
+is established by that expiry. Larger ramps/freshness results are maintained in
+the [verification record](payments-verification.md), not inferred from fixtures.
+
 These are scoped results, not a replacement for the root release verification
 record. A protected ten-member deterministic smoke completed 30 real nonfinancial
 actions with 200 acknowledged telemetry records. No successful 100-agent autonomous soak or real Stripe
@@ -152,7 +177,8 @@ payment/subscription/test-clock lifecycle is claimed here.
 Outstanding acceptance includes actual sandbox credentials/account setup,
 onboarding, every Checkout path, declines/3DS/async flows, webhook delivery,
 renewals/plan changes/test clocks, refunds/disputes/payout failures, crash recovery,
-and the measured 10 -> 25 -> 100 autonomous progression with cross-tier actions.
+and the measured 10 -> 25 -> 100 -> 253 ongoing scripted/browser progression,
+one-hour mixed soak and cross-tier actions.
 Live launch additionally needs Ian's verified admin/MFA setup, business and tax
 decisions, hosting/recovery readiness, reviewed production migration/deployment,
 and explicit approval. See the [operator runbook](payments-runbook.md),

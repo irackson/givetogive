@@ -1,5 +1,10 @@
 # Local community simulation
 
+**Historical runner:** the accepted scripted/browser community is documented in
+`community-runner.md`. The model/MCP runner below now uses
+`npm run legacy:preflight` and `npm run legacy:start`; plain `npm start` starts
+the revised normal-UI-auth runner.
+
 The simulator is a separate Node 24 package in `tools/simulation`. It creates 100 independent Strands `Agent` instances with isolated private memories and application identities. A shared, local-only llama.cpp inference server supplies decisions; it does **not** load 100 copies of a model. Browser contexts are short-lived and isolated per account. No cloud-model fallback exists.
 
 ## Installation and models

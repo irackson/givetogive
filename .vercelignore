@@ -1,5 +1,6 @@
 .git/
 .vercel/
+.stripe/
 .next/
 .swc/
 node_modules/
@@ -8,6 +9,8 @@ node_modules/
 *.tsbuildinfo
 next.config.compiled.js*
 tools/
+tests/
+.vscode/
 output/
 docs/
 tmp/

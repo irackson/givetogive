@@ -78,7 +78,7 @@ test('a deterministic simulation record waits for local provisioning and cannot 
 			exact: true,
 		})
 		.click();
-	await page.getByRole('combobox', { name: 'Individual agents' }).click();
+	await page.getByRole('combobox', { name: 'Total independent accounts' }).click();
 	await page.getByRole('option', { name: '10', exact: true }).click();
 	const createdResponse = page.waitForResponse(
 		(response) =>

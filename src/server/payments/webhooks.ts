@@ -35,6 +35,7 @@ const SUPPORTED_PREFIXES = [
 	'payout.failed',
 	'account.updated',
 	'v2.core.account.',
+	'v2.core.account[',
 ];
 
 /** Derive billing ownership from Stripe's object graph and existing local mappings.
@@ -165,11 +166,15 @@ export async function acceptStripeWebhook(
 	payload: string,
 	signature: string,
 	thin = false,
+	connected = false,
 ) {
 	const config = paymentConfiguration();
+	if (thin && connected) throw new Error('Webhook source is ambiguous.');
 	const secret =
 		process.env[
-			thin ? 'STRIPE_V2_WEBHOOK_SECRET' : 'STRIPE_WEBHOOK_SECRET'
+			thin ? 'STRIPE_V2_WEBHOOK_SECRET'
+			: connected ? 'STRIPE_CONNECT_WEBHOOK_SECRET'
+			: 'STRIPE_WEBHOOK_SECRET'
 		];
 	if (!secret) throw new Error('Webhook signing secret is missing.');
 	let id: string,
@@ -205,10 +210,14 @@ export async function acceptStripeWebhook(
 		livemode = event.livemode;
 		objectId =
 			'id' in event.data.object ? String(event.data.object.id) : '';
+		if (connected && !event.account)
+			throw new Error('Connected webhook requires an account context.');
 		accountId = event.account ?? config.platformAccountId;
 	}
 	if (livemode !== config.livemode)
 		throw new Error('Webhook environment mismatch.');
+	if (connected && accountId === config.platformAccountId)
+		throw new Error('Connected webhook cannot use the platform account.');
 	if (accountId !== config.platformAccountId) {
 		const [known] = await db
 			.select()
@@ -349,7 +358,8 @@ export async function processWebhook(id: string) {
 				await processRefund(operation.id);
 		} else if (
 			event.type === 'account.updated' ||
-			event.type.startsWith('v2.core.account.')
+			event.type.startsWith('v2.core.account.') ||
+			event.type.startsWith('v2.core.account[')
 		) {
 			const [account] = await db
 				.select()

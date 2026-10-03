@@ -15,6 +15,7 @@ import {
 } from 'drizzle-orm';
 import { z } from 'zod';
 import { applicationEnvironment } from '@/lib/environment';
+import { simulationRunnerOnline } from '@/lib/simulation-presentation';
 import { db } from '@/server/db';
 import { askContributions, asks, users } from '@/server/db/schema';
 import {
@@ -41,6 +42,10 @@ import {
 } from '@/server/security/authorization';
 import { recordEvent } from '@/server/observability/events';
 import { assertSimulationEnvironment } from '@/server/simulation/guard';
+import {
+	controllerRecoverySchema,
+	recoverSimulationController,
+} from '@/server/simulation/controller';
 import { supporterMetrics } from '@/server/payments/coverage';
 
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
@@ -621,21 +626,37 @@ export const adminRouter = createTRPCRouter({
 				run,
 				agents,
 				observedAt: new Date(),
-				online: Boolean(
-					run.lastHeartbeatAt &&
-					run.lastHeartbeatAt > new Date(Date.now() - 15_000),
-				),
+				online: simulationRunnerOnline(run),
 			};
 		}),
 	createSimulation: adminProcedure
 		.input(
-			z.object({
-				name: z.string().trim().min(3).max(160),
-				mode: z
-					.enum(['autonomous', 'deterministic'])
-					.default('autonomous'),
-				agentCount: z.number().int().min(1).max(100).default(100),
-			}),
+			z
+				.object({
+					name: z.string().trim().min(3).max(160),
+					mode: z
+						.enum(['autonomous', 'deterministic', 'scripted'])
+						.default('scripted'),
+					agentCount: z.number().int().min(1).max(280).default(253),
+					browserUsers: z.number().int().min(1).max(30).default(3),
+				})
+				.superRefine((input, context) => {
+					if (input.mode !== 'scripted' && input.agentCount > 100)
+						context.addIssue({
+							code: 'custom',
+							message:
+								'Legacy model runs allow at most 100 accounts.',
+						});
+					if (
+						input.mode === 'scripted' &&
+						input.browserUsers > input.agentCount
+					)
+						context.addIssue({
+							code: 'custom',
+							message:
+								'Browser users must fit within the total account population.',
+						});
+				}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			const target = await assertSimulationEnvironment();
@@ -643,7 +664,13 @@ export const adminRouter = createTRPCRouter({
 				const [run] = await tx
 					.insert(simulationRuns)
 					.values({
-						...input,
+						name: input.name,
+						mode: input.mode,
+						agentCount: input.agentCount,
+						settings:
+							input.mode === 'scripted' ?
+								{ browserUsers: input.browserUsers }
+							:	{},
 						createdById: ctx.session.user.id,
 						databaseIdentity: target.databaseIdentity,
 					})
@@ -659,12 +686,26 @@ export const adminRouter = createTRPCRouter({
 						details: {
 							agentCount: input.agentCount,
 							mode: input.mode,
+							browserUsers:
+								input.mode === 'scripted' ?
+									input.browserUsers
+								:	0,
 						},
 					},
 					tx,
 				);
 				return run!;
 			});
+		}),
+	recoverSimulationController: adminProcedure
+		.input(controllerRecoverySchema)
+		.mutation(async ({ ctx, input }) => {
+			const target = await assertSimulationEnvironment();
+			return recoverSimulationController(
+				ctx.session.user.id,
+				target.databaseIdentity,
+				input,
+			);
 		}),
 	controlSimulation: adminProcedure
 		.input(
@@ -696,7 +737,7 @@ export const adminRouter = createTRPCRouter({
 			) {
 				throw new TRPCError({ code: 'FORBIDDEN' });
 			}
-			if (['completed', 'stopped'].includes(run.status)) {
+			if (['completed', 'stopped', 'cancelled'].includes(run.status)) {
 				throw new TRPCError({
 					code: 'CONFLICT',
 					message:
@@ -722,12 +763,21 @@ export const adminRouter = createTRPCRouter({
 			}
 			if (
 				input.type === 'set_concurrency' &&
-				(!Number.isInteger(input.value) || input.value! > 2)
+				(!Number.isInteger(input.value) ||
+					input.value! >
+						(run.mode === 'scripted' ?
+							Math.min(
+								30,
+								Number(run.settings['browserUsers'] ?? 3),
+							)
+						:	2))
 			)
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
 					message:
-						'This machine is limited to at most two concurrent inference requests.',
+						run.mode === 'scripted' ?
+							'Browser concurrency must fit the configured browser population, up to 30.'
+						:	'Model runs allow at most two concurrent inference requests.',
 				});
 			if (input.type.endsWith('_agent')) {
 				if (

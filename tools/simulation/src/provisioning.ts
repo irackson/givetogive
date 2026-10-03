@@ -26,11 +26,11 @@ export function credentialsPath(runId: string) {
   return runId === baselineRunId ? 'tools/simulation/.state/staging-credentials.json' : `tools/simulation/.state/runs/${runId}/credentials.json`;
 }
 export function assertProvisionableRun(run: { id: string; mode: string; environment: string; database_identity: string; agent_count: number; status: string }, databaseIdentity: string) {
-  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(run.id) || !['autonomous', 'deterministic'].includes(run.mode) || run.environment !== 'staging' || run.database_identity !== databaseIdentity || !Number.isInteger(run.agent_count) || run.agent_count < 1 || run.agent_count > 100)
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(run.id) || !['autonomous', 'deterministic', 'scripted'].includes(run.mode) || run.environment !== 'staging' || run.database_identity !== databaseIdentity || !Number.isInteger(run.agent_count) || run.agent_count < 1 || run.agent_count > (run.mode === 'scripted' ? 280 : 100))
     throw new Error('Run configuration does not match the isolated staging environment.');
   if (['completed', 'stopped', 'cancelled'].includes(run.status)) throw new Error('Finished runs cannot be provisioned or restarted. Create a new run.');
 }
-export function makeCredentials(run: { id: string; mode: 'autonomous' | 'deterministic'; agent_count: number }, origin: string, databaseIdentity: string): Credentials {
+export function makeCredentials(run: { id: string; mode: 'autonomous' | 'deterministic' | 'scripted'; agent_count: number }, origin: string, databaseIdentity: string): Credentials {
   assertStagingOrigin(origin);
   const random = () => randomBytes(32).toString('hex');
   return credentialsSchema.parse({ origin, databaseIdentity, runId: run.id, mode: run.mode, runnerToken: random(), agents: Array.from({ length: run.agent_count }, (_, index) => ({ ...fixtureIds(run.id, index), targetTier: targetTier(index, run.agent_count), token: random(), password: random() })) });

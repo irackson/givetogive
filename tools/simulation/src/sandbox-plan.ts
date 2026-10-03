@@ -11,7 +11,7 @@ export const sandboxPlanSchema = z.object({
     maximumAmountCents: z.number().int().min(100).max(100_000),
     expectedTier: z.enum(['neighbor', 'supporter', 'sustainer']).optional(),
     checkout: z.object({ kind: z.enum(['ask', 'fund', 'supporter']), askId: z.number().int().positive().optional(), fundId: z.uuid().optional(),
-      tier: z.enum(['supporter', 'sustainer']).optional(), grossAmount: z.number().int().min(100).max(100_000).optional(), recurring: z.boolean().default(false) }).strict(),
+      tier: z.enum(['supporter', 'sustainer']).optional(), grossAmount: z.number().int().min(100).max(100_000).optional(), recurring: z.boolean().default(false), quoteVersion: z.string().min(1).max(80).optional() }).strict(),
   }).strict()).min(1).max(30),
 }).strict();
 export type SandboxPlan = z.infer<typeof sandboxPlanSchema>;
@@ -27,6 +27,7 @@ export function validateSandboxPlan(raw: unknown, credentials: Credentials): San
     const input = step.checkout;
     if (input.kind === 'supporter' ? !input.tier || input.askId || input.fundId || input.grossAmount : !input.grossAmount || Boolean(input.tier) || (input.kind === 'ask' ? !input.askId || input.fundId || input.recurring : !input.fundId || input.askId)) throw new Error('Invalid type-specific sandbox checkout.');
     if (input.grossAmount && input.grossAmount > step.maximumAmountCents) throw new Error('Declared amount exceeds the step budget.');
+    if (input.kind === 'supporter' && (input.tier === 'sustainer' ? 1500 : 500) > step.maximumAmountCents) throw new Error('The fixed supporter price exceeds the step budget.');
     total += step.maximumAmountCents;
     actors.set(step.agentId, (actors.get(step.agentId) ?? 0) + step.maximumAmountCents);
   }

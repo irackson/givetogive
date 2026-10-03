@@ -24,7 +24,7 @@ export class BrowserPool {
   private opening?: Promise<Browser>;
   private origin: string;
   private stateDirectory: string;
-  private bypass?: string;
+  private bypass: string | undefined;
   constructor(origin: string, stateDirectory: string, concurrency: number, bypass?: string) {
     this.origin = origin; this.stateDirectory = stateDirectory; this.slots = new Semaphore(concurrency);
     this.bypass = bypass;
@@ -35,7 +35,7 @@ export class BrowserPool {
       this.opening ??= chromium.launch({ headless: true });
       this.browser = await this.opening;
       const storagePath = credentials.storageStatePath ?? join(this.stateDirectory, `browser-${credentials.id}.json`);
-      const context = await this.browser.newContext({ storageState: existsSync(storagePath) ? storagePath : undefined, viewport: { width: 1280, height: 900 } });
+      const context = await this.browser.newContext({ ...(existsSync(storagePath) ? { storageState: storagePath } : {}), viewport: { width: 1280, height: 900 } });
       const errors: string[] = [];
       try {
         await context.route('**/*', async (route) => {

@@ -54,6 +54,7 @@
     "useUnknownInCatchVariables": true
   },
   "exclude": [
+    "tmp/**",
     "tools/simulation/**",
     "node_modules",
     "**/node_modules/*",

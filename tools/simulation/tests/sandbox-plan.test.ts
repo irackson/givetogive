@@ -15,6 +15,12 @@ test('sandbox plans reject arbitrary identities, raw cards/URLs, duplicate opera
   for (const patch of [{ runId: 'other' }, { runBudgetCents: 100 }, { actorBudgetCents: 100 }, { url: 'https://evil.example' }, { card: 'never' }, { steps: [base.steps[0], base.steps[0]] }]) assert.throws(() => validateSandboxPlan({ ...base, ...patch }, credentials));
   for (const patch of [{ agentId: 'victim' }, { scenario: 'custom' }, { maximumAmountCents: 499 }, { checkout: { kind: 'supporter', grossAmount: 500 } }]) assert.throws(() => validateSandboxPlan({ ...base, steps: [{ ...base.steps[0], ...patch }] }, credentials));
 });
+test('fixed paid-tier costs are checked before provider contact and reviewed quotes fit the UI schema', () => {
+  const base = plan();
+  for (const [tier, cap] of [['supporter', 499], ['sustainer', 1499]] as const) assert.throws(() => validateSandboxPlan({ ...base, runBudgetCents: 2000, actorBudgetCents: 2000, steps: [{ ...base.steps[0], maximumAmountCents: cap, checkout: { kind: 'supporter', tier } }] }, credentials), /fixed supporter price/);
+  const quoted = { ...base, steps: [{ ...base.steps[0], checkout: { ...base.steps[0].checkout, quoteVersion: 'v1-500-290-30' } }] };
+  assert.equal(validateSandboxPlan(quoted, credentials).steps[0]!.checkout.quoteVersion, 'v1-500-290-30');
+});
 test('clock opt-in cannot elevate baseline/large/autonomous cohorts or existing normal runner credentials', () => {
   assert.equal(parseProvisionArgs(['--run-id', 'tiny', '--clock-cohort']), 'tiny');
   assertClockProvisioning({ id: 'tiny', agent_count: 3, mode: 'deterministic' }, true);

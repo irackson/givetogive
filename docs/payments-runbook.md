@@ -13,6 +13,13 @@ until a verified deployment explicitly replaces them.
 | Synthetic staging | `givetogive_staging_20260926` | Dedicated `givetogive-staging` Vercel project |
 | Isolated integration CI | `givetogive_ci_20260926` | Node integration tests/local browser server |
 
+Laptop and Codex Cloud are alternative development machines, not two kinds of
+CI. Cloud development uses coherent Development/staging settings; automated
+integration suites use the separate CI database. No GitHub Actions workflow is
+currently configured. See [Cloud setup](codex-cloud.md) for separate startup and
+test environments, including inherited-environment precedence and shared-data
+concurrency safeguards.
+
 Staging and CI were created empty, not cloned from real member data. They have
 separate credentials, identity markers and non-inheriting roles without role,
 database or superuser creation privileges. `node scripts/verify-isolation.mjs`
@@ -51,12 +58,24 @@ chat tool does not automatically provide a usable server-side API key. Store
 keys in ignored local environment files and Vercel sensitive environment values,
 never in prompts or checked-in JSON.
 
-September 27 checkpoint: the CLI is reauthorized and actively selected to the
+Historical September 27 checkpoint: the CLI was reauthorized and selected to the
 **GiveToGive CI** sandbox; a read-only balance check confirmed test mode and zero
 balances. The Development sandbox exists but was not included in that CLI
 authorization. The original account is still authorized but is not active.
-CLI authorization is not application setup: application restricted API keys and
-webhook signing secrets are still missing, and all payment gates remain off.
+CLI authorization is not application setup. **October 2 update:** Development's
+rotated application test key, catalog/portal mappings and three independent
+webhook signing secrets are installed in protected staging. Standard test-key
+use does not establish restricted-key acceptance. During Ian's explicit goal
+pause, existing Dashboard credentials were retrieved without logging secret
+values or creating new keys. Development's publishable test key is now installed
+in `.env.staging.local` and as a sensitive variable in the protected staging
+project (production/preview scopes of that staging project, not public production).
+It needs a new staging deployment before the hosted app can use it. CI's existing
+standard application test key and matching publishable key are installed only
+in `.env.ci.local`; provider account and test-mode balance reads verified its
+separate CI sandbox. No gates, production configuration, Cloud
+environment, or deployment were changed by this credential setup. Ordinary Cloud
+development should continue using the matched Development configuration.
 Recheck `stripe whoami --format json` and the selected sandbox before provider
 work; never dump CLI configuration or copy CLI-managed credentials into the app.
 
@@ -67,7 +86,9 @@ The quote deducts 5% of gross plus the configured processing estimate; actual
 Stripe cost variance belongs to the platform. A quote is frozen per payment.
 
 `PAYMENTS_ENABLED`, `SUPPORTERS_ENABLED` and `FUNDS_ENABLED` are independent.
-All are currently false. Production additionally requires live credentials and
+Only protected staging's test-mode `SUPPORTERS_ENABLED` is currently true;
+Ask and fund sales remain false. Public production gates remain disabled.
+Production additionally requires live credentials and
 `STRIPE_LIVE_APPROVED=true`; test credentials fail closed there. Never treat
 these flags as a replacement for business eligibility, Connect verification,
 tax review, operational readiness, or explicit approval to go live.
@@ -97,9 +118,12 @@ mail-provider settings happen to exist in the parent environment.
 
 ## Migration and deployment procedure
 
-Migrations 0011-0016 are additive: operational/security/payment storage,
+Migrations 0011-0018 are additive: operational/security/payment storage,
 immutable balanced journals, badge preference, bounded request telemetry,
-paid entitlement coverage and reversible dispute capacity holds.
+paid entitlement coverage, reversible dispute capacity holds, supporter changes
+and immutable application evidence. See [the migration review](payments-migration-review.md)
+for observed production metadata, line-ending checksum differences and remaining
+backup/rehearsal/deployment gates. Production has not been migrated.
 
 ```powershell
 node --env-file=.env.ci.local scripts/migrate-isolated.mjs

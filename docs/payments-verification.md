@@ -4,6 +4,294 @@ Recorded September 26-27, 2026 (America/New_York). Hosted timestamps are UTC.
 **Partial implementation acceptance, not a live-money release.**
 The authoritative requirements remain in [the contract](payments-implementation-plan.md).
 
+Latest: [October 3 recovery and provider-only acceptance](#october-3-recovery-and-provider-only-acceptance).
+Earlier counts below are historical; they do not prove a completed full-population soak.
+
+## October 3 recovery and provider-only acceptance
+
+Partial acceptance only; the goal is active. Production's additive schema was
+migrated with gates disabled; the public code release is still being prepared.
+
+- READY protected staging deployment `dpl_Dfsfv6kFCS6dQQHw16EoFv1gFNmo`, digest
+  `c04e7dd2560d50b9e8653853401e8952757dfcda4c018b1d9c51b1c91b14efb0`, now loads
+  the Development publishable test key. Only staging Supporters are enabled;
+  live-money, Ask-payment and fund gates remain disabled.
+  Fresh runtime/provider checks at 18:03 UTC verified the exact Development test
+  account, matching publishable key, Supporter-only availability and HTTP 400
+  signature-required rejection on all three callback routes.
+- Run `a90697e2-be08-42a4-b88c-f2f176fbed0a` retained 39,591 successes and 290
+  rejections. Its least-active post-warmup interval was **3,509 seconds**, so it
+  **failed** the hour requirement despite substantial activity. The original
+  process is gone; its external termination cause is unproven.
+- Actual normal admin recovery followed by guarded control-only Stop and local
+  terminal cleanup leaves it stopped/offline/unowned: zero pending mutations,
+  unsent telemetry, account claims, live controllers and active/queued workers.
+  Stop applied at 17:48:43 UTC. No new member actions were added. All 39,881
+  historical action rows and journal identity fingerprints are unchanged.
+- Genuine CI Accounts-v2 clock-bound Supporter/Sustainer fixtures paid initial
+  invoices of 500/1,500 test cents, advanced 33 days and paid actual renewal
+  invoices of 500/1,500 test cents. Both subscriptions are now canceled; the
+  clock is ready, no unresolved PaymentIntents, and 37 owned provider events
+  were independently listed without truncation.
+- Actual decline and authentication-required probes produced `card_declined`
+  and `requires_action/use_stripe_sdk`, respectively. Both PaymentIntents are
+  canceled with zero received cents; six owned events were recorded. This does
+  **not** establish completed 3DS.
+- Independent exact-CI read-only reconciliation at 18:00 UTC found zero fixture
+  application account mappings, subscriptions, payments, paid coverage or ledger
+  entries. Provider-only fixtures do **not** count as browser Checkout, paid
+  member entitlements, hosted paid-webhook delivery or balanced app-ledger proof.
+  Current provider agent-card restriction still requires fresh manual synthetic
+  member test Checkout handoffs; no new key or real card is needed.
+- Root units 118/118, root types/lint pass; simulator 70/70 and its types pass.
+  Full isolated integration rerun **121/121**, zero skipped, passed this checkpoint.
+- Both exact-old and current production-runtime builds passed. Actual ordinary
+  old→current→old browser rehearsal passed at 18:11 UTC: credentials login,
+  Ask creation, saving, partial contribution/completion, old cookies/data on
+  current code and new cookies/data after old-code rollback. Current authored
+  runtime source digest `6c5b823f7a1a8ed5d73b31c8dba1ca82b900ac103a91b4b9167193d8567c4a73`
+  matches the root app. Zero browser/console errors or external provider requests.
+  Every server diagnostic was the identified Next multiple-lockfile workspace
+  warning, not an authentication/runtime error. Owned fixtures were removed,
+  browsers and servers stopped, loopback listener verified clear. External
+  OAuth/email delivery and payments were deliberately excluded.
+- A guarded fingerprint regression separates generated Workflow build output
+  from authored source and binds both; it does not skip source validation.
+  Durable/fsynced supervision and strict parent IPC shutdown now preserve
+  progress on tool-stdout loss and request ordinary drain instead of Windows
+  force-kill signals. A credential-free detached-process probe actually survived
+  its launcher exit for 15 seconds with retained heartbeats/terminal evidence;
+  this is **not** proof of survival across laptop shutdown or a successful soak.
+- Final isolated browser regression passed: **36 passed, four intentional skips,
+  zero failures/retries**. Two opt-in walkthrough captures and two staging-only
+  probes were skipped; no ordinary CI workflow failed.
+- At 18:37:36 UTC the exact production branch accepted additive migrations
+  0011–0018: nineteen migrations total, ten legacy tables' aggregate fingerprints
+  preserved, unrelated schema unchanged, safe existing-member defaults, and
+  expected 34 tables/116 constraints/ten triggers. Fresh ready no-compute backup
+  `br-aged-cherry-a4hn33kn` retains pre-migration LSN `0/7C89E528`. All five
+  money/live/fund/supporter/simulation gates remain off. This does not establish
+  live payment acceptance or a deployed new app.
+- Fresh independently supervised 253-member run
+  `2ba5c5e4-f339-4b19-88a2-013c7ed447f1` warmed up at 18:31:45.159 UTC. All members
+  have authenticated successful actions and mutations. An accepted hour cannot
+  precede 19:31:45.159 UTC and still requires measured all-member continuity and
+  safe final drain; labels do not establish actual paid tiers.
+
+Private evidence: `tmp/community-stage/recovery-a90697e2-be08-42a4-b88c-f2f176fbed0a.json`,
+`tmp/stripe-test-acceptance-results.md`, and
+`tmp/stripe-test-acceptance-accounting-scope.json`. Credentials and private
+handoff URLs remain untracked and are not reproduced here.
+Release browser evidence:
+`tmp/release-compatibility-5e05c46b-63f6-4f5b-8842-5018a3749f72/evidence.json`.
+Final regression: `tmp/release-final-e2e/summary-1791051419962.json`.
+Production DDL: `tmp/production-payments-migration.json`.
+
+## October 2 actual Checkout expiry and corrected mixed-run acceptance — newest
+
+Partial acceptance only. Codex Cloud is development, not a dedicated CI service;
+the earlier CI-file recommendation was misleading. Separate CI configuration
+remains for integration-test isolation, not a requirement for Cloud development.
+
+- Protected canonical staging deployment `dpl_FPAK7fz4U6FdUaV9Uui9J6V4CkNR` is
+  READY with digest `2ba0af171eae9cd525a0fb7b1aa9b420e842578c6946198ea1609a0935686543`.
+  Only staging Supporter sales are on, using the verified Development sandbox.
+  Ask/fund/live gates and public production remain unchanged.
+- Three real test Checkout Sessions were prepared with independent normal member
+  auth through the same billing API as the UI. New durable preparation writes an
+  immutable operation/budget intent before the API mutation; regression tests
+  prohibit re-admission after ambiguity, changed budgets or account mismatch.
+- No successful payment or paid subscription is claimed. Stripe's agent panel
+  prevented test-card entry. The attempt remains durably ambiguous; its provider
+  readback was open/unpaid. No real-money fallback or human-verification bypass.
+- Another fixture passed unpaid browser abandonment and normal-member API
+  cancellation. Provider session and database reservation became expired; tier
+  stayed Neighbor. Actual signed platform snapshot expiry event
+  `evt_1UM1BxDed7vKVapt4DRTHhHG` was processed once, matching hosted callback 200.
+  This is genuine provider delivery, but does not prove financial settlement.
+- Ten-account run `d0d7ca5f-e79e-4eb4-9c6b-2791c6554909` completed four minutes
+  with seven scripted and three browser users: 137 successes, zero failures,
+  minimum twelve successes per account. Script/browser-created records and
+  contribution completion crossed both cohorts. Zero pending local intents or
+  telemetry, no controller claims, normal process exit. Hosted completed/offline
+  status verified after the presentation fix; admin browser had zero errors.
+- Root unit 106/106, tools 50/50, full isolated integration 121/121, root/tools
+  TypeScript, root lint and guarded staging build passed. Counts are distinct
+  suites, not additive totals. Population ramp/hour soak still outstanding.
+
+## October 2 secure provider setup and fresh Stop acceptance
+
+This supersedes the older missing-staging-key and untested-Stop statements below.
+It is still **partial acceptance**, not a production/live-money release.
+
+- The user-entered rotated Development test key was verified against its sandbox
+  account/balance, then moved to staging with Ian's permission. CI is separate
+  and still lacks its own key. The earlier Codex cloud copy needs a coherent
+  development configuration, not necessarily a CI key. Standard test-key use is
+  not restricted-key permission acceptance.
+- Connect is enabled in both sandboxes. Three real Development destinations
+  separate platform snapshot, connected snapshot and connected thin sources.
+  Their signing secrets plus account/catalog/portal mapping and the app key are
+  installed as sensitive settings on the explicitly protected staging project.
+  URLs/credentials remain only in ignored private state; `.stripe/` is excluded
+  from deployment inputs. All sale gates and live approval remain off.
+- Staging deployment `dpl_2ZdZR1kPBH5QR2sd6ccK4ggzyAF8` is READY and canonical,
+  digest `fa4bd77dba117bb6599d58e53e65345e836fc42dd4b2f66d127ba3055d39d67b`.
+  Hosted billing configuration is staging/test/configured. All callback routes
+  reject unsigned requests. A real thin-event provider ping reached the endpoint
+  with POST 200; the filtered 23-request callback log sample had zero error-level
+  records. Snapshot delivery and durable financial processing require real owned
+  events and are **not proven** by this ping.
+- New connected snapshot route uses a distinct signing secret, requires an
+  associated connected account, rejects platform forgery and cannot queue platform
+  financial events. Accounts v2 readiness events use bracketed names as well as
+  dotted names; both are recognized. Focused regression: **12/12 passed**.
+- Fresh real browser-created 10-account run
+  `cb87c897-1579-4510-98ff-f0c848abb81f` tested individual Pause/Resume and manual
+  Stop. The individual held at 13 cycles while peers continued and advanced to 18
+  after Resume. The stopped dashboard retained **132 actions and 3 driver failures**.
+  Independent journals: 132 successes, zero pending intents, zero pending telemetry,
+  zero controller rows/live processes. No historical metrics were SQL-repaired.
+- Repeated titles exposed a browser Save identity bug. Failed actors halted
+  rather than replaying uncertain actions. The fix uses the exact canonical Ask
+  link. The hosted real mixed-account regression now deliberately creates duplicate
+  titles and verifies only the intended entity is saved: passed twice, latest
+  **1/1 passed (25.8s)** after the diagnostic privacy wrapper.
+  Fresh continuous-run acceptance of this corrected driver is still outstanding.
+  Raw browser-error DOM/URL text is withheld from subsequent public runner logs.
+- Financial member allowlist uses existing UI billing procedures with normal
+  account cookies. New tests verify methods/existence and deny operator/MCP paths.
+  Latest simulator **45/45**, root unit **105/105**, tool types/lint passed.
+  Immediately preceding full isolated integration **121/121** and root build passed.
+  Final root TypeScript/lint and tracked whitespace check passed after these edits.
+  These counts are separate checks, not additive totals.
+
+No real Checkout/payment/subscription, paid-tier cohort, snapshot money lifecycle,
+production migration/deployment, commit or push is claimed. No 253-user or
+30-browser/hour-soak acceptance exists. The complete requirements remain open.
+
+## October 2 protected-community acceptance follow-up
+
+This section supersedes earlier claims that the revised runner has not reached
+hosted staging. It does **not** establish payment/provider or population acceptance.
+
+- Protected staging controller checkpoint `dpl_4RBd48ey3mXXXLp96qVnqJKf2QGq`
+  was READY, followed by dashboard checkpoint `dpl_F9fvcWsN4yRZvUuR67DPoMA7Q78H`
+  (READY; source digest `d13e525c5320dd9677f789f677aababade862405ff429c253d97cd569b2f336e`).
+  The explicit project is `prj_HvlFV1kKHVsML73nlsJAFQNA7grP`; root linking still
+  points to production. CLI target "production" means the canonical alias of
+  this separate staging project, not the public GiveToGive project.
+- A staging bypass appeared in an earlier raw provider diagnostic. It was
+  immediately rotated with the previous bypass revoked; protection remains
+  enabled on all URLs. Only the replacement is in ignored private state.
+- Browser-created run `9213f7ea-3bd2-413f-9dec-b65f48412f6d` had **7 scripts +
+  3 browser accounts**, provisioned without SQL Ask activity, paid grants or
+  member MCP tokens. Normal-cookie continuous activity recorded **187 successes
+  and 2 authoritative rejections**. All ten accounts participated. These counts
+  come from its retained action journal, not synthetic analytics.
+- The initial interrupt stopped the process without releasing server ownership.
+  Review found zero pending member mutations, zero pending telemetry, and no
+  live recorded controller PID. Actual recovery UI required the confirmation,
+  released the exact owner and left the run paused; browser errors were zero.
+- Restart used the original journals and remained paused until an actual UI
+  Resume. Actual UI Pause, browser-concurrency 1 and pace 2 requests all have
+  acknowledged `simulation_control_applied` records. Actions stayed at 187
+  while paused. The configured 600-second run then completed, released its
+  server claim and delivered all **614** telemetry events. No process remains.
+  This tests elapsed-duration cleanup, **not yet the manual Stop control**.
+- Actual dashboard navigation and new scripted metric labels passed with zero
+  browser errors. History links now distinguish run/runner/agent identity;
+  successful actions and failures are separate from resolved cycles. Screenshots
+  are in ignored `tmp/community-stage/screenshots/`.
+- Shutdown exposed a real bug: empty lifecycle telemetry cleared run metrics.
+  The fix merges only sanitized measurements, including events in the same
+  batch, preserving last received fields; final runner events report drained
+  counts. CI regression verifies preservation through pause/restart and terminal
+  fencing. The completed historical probe's metrics were **not fabricated or
+  repaired with SQL**; its authoritative action journal and audit remain intact.
+- Ongoing programs now support reactive owner completion and contributor-only
+  cancellation, plus recurring saved Asks. Selection re-reads current public
+  Ask details, excludes money/payment-backed records, and bounds detail reads
+  to 20 candidates. It is a current browse window, not all-history traversal.
+  Programs remain immutable: do not regenerate a previously started run.
+- Verification: root unit **105/105**; simulator **43/43**; full isolated CI
+  integration **119/119**; focused telemetry integration **9/9**; hosted mixed
+  and payments/admin browser suite **10/10**. After reactive lifecycle changes,
+  hosted mixed-account test passed again (**1/1**, 26.9s), discovering the exact
+  cancellable/finishable pledge from current data via the browser. Root/tool
+  types, root lint, explicit tool lint and guarded staging build passed.
+- Repeated private-harness admin sign-ins correctly hit the existing rate limit.
+  No auth protection was relaxed or rate-limit row deleted. The harness now
+  privately reuses an authenticated normal session, verifying identity each time.
+
+Latest metrics-fix deployment: `dpl_B71MMtrc1ZJh1D7E93miobmgFSiG`, **READY**,
+source digest `cd5ff88cf4e9467d231fadf7a34850f8fe7f080e77577ee26949862701b7833c`.
+Fresh hosted terminal-metric acceptance remains outstanding. These dirty-worktree
+uploads are identified by digest, not by
+the older local Git checkpoint as an exact source commit.
+
+No 253-user/30-browser capacity acceptance or one-hour soak is complete. No real
+Stripe lifecycle acceptance, production migration/deployment, commit or push
+occurred in this follow-up. Fresh Stripe CLI identity is **GiveToGive Development**
+(`acct_1UKPU8Ded7vKVapt`); the chat connector lists only the main account's
+live/test contexts. Staging and CI application API keys and snapshot webhook
+secrets are absent; key rotation and secure provisioning remain required.
+
+## October 2 revised-community verification
+
+These checks concern current local code, not a new hosted or live-money release.
+The main-only local checkpoint remains unpushed because production does not yet
+have the required compatible additive migrations.
+
+| Check | Result | Evidence scope |
+| --- | --- | --- |
+| Root unit | 102/102 passed | Domain/configuration/security policies; no provider acceptance |
+| Revised + legacy simulator tests | 40/40 passed | Exact references, reactive selection, controller state, immutable outcomes, restart journal, cohort/mode/identity guards and concurrency bounds |
+| CI integration | 118/118 passed | Isolated real PostgreSQL plus provider stubs, not real Stripe charges |
+| Complete CI browser suite | 36 passed, 4 skipped, no retries | Skips are hosted recovery, staging-only run setup and two optional capture tests |
+| New real mixed-account test | Passed independently and in complete suite | Three normal authenticated accounts; actual browser create/save/pledge/cancel/complete and API-script discovery/contribution; verifies exact resulting records and ownership |
+| Browser home gut-check | Passed | Meaningful rendered UI and interactive navigation, screenshot visually inspected, no framework overlay or console/page errors |
+| Root + simulator TypeScript | Passed | Root also imports the new runner through its real browser regression test |
+| Root lint + focused simulator lint | Passed without warnings | Simulator files explicitly checked with `--no-ignore`, not an ignored-file success |
+| Staging production build | Passed | Isolated target guard verified before build; no deployment or provider configuration |
+| Tracked whitespace check | Passed | `git diff --check` |
+
+The first focused browser attempt failed on the required Amount label; the driver
+was corrected and both subsequent focused/full runs passed. Normal UI tRPC uses
+JSONL batch streams: the browser driver waits for UI transitions and re-reads the
+exact entity, rather than declaring HTTP 2xx a mutation success.
+
+### October 2 controller-fencing follow-up
+
+Added a durable server-owned controller claim, immutable action/telemetry journal
+binding, overlapping-cohort locking, ownership-checked control/events, and a
+staging-admin crash-recovery dialog/API. A released owner may acknowledge only
+already-persisted event retries, not publish fresh activity. Unknown mutation or
+cleanup outcomes retain server ownership. Recovery requires explicit operator
+confirmation, no contact for two minutes, an unchanged observed owner, and leaves
+the run paused without clearing local intents; a stale heartbeat alone is not
+process-death evidence. Cancelled runs now also disable controls on both layers.
+
+The full isolated integration suite passed **119/119** after fencing and recovery
+were added. Recovery cases also passed in the focused simulation database
+file (**9/9**); these include recent/wrong-owner/member/unconfirmed recovery
+rejection, one audited recovery, retry idempotency, and continued paused state.
+Simulator **40/40**, both TypeScript checks, root lint and explicit focused
+simulator lint passed after these changes, as did the updated staging build.
+The focused mixed-community plus payments/admin UI browser files had **9 passed**
+and **1 staging-only provisioning skip**, no retries. The home was visibly
+rendered with no overlay or browser errors; owned CI server was stopped after
+testing. The new recovery dialog has not yet been browser-accepted on protected
+staging. Earlier full-browser counts above refer to the preceding local checkpoint,
+not this new dialog's visual acceptance. Server output includes the expected
+authorization/conflict rejections deliberately exercised by negative tests.
+
+No 253-user cohort, 30-browser stress run, hosted control-plane acceptance or
+one-hour soak has been completed. Hosted controller fencing/recovery acceptance,
+financial scenarios and actual Stripe acceptance remain open. Application test
+keys and webhook secrets were rechecked absent in staging and CI, with live
+approval false. No production write/deployment was performed during this slice.
+
 ## Where this work is running
 
 - Baseline: `f6638fe0b1845ae9cceb937959138af38d1ba971`, branch `main`.
@@ -218,3 +506,99 @@ not evidence of additional user-created goals. The stored controller was paused
 and subsequently resumed as active on September 27; its thread ID and full
 objective remained unchanged. The user was notified when it resumed. No
 duplicate goal or recurring background automation was created.
+## October 2 population ramp and live full-cohort checkpoint
+
+This checkpoint is **not** a completed one-hour soak or production release.
+
+- Hosted normal-auth browser/API regression passed after fixing stale-target
+  handling and the real tRPC streaming response boundary. It verifies browser
+  creation/save/contribution/cancel/completion, exact ownership, duplicate-title
+  selection, script-filled target waiting with zero browser POSTs, and an actual
+  HTTP-200 streamed application rejection with unchanged contribution records.
+- Completed 25-user ramp: 316 successes, three rejections, every user at least
+  nine successes, zero retained pending intents/outbox/claims at terminal.
+- Completed 100-user ramp: 1,184 successes, ten HTTP-400 rejections and three
+  browser halts before POST. Those halts exposed the fixed stale-target race;
+  this historical run is not claimed as clean browser-soak acceptance.
+- UI-created full-cohort run `6debd45f-3609-4f79-a28c-38c20083a4b7`: 250 ongoing
+  scripts plus three browsers, ordinary independent sessions, 1,115 action/rule
+  lines, no SQL Ask seeding and no granted paid tiers. At 13:42:35 UTC it had
+  3,074 successes, minimum nine successes/four successful mutations per user,
+  104 owned Asks and 702 owned contributions independently verified in PostgreSQL.
+  Transient outbox/control backoff and authoritative server rejections remain
+  recorded. No success is inferred from an attempted action.
+- Warmup means **every** participant has at least three successes, completed
+  13:39:11.672 UTC. Continuity ends at the least recently active participant and
+  checks successful activity in every complete five-minute window plus a maximum
+  180-second action gap. A dropped browser cannot hide behind script throughput.
+  The one-hour assertion remains false until the actual evidence covers an hour.
+- First full-population dashboard sample: 105 newly completed actions, maximum
+  action-to-visible 4,002 ms, five-second sample target met, zero browser errors.
+  Steady-state sample at about 13:53 UTC: 156 actions, maximum 4,803 ms, zero
+  browser errors; both sampled windows met the target.
+  This is a sample, not proof of every event's latency throughout the soak.
+- Latest checks this turn: root unit **106/106**, simulator **56/56**, root/tools
+  types, root lint and focused tools lint passed. Hosted regression **1/1**.
+  The new simulator dependency is the same `@trpc/server` 11.19.0 used by the app;
+  no major version upgrade. An unchanged hosted app did not require a redeploy.
+- Read-only financial evidence: all three prepared sessions are now expired,
+  three signed expiry events processed once each, zero settlement ledger rows
+  and zero paid coverage. Expired success scenarios were not replayed or counted
+  as payments. Successful paid-tier/fund/Ask provider acceptance is still open.
+- Production metadata was read in an explicitly read-only transaction: eleven
+  migrations recorded, 0011–0018 pending. Three old raw hash differences match
+  only LF/CRLF variation. No member-data queries or writes; no production rollout.
+  See `payments-migration-review.md` for backup/rehearsal prerequisites.
+
+## October 2 observation recovery, replacement soak and migration rehearsal
+
+The first full-population run above was stopped through the admin browser UI,
+not accepted as an hour-long pass. One participant's selection GET failed at
+14:02:56 UTC before any durable intent or POST. Its old controller halted even
+though the failed action was a read. Terminal evidence: 21,596 successes,
+174 authoritative HTTP-400 rejections and one read halt; minimum 52 successes
+and twenty successful mutations per user; 572 created Asks and 4,424 contributions
+with independent DB ownership checks. Pending intents, outbox, account claims
+and server owner were all cleared; no live process remained. Conservative
+post-warmup continuity was 1,386 seconds, not an hour.
+
+The fix distinguishes failed allowlisted observations from uncertain mutations.
+Only pre-intent GET failures retry, at most three times with bounded backoff and
+fresh selection; POST transport retries remain zero. Tests prove that read
+failure after mutation admission, auth errors and generic faults never permit
+replay, and that raw transport diagnostics stay private. Full tools **59/59**,
+root unit **111/111**, PostgreSQL integration **121/121**, root/tools types, root
+lint and focused tools lint pass. The actual isolated CI migrator passed with
+the new whole-history guard and no pending schema changes.
+
+Replacement UI-created/provisioned run `a90697e2-be08-42a4-b88c-f2f176fbed0a` uses
+253 ordinary independent accounts, one control token, zero SQL Ask fixtures,
+zero paid entitlements and 1,115 immutable action/rule lines. It is still running
+under session 19295/PID 29288; do not duplicate it. All-participant warmup ended
+**14:16:37.479 UTC**. At 14:27:18 UTC: 7,867 successful actions, 55 HTTP-400
+rejections, minimum 25 successes/nine successful mutations per user, 208 owned
+Asks and 1,586 owned contributions, one live process, no pending mutation and ten
+in-flight telemetry events. Hour continuity is not yet verified.
+
+Memory pressure during the separate integration suite reached 0.656 GiB recorded
+headroom; the suite completed and headroom recovered above four GiB. Dashboard
+window one: 245 successful actions, maximum **5,714 ms**, missing the five-second
+target, no browser errors. Subsequent steady-load window: 283 actions, maximum
+**4,355 ms**, target met, no browser errors. Preserve both results; neither is a
+claim about every event. Provider-grouped runtime queries scoped to the canonical
+deployment and 13:35 UTC onward returned no HTTP-5xx or error/fatal rows.
+
+Production metadata now has a repeatable read-only review command and five
+regression tests for its strict complete-history prefix. Its 27 unrelated public
+tables made shared-branch preservation mandatory. Provider-verified no-compute
+backup `br-wild-credit-a4jo07ea` and isolated recovery/rehearsal
+`br-dawn-lab-a4mm36bg` were created from the exact production project at LSN
+`0/71466740`. The copy applied 0011–0018 via Drizzle in 4,171 ms; all ten legacy
+tables' aggregate data fingerprints, safe user defaults and unrelated schema
+were preserved, and ten financial/history triggers were present. Production
+readback still showed eleven migrations and no new columns. Rehearsal compute
+was explicitly suspended and verified idle; production compute remained active.
+See the migration review for precise IDs, private evidence, failed preflight
+helper/fixed transaction connection, unsupported timeout option, and remaining
+browser/auth/release checks. No production migration, push or payment acceptance
+is implied by the successful rehearsal.

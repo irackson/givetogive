@@ -21,6 +21,7 @@ export const env = createEnv({
 		ADMIN_ENCRYPTION_KEY: z.string().min(32).optional(),
 		STRIPE_SECRET_KEY: z.string().optional(),
 		STRIPE_WEBHOOK_SECRET: z.string().optional(),
+		STRIPE_CONNECT_WEBHOOK_SECRET: z.string().optional(),
 		STRIPE_V2_WEBHOOK_SECRET: z.string().optional(),
 		STRIPE_PORTAL_CONFIGURATION_ID: z.string().optional(),
 		STRIPE_CANCELLATION_PORTAL_CONFIGURATION_ID: z.string().optional(),
@@ -96,6 +97,8 @@ export const env = createEnv({
 		ADMIN_ENCRYPTION_KEY: process.env['ADMIN_ENCRYPTION_KEY'],
 		STRIPE_SECRET_KEY: process.env['STRIPE_SECRET_KEY'],
 		STRIPE_WEBHOOK_SECRET: process.env['STRIPE_WEBHOOK_SECRET'],
+		STRIPE_CONNECT_WEBHOOK_SECRET:
+			process.env['STRIPE_CONNECT_WEBHOOK_SECRET'],
 		STRIPE_V2_WEBHOOK_SECRET: process.env['STRIPE_V2_WEBHOOK_SECRET'],
 		STRIPE_PORTAL_CONFIGURATION_ID:
 			process.env['STRIPE_PORTAL_CONFIGURATION_ID'],

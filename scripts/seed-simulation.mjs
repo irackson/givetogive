@@ -57,10 +57,11 @@ try {
     };
     const firstNames = ['Alex', 'Jordan', 'Sam', 'Taylor', 'Morgan', 'Casey', 'Avery', 'Riley', 'Jamie', 'Robin'];
     const lastNames = ['Rivera', 'Chen', 'Brooks', 'Patel', 'Reed', 'Kim', 'Santos', 'Nguyen', 'Parker', 'Diaz'];
-    const seedCount = Math.ceil(run.agent_count / 2);
+    // The scripted community creates ALL activity through normal authenticated UI APIs.
+    const seedCount = run.mode === 'scripted' ? 0 : Math.ceil(run.agent_count / 2);
     for (const [index, account] of credentials.agents.entries()) {
       const ids = fixtureIds(runId, index);
-      const name = `${firstNames[index % 10]} ${lastNames[Math.floor(index / 10)]} (simulation)`;
+      const name = `${firstNames[index % 10]} ${lastNames[Math.floor(index / 10) % lastNames.length]} (simulation)`;
       const candidates = await tx`select * from givetogive_user where id = ${ids.userId} or email = ${ids.email} for share`;
       let member = candidates[0];
       if (member) {
@@ -79,7 +80,7 @@ try {
         if (!mayCreate) throw new Error('Cannot add members to an experiment that has started.');
         await tx`insert into givetogive_simulation_agent (id,run_id,user_id,name,tier,persona) values (${ids.id},${runId},${member.id},${name},${tier},${tx.json({ targetTier: tier, synthetic: true, actualPaidEntitlement: false, disposition: ['generous', 'practical', 'curious', 'cautious', 'busy'][index % 5] })})`;
       }
-      await ensureToken(ids.tokenId, member, account.token, 'agent', agentScopes);
+      if (run.mode !== 'scripted') await ensureToken(ids.tokenId, member, account.token, 'agent', agentScopes);
       if (index < seedCount) {
         const type = runId === baselineRunId ? (index < 30 ? 'money' : ['time', 'task', 'item', 'resource'][index % 4]) : ['time', 'task', 'item', 'money', 'resource'][index % 5];
         const slug = runId === baselineRunId ? `simulation-ask-${index + 1}` : `simulation-${runNamespace(runId)}-${index + 1}`;

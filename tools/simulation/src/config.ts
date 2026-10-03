@@ -17,7 +17,7 @@ export function assertLocalModel(value: string): URL {
     throw new Error('Inference must be an HTTP loopback server; cloud fallback is forbidden.');
   return url;
 }
-export function validateManifest(raw: unknown, credentials: Credentials) {
+export function validateManifest(raw: unknown, credentials: Pick<Credentials, 'origin' | 'databaseIdentity'>) {
   const manifest = manifestSchema.parse(raw);
   if (new URL(manifest.origin).origin !== new URL(credentials.origin).origin || manifest.databaseIdentity !== credentials.databaseIdentity)
     throw new Error('Staging origin/database identity does not match provisioned credentials.');
@@ -33,17 +33,17 @@ const optionsSchema = z.object({
 });
 export type Options = z.infer<typeof optionsSchema>;
 export function loadOptions(): { options: Options; credentials: Credentials } {
-  const credentialsPath = process.env.SIM_CREDENTIALS ?? '.state/credentials.json';
+  const credentialsPath = process.env['SIM_CREDENTIALS'] ?? '.state/credentials.json';
   const credentials = credentialsSchema.parse(JSON.parse(readFileSync(credentialsPath, 'utf8')));
   const options = optionsSchema.parse({
     credentialsPath,
-    stateDirectory: resolve(process.env.SIM_STATE_DIRECTORY ?? '.state'),
-    runId: process.env.SIM_RUN_ID ?? credentials.runId ?? 'community-local', modelUrl: process.env.SIM_MODEL_URL ?? 'http://127.0.0.1:8089/v1',
-    model: process.env.SIM_MODEL ?? 'qwen', durationSeconds: process.env.SIM_DURATION_SECONDS ?? 3600,
-    population: process.env.SIM_POPULATION ?? credentials.agents.length, inferenceConcurrency: process.env.SIM_INFERENCE_CONCURRENCY ?? 2,
-    browserConcurrency: process.env.SIM_BROWSER_CONCURRENCY ?? 2, seed: process.env.SIM_SEED ?? 20260926,
-    maxCyclesPerAgent: process.env.SIM_MAX_CYCLES_PER_AGENT ?? 0,
-    minimumFreeGiB: process.env.SIM_MIN_FREE_GIB ?? 1, mode: process.env.SIM_MODE ?? credentials.mode ?? 'autonomous',
+    stateDirectory: resolve(process.env['SIM_STATE_DIRECTORY'] ?? '.state'),
+    runId: process.env['SIM_RUN_ID'] ?? credentials.runId ?? 'community-local', modelUrl: process.env['SIM_MODEL_URL'] ?? 'http://127.0.0.1:8089/v1',
+    model: process.env['SIM_MODEL'] ?? 'qwen', durationSeconds: process.env['SIM_DURATION_SECONDS'] ?? 3600,
+    population: process.env['SIM_POPULATION'] ?? credentials.agents.length, inferenceConcurrency: process.env['SIM_INFERENCE_CONCURRENCY'] ?? 2,
+    browserConcurrency: process.env['SIM_BROWSER_CONCURRENCY'] ?? 2, seed: process.env['SIM_SEED'] ?? 20260926,
+    maxCyclesPerAgent: process.env['SIM_MAX_CYCLES_PER_AGENT'] ?? 0,
+    minimumFreeGiB: process.env['SIM_MIN_FREE_GIB'] ?? 1, mode: process.env['SIM_MODE'] ?? credentials.mode ?? 'autonomous',
   });
   assertLocalModel(options.modelUrl);
   assertStagingOrigin(credentials.origin);
