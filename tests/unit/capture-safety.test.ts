@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promis
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { captureSimulationRunId, captureStorageState, createCaptureDirectory, validateStagingStorageState } from '../e2e/capture-safety.ts';
+import { captureDialogIds, captureSimulationRunId, captureStorageState, createCaptureDirectory, validateCaptureDialogIds, validateStagingStorageState } from '../e2e/capture-safety.ts';
 
 async function withRepository(run: (repository: string) => Promise<void>) {
 	const fixture = await mkdtemp(path.join(os.tmpdir(), 'givetogive-capture-safety-'));
@@ -23,6 +23,36 @@ const freshRoot = () => `tmp/walkthrough-unit-${randomUUID()}`;
 const bootstrap = () => ({ cookies: [{ name: '_vercel_jwt', value: 'dummy-test-cookie',
 	domain: 'givetogive-staging.vercel.app', path: '/', expires: -1,
 	httpOnly: true, secure: true, sameSite: 'Lax' }], origins: [] });
+
+test('dialog associations are optional, explicit allowlisted unique IDs with independent metadata', () => {
+	assert.equal(validateCaptureDialogIds(undefined), undefined);
+	const requested = ['create-ask', 'edit-profile'];
+	const validated = validateCaptureDialogIds(requested);
+	assert.deepEqual(validated, requested);
+	assert.notEqual(validated, requested);
+	requested.push('unknown-after-validation');
+	assert.deepEqual(validated, ['create-ask', 'edit-profile']);
+	assert.equal(captureDialogIds.length, 21);
+	assert.equal(Object.isFrozen(captureDialogIds), true);
+	assert.deepEqual(validateCaptureDialogIds(captureDialogIds), captureDialogIds);
+});
+
+test('dialog associations reject unknown, duplicated, empty and malformed inputs without echoing values', () => {
+	for (const value of [null, {}, 'create-ask', [], Array(1), ['unknown-private-value'],
+		['create-ask', 'create-ask'], ['create-ask', undefined], ['edit-profile', 1],
+		['Create Ask'], ['create-ask\n'], ['disabled-dialog']]) {
+		assert.throws(() => validateCaptureDialogIds(value), (error) =>
+			error instanceof Error && /unique allowlisted array/.test(error.message) &&
+			!error.message.includes('unknown-private-value'));
+	}
+});
+
+test('capture dialog IDs match the exact PDF source dialog inventory', async () => {
+	const source = await readFile(new URL('../../scripts/walkthrough_inputs.py', import.meta.url), 'utf8');
+	const inventory = source.match(/^DIALOGS = \(([\s\S]*?)\r?\n\)/m)?.[1] ?? '';
+	const ids = [...inventory.matchAll(/["']([a-z-]+)["']/g)].map((match) => match[1]);
+	assert.deepEqual(ids, captureDialogIds);
+});
 
 test('simulation capture requires an explicit valid UUID instead of selecting arbitrary historical runs', () => {
 	assert.equal(captureSimulationRunId(undefined), undefined);

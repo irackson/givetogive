@@ -10,7 +10,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import type { RouterOutputs } from '../../src/trpc/react';
 import { cleanMembers, login, makeMembers, rpc, testSql } from './fixtures';
-import { captureSimulationRunId, captureStorageState, createCaptureDirectory } from './capture-safety';
+import { captureSimulationRunId, captureStorageState, createCaptureDirectory, validateCaptureDialogIds, type CaptureDialogId } from './capture-safety';
 
 // Explicit, staging-only artifact generation. Never retain authentication DOM,
 // TOTP setup, credentials, raw network traces, or a protection-bypass header.
@@ -56,6 +56,7 @@ test('capture the accessible payment and operations staging walkthrough', async 
 		viewport: { width: number; height: number };
 		mobile: boolean;
 		capturedAt: string;
+		dialogIds?: CaptureDialogId[];
 	}[] = [];
 	const omitted: { route: string; reason: string }[] = [];
 	const diagnostics: {
@@ -229,7 +230,9 @@ test('capture the accessible payment and operations staging walkthrough', async 
 		title: string,
 		caption: string,
 		focus?: Locator,
+		dialogIds?: readonly CaptureDialogId[],
 	) {
+		const validatedDialogIds = validateCaptureDialogIds(dialogIds);
 		phase = `capture ${title}`;
 		await ready(page);
 		if (focus) {
@@ -268,6 +271,11 @@ test('capture the accessible payment and operations staging walkthrough', async 
 			.replace(/[^a-z0-9]+/g, '-')
 			.replace(/-$/, '')}.png`;
 		const image = path.join(directory, 'images', name);
+		if (validatedDialogIds) {
+			const openDialogs = page.locator('[role="dialog"], dialog[open]').filter({ visible: true });
+			await expect(openDialogs).toHaveCount(1);
+			await expect(openDialogs).toBeVisible();
+		}
 		await page.screenshot({
 			path: image,
 			fullPage: false,
@@ -292,6 +300,7 @@ test('capture the accessible payment and operations staging walkthrough', async 
 			viewport,
 			mobile: viewport.width < 600,
 			capturedAt: new Date().toISOString(),
+			...(validatedDialogIds ? { dialogIds: validatedDialogIds } : {}),
 		});
 		await saveManifest();
 	}
@@ -471,6 +480,8 @@ test('capture the accessible payment and operations staging walkthrough', async 
 			member,
 			'Security — session-revocation confirmation',
 			'Safe open confirmation only; Keep sessions is chosen afterward.',
+			undefined,
+			['revoke-sessions'],
 		);
 		await cancelDialog(member, 'Keep sessions');
 		await navigate(member, `/members/${members[0].id}`);
@@ -486,6 +497,8 @@ test('capture the accessible payment and operations staging walkthrough', async 
 			member,
 			'Profile — badge privacy option',
 			'The profile editor offers an opt-in paid badge; opting in alone never grants a paid tier. No changes are submitted.',
+			undefined,
+			['edit-profile'],
 		);
 		await cancelDialog(member);
 		expectedMemberDenial.add(member);
@@ -586,6 +599,8 @@ test('capture the accessible payment and operations staging walkthrough', async 
 			admin,
 			'Member — freeze confirmation',
 			'Safe open confirmation with a required reason and elevation requirement. No account is frozen.',
+			undefined,
+			['freeze-member'],
 		);
 		await cancelDialog(admin);
 		await navigate(admin, '/admin/payments');
@@ -614,6 +629,8 @@ test('capture the accessible payment and operations staging walkthrough', async 
 			admin,
 			'Payments — case review dialog',
 			'Explicit synthetic nonfinancial case. The open dialog records acknowledgement or escalation only; it cannot mark money recovered. No review is submitted.',
+			undefined,
+			['review-case'],
 		);
 		await admin
 			.getByRole('dialog')
@@ -629,6 +646,8 @@ test('capture the accessible payment and operations staging walkthrough', async 
 			admin,
 			'Payments — escalation option',
 			'The escalation choice still requires a private note and appropriate authorization. This screenshot creates no recovery claim or operator event.',
+			undefined,
+			['review-case'],
 		);
 		await cancelDialog(admin, 'Close');
 		await admin
@@ -650,6 +669,8 @@ test('capture the accessible payment and operations staging walkthrough', async 
 			admin,
 			'Payments — pause confirmation',
 			'Open confirmation explains that existing Checkouts may still settle and refunds/recovery continue. The action is canceled without modifying this Ask.',
+			undefined,
+			['ask-payment-pause'],
 		);
 		await cancelDialog(admin);
 		omitted.push({
@@ -672,6 +693,8 @@ test('capture the accessible payment and operations staging walkthrough', async 
 				admin,
 				'Funds — create dialog',
 				'A safe open form only. No fund is created and no money is allocated.',
+				undefined,
+				['create-fund'],
 			);
 			await cancelDialog(admin);
 		} else
@@ -701,6 +724,8 @@ test('capture the accessible payment and operations staging walkthrough', async 
 				admin,
 				'Simulations — create a test neighborhood',
 				'The open form distinguishes autonomous model actions from deterministic scenarios. Creating a record does not start a process.',
+				undefined,
+				['create-simulation'],
 			);
 			await cancelDialog(admin);
 		}
@@ -747,6 +772,8 @@ test('capture the accessible payment and operations staging walkthrough', async 
 					admin,
 					'Simulation — stop confirmation',
 					'Safe open confirmation only. Keep running is chosen afterward, and no runner command is submitted.',
+					undefined,
+					['stop-simulation'],
 				);
 				await cancelDialog(admin, 'Keep running');
 			} else

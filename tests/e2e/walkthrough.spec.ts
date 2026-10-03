@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { cleanMembers, login, makeMembers, rpc } from './fixtures';
-import { captureStorageState, createCaptureDirectory } from './capture-safety';
+import { captureStorageState, createCaptureDirectory, validateCaptureDialogIds, type CaptureDialogId } from './capture-safety';
 
 // Explicitly opt in: this creates short-lived illustrative records in the target database.
 test.use({ trace: 'off', video: 'off', screenshot: 'off' });
@@ -47,6 +47,7 @@ test('capture the isolated GiveToGive community walkthrough', async ({
 		viewport: { width: number; height: number };
 		mobile: boolean;
 		capturedAt: string;
+		dialogIds?: CaptureDialogId[];
 	}> = [];
 	const expectedBadPaths = new Set([
 		'/walkthrough-page-not-found',
@@ -174,7 +175,8 @@ test('capture the isolated GiveToGive community walkthrough', async ({
 				});
 			});
 	}
-	async function capture(surface: Page, title: string, caption: string) {
+	async function capture(surface: Page, title: string, caption: string, dialogIds?: readonly CaptureDialogId[]) {
+		const validatedDialogIds = validateCaptureDialogIds(dialogIds);
 		await ready(surface);
 		// Fixture credentials are never part of walkthrough images, even if a future UI regresses.
 		const visibleText = await surface.locator('body').innerText();
@@ -196,6 +198,12 @@ test('capture the isolated GiveToGive community walkthrough', async ({
 			.replace(/[^a-z0-9]+/g, '-')
 			.replace(/-$/, '')}.png`;
 		const image = path.join(directory, 'images', filename);
+		if (validatedDialogIds) {
+			// An open Select may hide the still-visible parent dialog from the accessibility tree.
+			const openDialogs = surface.locator('[role="dialog"], dialog[open]').filter({ visible: true });
+			await expect(openDialogs).toHaveCount(1);
+			await expect(openDialogs).toBeVisible();
+		}
 		await surface.screenshot({
 			path: image,
 			fullPage: false,
@@ -215,6 +223,7 @@ test('capture the isolated GiveToGive community walkthrough', async ({
 			viewport: surface.viewportSize()!,
 			mobile: surface.viewportSize()!.width < 650,
 			capturedAt: new Date().toISOString(),
+			...(validatedDialogIds ? { dialogIds: validatedDialogIds } : {}),
 		});
 		await writeFile(
 			path.join(directory, 'manifest.json'),
@@ -545,6 +554,7 @@ test('capture the isolated GiveToGive community walkthrough', async ({
 			owner,
 			'Create Ask — task form',
 			'The creation dialog gathers title, description, goal, time estimate, and difficulty.',
+			['create-ask'],
 		);
 		await createDialog
 			.getByLabel('Title', { exact: true })
@@ -560,12 +570,14 @@ test('capture the isolated GiveToGive community walkthrough', async ({
 			owner,
 			'Create Ask — type chooser',
 			'Choose time, task, item, money, or resource.',
+			['create-ask'],
 		);
 		await owner.getByRole('option', { name: 'Time', exact: true }).click();
 		await capture(
 			owner,
 			'Create Ask — time goal',
 			'Time asks measure their goal in whole minutes.',
+			['create-ask'],
 		);
 		for (const type of ['Item', 'Resource', 'Money']) {
 			await createDialog
@@ -580,6 +592,7 @@ test('capture the isolated GiveToGive community walkthrough', async ({
 				type === 'Money' ?
 					'Money goals support currency and decimal amounts; this does not initiate a payment.'
 				:	`${type} goals use whole units and support partial contributions.`,
+				['create-ask'],
 			);
 		}
 		await createDialog
@@ -598,6 +611,7 @@ test('capture the isolated GiveToGive community walkthrough', async ({
 			owner,
 			'Ask owner — edit dialog',
 			'Owners can revise details and goals while preserving the existing public link and pledged capacity.',
+			['edit-ask'],
 		);
 		await owner
 			.getByRole('dialog')
@@ -634,6 +648,7 @@ test('capture the isolated GiveToGive community walkthrough', async ({
 			helper,
 			'Contribute — partial offer dialog',
 			'A neighbor can pledge only part of the goal and leave a helpful note.',
+			['offer-contribution'],
 		);
 		await helper
 			.getByRole('button', { name: 'Confirm contribution' })
@@ -657,6 +672,7 @@ test('capture the isolated GiveToGive community walkthrough', async ({
 			helper,
 			'Contribute — cancellation confirmation',
 			'Contributors confirm cancellation before their reserved amount is released.',
+			['cancel-contribution'],
 		);
 		await helper
 			.getByRole('dialog')
@@ -706,6 +722,7 @@ test('capture the isolated GiveToGive community walkthrough', async ({
 			helper,
 			'Contribute — completion confirmation',
 			'Members explicitly confirm delivery. Completed contributions cannot later be cancelled.',
+			['complete-contribution'],
 		);
 		await helper
 			.getByRole('dialog')
@@ -738,6 +755,7 @@ test('capture the isolated GiveToGive community walkthrough', async ({
 			helper,
 			'Contribute — money pledge dialog',
 			'This Ask uses off-platform money pledges. No money is collected in this contribution dialog; these self-reported offers are not verified Stripe payments.',
+			['offer-contribution'],
 		);
 		await helper
 			.getByRole('dialog')
@@ -762,6 +780,7 @@ test('capture the isolated GiveToGive community walkthrough', async ({
 			helper,
 			'Member — profile editor',
 			'Name, short bio, and city or neighborhood are editable. The editor explains what is public and discourages home addresses.',
+			['edit-profile'],
 		);
 		await helper
 			.getByRole('dialog')

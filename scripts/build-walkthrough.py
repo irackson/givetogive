@@ -3,7 +3,6 @@
 Uses the Codex PDF runtime (reportlab), not a browser print of the website.
 Capture first with the opt-in Playwright walkthrough test against the release.
 """
-import json
 import re
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -12,17 +11,13 @@ from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image, Table, TableStyle,
-    KeepTogether,
 )
 from PIL import Image as PILImage
+from walkthrough_inputs import BASELINE, parse_inputs
 
 ROOT = Path(__file__).resolve().parents[1]
-MANIFEST = ROOT / "tmp/walkthrough/manifest.json"
-OUTPUT = ROOT / "output/pdf/givetogive-published-walkthrough.pdf"
-manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-if manifest.get("status") != "complete" or manifest.get("cleanup") != "complete" or manifest.get("errors"):
-    raise ValueError("Only a completed, cleaned-up, error-free capture can be published")
-OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+inputs = parse_inputs(ROOT)
+OUTPUT = inputs.output
 
 INK = colors.HexColor("#202742")
 BLUE = colors.HexColor("#233EB8")
@@ -64,42 +59,64 @@ def chrome(canvas, doc):
     canvas.rect(0, PAGE_H - 7, PAGE_W, 7, fill=1, stroke=0)
     canvas.setFillColor(MUTED)
     canvas.setFont("Helvetica", 9)
-    canvas.drawString(36, 22, "GIVETOGIVE  /  PUBLISHED SITE WALKTHROUGH")
+    canvas.drawString(36, 22, "GIVETOGIVE  /  VERIFIED CHECKPOINT  /  PARTIAL ACCEPTANCE")
     canvas.drawRightString(PAGE_W - 36, 22, f"{doc.page}")
     canvas.restoreState()
 
 
-story = [Spacer(1, 40), para("RELEASE WALKTHROUGH", "Label"),
-         para("Useful things.\nFinished workflows.\nA neighborly place.", "Cover"),
-         para("GiveToGive - published-site visual and capability guide", "Section"),
-         para(f"Captured from {manifest['baseURL']} on {manifest['capturedAt']}", "BodyCopy"),
-         para(f"{len(manifest['views'])} browser views: public pages, signed-in experiences, open dialogs, recovery states, and mobile layouts."),
-         para(manifest.get("fixtureDisclosure", "Illustrative synthetic members and Asks were created for the walkthrough and removed after capture. No real passwords or private account details are shown.")),
-         para("Money Asks record pledges only. This release does not process payments, run pooled funds, or sell subscriptions."),
-         para("The capability appendix distinguishes existed before, partly implemented before, brand new, and newly finished against main at 1ecb2ee.", "Caption"),
+story = [Spacer(1, 40), para("VERIFIED CHECKPOINT / ACCESSIBLE VIEWS", "Label"),
+         para("Useful things.\nA clearer view.\nA neighborly place.", "Cover"),
+         para("GiveToGive - published site and protected-staging capabilities", "Section"),
+         para(f"{sum(len(c.manifest['views']) for c in inputs.captures)} actual browser views, with each origin and observed gate labeled."),
+         para("Production is dark; protected staging is a separate test environment. Configured test sales are not paid membership or settlement. This guide is not completed provider or full-community acceptance."),
+         para("All 29 rendered routes, four redirect aliases and 21 source dialogs remain in the coverage appendix, including missing and unavailable states."),
          PageBreak()]
+story += [para("Capture and documentation binding", "Section")]
+for capture in inputs.captures:
+    b = capture.binding
+    story += [para(capture.label(), "Caption"),
+              para(f"Capture {capture.manifest['capturedAt']}; gate observation {b['observedAt']}; Git commit {b['commit'] or 'not a Git-commit deployment'}; Node {b['nodeVersion']}.", "Caption"),
+              para(f"Authored runtime {b['sourceDigest']}; lock {b['lockDigest']}.", "Caption"),
+              para(capture.manifest["fixtureDisclosure"])]
+story += [para(f"Feature provenance baseline {BASELINE}; document commit {inputs.context['documentation']['commit']}, SHA256 {inputs.context['documentation']['sha256']}. Origin tags are not acceptance statuses.", "Caption"),
+          PageBreak(), para("Measured verification and remaining boundaries", "Section")]
+story += [para(line) for line in inputs.context["verificationSummary"]]
+story += [PageBreak()]
 
-for index, view in enumerate(manifest["views"], 1):
+for index, (capture, view) in enumerate(inputs.views(), 1):
     heading = para(f"{index:02d} / {view['title']}", "ViewTitle")
     caption = para(view["caption"], "Caption")
     route = para(view["route"], "Caption")
-    story += [heading, caption]
-    image_path = Path(view["image"])
-    if not image_path.is_absolute():
-        image_path = ROOT / image_path
+    identity = para(capture.label(view) + f" | evidence {capture.section}:{view['index']}", "Caption")
+    story += [heading, caption, identity]
+    image_path = inputs.image(capture, view)
     with PILImage.open(image_path) as im:
         width, height = im.size
-    text_height = sum(part.wrap(928, 650)[1] + part.getSpaceAfter() for part in [heading, caption, route])
+    text_height = sum(part.wrap(928, 650)[1] + part.getSpaceAfter() for part in [heading, caption, identity, route])
     image_height = min(542, 630 - text_height - 7)
+    if image_height < 240 or width <= 0 or height <= 0:
+        raise ValueError("Screenshot metadata cannot fit legibly on its page")
     scale = min(928 / width, image_height / height)
     shot = Image(str(image_path), width=width * scale, height=height * scale)
     shot.hAlign = "CENTER"
     story += [shot, Spacer(1, 7), route, PageBreak()]
 
-story += [para("Capability appendix", "Section"),
-          para("A complete inventory of what the current release does, what was completed from the three spinoff tasks, and what is intentionally not implemented.")]
+story += [para("Complete source-view coverage", "Section"),
+          para("Captured, disabled, no-owned-record, not-applicable and not-captured states are all retained. A screenshot of a control is not proof of provider execution.")]
+for kind, title in (("routes", "29 rendered routes"), ("aliases", "Four redirect aliases"), ("dialogs", "21 source dialogs")):
+    story += [para(title, "Section")]
+    table = Table([[para(cell, "CellHead" if index == 0 else "Cell") for cell in row]
+                   for index, row in enumerate([["Inventory ID", "Environment / status", "Evidence / reason"]] + inputs.coverage_rows(kind))],
+                  colWidths=[235, 200, 493], repeatRows=1, hAlign="LEFT")
+    table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), BLUE),
+                               ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                               ("TOPPADDING", (0, 0), (-1, -1), 7),
+                               ("BOTTOMPADDING", (0, 0), (-1, -1), 7)]))
+    story += [table, Spacer(1, 15)]
+story += [PageBreak(), para("Capability provenance and implementation boundaries", "Section"),
+          para("The four original tags describe feature origin against the stated baseline, not a certification that every financial or community acceptance requirement passed.")]
 
-lines = (ROOT / "docs/feature-outline.md").read_text(encoding="utf-8").splitlines()
+lines = inputs.feature_text.splitlines()
 buffer = []
 table_rows = []
 
@@ -154,9 +171,10 @@ for line in lines:
 flush_text()
 flush_table()
 
-doc = SimpleDocTemplate(str(OUTPUT), pagesize=(PAGE_W, PAGE_H), leftMargin=40,
-                        rightMargin=40, topMargin=28, bottomMargin=42,
-                        title="GiveToGive - Published Site Walkthrough", author="GiveToGive",
-                        pageCompression=1)
-doc.build(story, onFirstPage=chrome, onLaterPages=chrome)
+with inputs.open_output() as output:
+    doc = SimpleDocTemplate(output, pagesize=(PAGE_W, PAGE_H), leftMargin=40,
+                            rightMargin=40, topMargin=28, bottomMargin=42,
+                            title="GiveToGive - Verified Checkpoint Walkthrough", author="GiveToGive",
+                            pageCompression=1)
+    doc.build(story, onFirstPage=chrome, onLaterPages=chrome)
 print(f"Built {OUTPUT}")

@@ -8,6 +8,28 @@ const stagingOrigin = 'https://givetogive-staging.vercel.app';
 const productionOrigin = 'https://givetogive.vercel.app';
 const rootName = /^walkthrough-[a-z0-9-]+-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 
+/** Source dialog inventory shared with the PDF coverage denominator. */
+export const captureDialogIds = Object.freeze([
+	'create-ask', 'offer-contribution', 'edit-ask', 'complete-contribution',
+	'cancel-contribution', 'edit-profile', 'revoke-sessions', 'freeze-member',
+	'review-case', 'ask-payment-pause', 'create-simulation', 'recover-controller',
+	'stop-simulation', 'create-fund', 'allocate-fund', 'refund-payment',
+	'enable-ask-payments', 'contribution-checkout', 'cancel-checkout',
+	'cancel-fund-subscription', 'change-supporter-membership',
+] as const);
+export type CaptureDialogId = typeof captureDialogIds[number];
+
+/** Explicit associations only: titles and disabled entry points are not evidence. */
+export function validateCaptureDialogIds(value: unknown): CaptureDialogId[] | undefined {
+	if (value === undefined) return undefined;
+	if (!Array.isArray(value) || value.length === 0 ||
+		Array.from(value).some((id) => typeof id !== 'string' || !captureDialogIds.some((allowed) => allowed === id)) ||
+		new Set(value).size !== value.length) {
+		throw new Error('Capture dialog IDs must be a nonempty unique allowlisted array.');
+	}
+	return [...value] as CaptureDialogId[];
+}
+
 export function captureSimulationRunId(requestedId: string | undefined) {
 	if (requestedId === undefined) return undefined;
 	if (requestedId.length !== 36 || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(requestedId)) {

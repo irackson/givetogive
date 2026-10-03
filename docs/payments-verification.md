@@ -9,6 +9,35 @@ Earlier counts below are historical; they do not prove a completed full-populati
 
 ## October 3 security and freshness regression
 
+**Hosted-test preparation follow-up:** actual provisioning/readiness now exists
+for fresh run `3275f37c-213f-48d8-a1e0-50ce35850559`: 253 verified independent
+synthetic accounts, a 1,115-rule recurring program, two immutable clean journals,
+and one limited runner credential. At 21:56:51 UTC all password hashes and
+identity bindings were verified read-only, with zero activity, financial records,
+pending work, claims or controllers. Status is created/unowned, not running or
+accepted. The 22:06:29 capacity check was 1.587 GiB; no low-memory launch occurred.
+Ian subsequently approved a guarded free standard GitHub-hosted staging test
+runner. Its implementation is underway; no workflow dispatch, hosted smoke,
+continuous-hour result or credential installation is claimed.
+
+The last independently verified production publication is signed `f7447e197`
+on READY deployment `dpl_EYMH9dGgVSTKd1MTFwNebeJh1kBT`, with unchanged authored
+runtime/lock and all five financial/simulation gates off. PDF builders now require
+explicit fresh manifests, redacted per-host release/gate bindings, the current
+four-tag outline, exclusive output and all 29 routes/four aliases/21 dialogs.
+Seventeen offline metadata/path tests pass, including actual Windows junction
+rejection; source syntax and three CLI-help checks pass. Explicit dialog IDs
+require real open-dialog assertions in the capture specs. No fresh screenshots,
+PDF generation, PDF rendering or full financial acceptance follows from these
+static checks. Root independently reran 136/136 unit tests, 11/11 focused capture
+tests, scoped four-file lint and strict capture TypeScript checks: all pass.
+
+The expired-only Stripe pointer observer's 21:44 UTC failure remains preserved,
+with no control/card/submission actions and no useful panel diagnosis. The
+future exact actor002/$15 Sustainer observer passed ten offline tests but has no
+actual Checkout to observe. Both older $5 histories remain expired/unpaid; paid
+tiers, financial lifecycle and the full-community continuous hour remain open.
+
 **21:36 UTC measured follow-up:** a separate read-only history-only browser
 test passed for the completed short28 run. Its normal synthetic admin session,
 exact owned agent link, ordinary click, exact route, individual-member heading,

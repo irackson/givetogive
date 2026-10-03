@@ -1,5 +1,4 @@
 """Render actual protected-staging captures; never overwrite the published guide."""
-import json
 import re
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -8,16 +7,11 @@ from PIL import Image as PILImage
 from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.platypus import Image, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from walkthrough_inputs import BASELINE, parse_inputs
 
 ROOT = Path(__file__).resolve().parents[1]
-CAPTURE = ROOT / "tmp/payments-walkthrough"
-OUTPUT = ROOT / "output/pdf/givetogive-payments-staging-walkthrough.pdf"
-manifest = json.loads((CAPTURE / "manifest.json").read_text(encoding="utf-8"))
-if (manifest.get("status") != "captured" or manifest.get("diagnostics")
-        or manifest.get("cleanup") != "temporary capture accounts removed; append-only audit events retained"
-        or manifest.get("baseURL") != "https://givetogive-staging.vercel.app"):
-    raise ValueError("Require a complete, error-free, cleaned-up protected staging capture")
-OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+inputs = parse_inputs(ROOT)
+OUTPUT = inputs.output
 
 INK, COBALT, CORAL, PAPER, MUTED = map(colors.HexColor, ["#202742", "#233EB8", "#E8513B", "#FBF7EF", "#53617B"])
 WIDTH, HEIGHT = 1008, 720
@@ -56,45 +50,70 @@ def chrome(canvas, doc):
     canvas.rect(0, HEIGHT - 7, WIDTH, 7, fill=1, stroke=0)
     canvas.setFillColor(MUTED)
     canvas.setFont("Helvetica", 9)
-    canvas.drawString(36, 22, "GIVETOGIVE  /  PROTECTED STAGING  /  PARTIAL ACCEPTANCE")
+    canvas.drawString(36, 22, "GIVETOGIVE  /  VERIFIED CHECKPOINT  /  PARTIAL ACCEPTANCE")
     canvas.drawRightString(WIDTH - 36, 22, str(doc.page))
     canvas.restoreState()
 
 
-story = [Spacer(1, 24), para("WORK IN PROGRESS / TEST ENVIRONMENT", "Label"),
+story = [Spacer(1, 24), para("VERIFIED CHECKPOINT / ACCESSIBLE VIEWS", "Label"),
          para("More ways to give.\nA clearer view of the work.", "Cover"),
-         para("Payments, operations and a simulated neighborhood", "Section"),
-         para(f"{len(manifest['views'])} actual browser views captured on {manifest['capturedAt']}"),
-         para(manifest["baseURL"], "Caption"),
-         para(manifest["verificationBoundary"]),
-         para("Stripe payment, subscription and fund gates are OFF. No real money was moved. This is not the final production or completed payment-acceptance walkthrough."),
-         para(manifest["fixtureDisclosure"], "Caption"), PageBreak(),
+         para("GiveToGive - published site and protected-staging capabilities", "Section"),
+         para(f"{sum(len(c.manifest['views']) for c in inputs.captures)} actual browser views, labeled by origin, observed gates and capture time."),
+         para("Production remains dark. Protected staging can expose configured test sales; configuration is not settlement or paid membership. This is not completed provider or full-community acceptance."),
+         para("All 29 rendered routes, four redirect aliases and 21 source dialogs remain in the coverage appendix, including missing and unavailable states."), PageBreak(),
          para("Read the evidence, not just the screens.", "Section"),
-         para("The existing public site remains the non-payment release. The new work is deployed to a separate protected staging project, using synthetic records and isolated credentials."),
+         para("The published application and protected staging may share authored runtime while retaining different environments and gates. Staging is not a production deployment or a substitute for genuine paid acceptance."),
          para("Views below show genuine availability, empty states, account boundaries, measured operations and stored agent histories. A plan card is not an active subscription. A seeded cohort is not a paid tier. A run record is not proof that 100 agents completed a soak."),
-         para("Still awaiting provider-backed verification", "Section")]
-story += [para("- " + item) for item in manifest["unmetStripeFlows"]]
-story += [para("The feature appendix distinguishes origin from acceptance against main at f6638fe. See docs/payments-verification.md for the final test and deployment record.", "Caption"), PageBreak()]
+         para("Capture and documentation binding", "Section")]
+for capture in inputs.captures:
+    b = capture.binding
+    story += [para(capture.label(), "Caption"),
+              para(f"Capture {capture.manifest['capturedAt']}; gates observed {b['observedAt']}; Git commit {b['commit'] or 'not a Git-commit deployment'}; Node {b['nodeVersion']}.", "Caption"),
+              para(f"Authored runtime {b['sourceDigest']}; lock {b['lockDigest']}.", "Caption"),
+              para(capture.manifest["fixtureDisclosure"], "Caption")]
+    if capture.manifest.get("verificationBoundary"):
+        story.append(para(capture.manifest["verificationBoundary"]))
+story += [para(f"Feature baseline {BASELINE}; documentation commit {inputs.context['documentation']['commit']}, SHA256 {inputs.context['documentation']['sha256']}. Tags describe origin, not acceptance.", "Caption"),
+          PageBreak(), para("Measured verification and remaining boundaries", "Section")]
+story += [para(line) for line in inputs.context["verificationSummary"]]
+unmet = dict.fromkeys(item for capture in inputs.captures for item in capture.manifest.get("unmetStripeFlows", []))
+story += [para("- " + item) for item in unmet]
+story += [PageBreak()]
 
-for view in manifest["views"]:
-    heading = para(f"{view['index']:02d} / {view['title']}", "View")
+for index, (capture, view) in enumerate(inputs.views(), 1):
+    heading = para(f"{index:02d} / {view['title']}", "View")
     caption = para(view["caption"], "Caption")
     route = para(view["route"], "Caption")
-    image_path = Path(view["image"]).resolve()
-    if not image_path.is_relative_to((CAPTURE / "images").resolve()):
-        raise ValueError("Capture image must stay inside the manifest image directory")
+    identity = para(capture.label(view) + f" | evidence {capture.section}:{view['index']}", "Caption")
+    image_path = inputs.image(capture, view)
     with PILImage.open(image_path) as picture:
         width, height = picture.size
-    text_height = sum(part.wrap(924, 640)[1] + part.getSpaceAfter() for part in (heading, caption, route))
-    scale = min(924 / width, min(530, 626 - text_height) / height)
+    text_height = sum(part.wrap(924, 640)[1] + part.getSpaceAfter() for part in (heading, caption, identity, route))
+    image_height = min(530, 626 - text_height)
+    if image_height < 240 or width <= 0 or height <= 0:
+        raise ValueError("Screenshot metadata cannot fit legibly on its page")
+    scale = min(924 / width, image_height / height)
     shot = Image(str(image_path), width=width * scale, height=height * scale)
     shot.hAlign = "CENTER"
-    story += [heading, caption, shot, Spacer(1, 7), route, PageBreak()]
+    story += [heading, caption, identity, shot, Spacer(1, 7), route, PageBreak()]
 
 story += [para("Deliberate gaps in this capture", "Section"),
           para("Disabled controls were not bypassed, and financial rows were not fabricated to obtain screenshots.")]
-for item in manifest["omitted"]:
-    story += [para(item["route"], "Label"), para(item["reason"])]
+for capture in inputs.captures:
+    for item in capture.manifest.get("omitted", []):
+        story += [para(f"{capture.binding['environment']} / {item['route']}", "Label"), para(item["reason"])]
+story += [PageBreak(), para("Complete source-view coverage", "Section"),
+          para("Captured, disabled, no-owned-record, not-applicable and not-captured states are all retained. Missing states are not removed from the denominator.")]
+for kind, title in (("routes", "29 rendered routes"), ("aliases", "Four redirect aliases"), ("dialogs", "21 source dialogs")):
+    story.append(para(title, "Section"))
+    table = Table([[para(cell, "Head" if index == 0 else "Cell") for cell in row]
+                   for index, row in enumerate([["Inventory ID", "Environment / status", "Evidence / reason"]] + inputs.coverage_rows(kind))],
+                  colWidths=[230, 200, 494], repeatRows=1, hAlign="LEFT")
+    table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), COBALT),
+                               ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                               ("TOPPADDING", (0, 0), (-1, -1), 7),
+                               ("BOTTOMPADDING", (0, 0), (-1, -1), 7)]))
+    story += [table, Spacer(1, 12)]
 story += [PageBreak(), para("Feature provenance and implementation boundaries", "Section")]
 
 buffer, rows = [], []
@@ -126,7 +145,7 @@ def flush_table():
     rows.clear()
 
 
-for line in (ROOT / "docs/payments-feature-outline.md").read_text(encoding="utf-8").splitlines():
+for line in inputs.feature_text.splitlines():
     if line.startswith("# "):
         continue
     if line.startswith("|"):
@@ -149,8 +168,9 @@ for line in (ROOT / "docs/payments-feature-outline.md").read_text(encoding="utf-
 flush_table()
 flush_text()
 
-SimpleDocTemplate(str(OUTPUT), pagesize=(WIDTH, HEIGHT), leftMargin=42, rightMargin=42,
-                  topMargin=35, bottomMargin=42,
-                  title="GiveToGive - Partial Protected Staging Walkthrough",
-                  author="GiveToGive").build(story, onFirstPage=chrome, onLaterPages=chrome)
+with inputs.open_output() as output:
+    SimpleDocTemplate(output, pagesize=(WIDTH, HEIGHT), leftMargin=42, rightMargin=42,
+                      topMargin=35, bottomMargin=42,
+                      title="GiveToGive - Verified Checkpoint Walkthrough",
+                      author="GiveToGive").build(story, onFirstPage=chrome, onLaterPages=chrome)
 print(f"Created {OUTPUT}")

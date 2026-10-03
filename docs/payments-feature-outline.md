@@ -27,6 +27,17 @@ supporter/fund sales and production simulations remain disabled. Protected stagi
 the final PDF, deployment identity, and full acceptance results must be recorded
 separately in the release handoff and [acceptance contract](payments-implementation-plan.md).
 
+Later October 3 follow-up: signed docs/capture checkpoint `f7447e197` is verified
+READY on production (`dpl_EYMH9dGgVSTKd1MTFwNebeJh1kBT`) with the same authored
+runtime as the earlier browser-tested release. Production gates remain off.
+Individual-member history subsequently passed a separate read-only browser
+check; the original combined failure is preserved. A fresh 253-account cohort
+and recurring program are provisioned and read-only verified, but **not running**
+and not hour-soak or paid-tier acceptance. Ian approved a manual staging-only
+GitHub-hosted test runner to address laptop memory limits; implementation is
+underway, not yet executed. PDF tooling/explicit open-dialog metadata are static
+verification improvements, not a new walkthrough or completed payment flow.
+
 October 3 checkpoint: protected canonical staging deployment
 `dpl_9v2tUXxH8AJ7qsaaSn8UfMdCmmZS` is READY on Node 24 with authored runtime
 digest `9a3d105bf3026e03726eba1621400a6f24aa47d3e1a300cb7f6b2dc606245e8f`.

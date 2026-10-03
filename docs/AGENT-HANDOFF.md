@@ -11,6 +11,47 @@ model/ramp work below; historical measurements remain evidence, not new requirem
 
 ### October 3 active-goal checkpoint — supersedes paused/live handles below
 
+**Hosted-test preparation follow-up:** Ian approved a manual, staging-only
+GitHub Actions runner using synthetic-account and limited staging credentials,
+with no production credentials, live payments or paid runner. Implementation
+is underway; no hosted community workflow has been dispatched and no credentials
+have been installed for it yet. Private state must remain encrypted and private,
+not be placed in public Actions artifacts. The standard public-repository runner
+is an alternative to laptop RAM, not proof of laptop/browser capacity.
+
+Fresh run `3275f37c-213f-48d8-a1e0-50ce35850559` was created and provisioned
+once: 250 scripted members, three browser members, one limited runner credential,
+no member API tokens or paid grants. The 1,115-rule program and two fresh journals
+are prepared. Actual read-only readiness at 21:56:51 UTC verified all 253 password
+hashes, mappings and zero activity/payments/queues/claims/controllers. It remains
+created/unowned; it has **not** run. Preserve these exact immutable paths and IDs:
+`tmp/community-stage/run-hour253-regression2.json` and
+`tools/simulation/.state/community-hour253regression2/`.
+Readiness receipt:
+`tmp/community-stage/hour253-readiness-3275f37c-213f-48d8-a1e0-50ce35850559-1791064611046.json`.
+At 22:06:29 UTC RAM was 1.587 GiB, with no owned browsers/controllers. No launch
+was attempted below the unchanged 2.5 GiB admission threshold.
+
+Latest independently verified published checkpoint is signed `f7447e197`, READY
+production deployment `dpl_EYMH9dGgVSTKd1MTFwNebeJh1kBT`, authored runtime
+`9a3d105bf3026e03726eba1621400a6f24aa47d3e1a300cb7f6b2dc606245e8f`.
+All five production financial/simulation gates remain off; staging is still
+`dpl_9v2tUXxH8AJ7qsaaSn8UfMdCmmZS`, with Supporter test sales only. The latest
+tooling changes have not received a new capture or PDF authoring run. Offline
+PDF-input tests pass 17/17; dialog metadata is explicitly allowlisted and only
+attached to genuinely open-dialog screenshot calls. Missing views remain in the
+29-route/four-alias/21-dialog denominator. Root independently reran all 136 unit
+tests, 11 focused capture tests, four-file lint and strict scoped TypeScript:
+all pass. App/runtime and lockfile are unchanged.
+
+The separate expired-only pointer observation failed at 21:44 UTC before useful
+panel evidence; its exclusive failure receipt is preserved. It does not explain
+the original acknowledgment timeout or establish a provider ban. The unused
+Sustainer operation `284c4f9d-6aec-4910-bbb2-ef7b1a9d2ff7` still has no prepared
+Checkout; its separately bound future read-only observer passed ten offline
+tests, not provider acceptance. Do not reset budgets, replay either expired $5
+intent, install Link CLI, or count target-tier labels as paid recognition.
+
 **21:36 UTC follow-up:** the read-only individual-member history browser check
 passed, with explicit receipts for the owned agent link, ordinary click, exact
 URL, both headings and 25 correctly `entityId`-filtered records. Page/console/
