@@ -1,11 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { cleanMembers, login, makeMembers, rpc } from './fixtures';
+import { captureStorageState, createCaptureDirectory } from './capture-safety';
 
 // Explicitly opt in: this creates short-lived illustrative records in the target database.
 test.use({ trace: 'off', video: 'off', screenshot: 'off' });
-test('capture the published GiveToGive walkthrough', async ({
+test('capture the isolated GiveToGive community walkthrough', async ({
 	browser,
 	page,
 	baseURL,
@@ -16,17 +17,21 @@ test('capture the published GiveToGive walkthrough', async ({
 	);
 	test.setTimeout(15 * 60_000);
 	if (!baseURL) throw new Error('A target base URL is required.');
-	const directory = path.resolve('tmp/walkthrough');
-	await mkdir(path.join(directory, 'images'), { recursive: true });
+	const captureEnvironment = process.env['APP_ENV'] ?? 'unknown';
+	const captureOrigin = new URL(baseURL).origin;
+	const storageState = await captureStorageState(baseURL, process.cwd(), process.env['APP_ENV']);
+	const directory = await createCaptureDirectory(process.cwd(), process.env['WALKTHROUGH_CAPTURE_ROOT'], 'community-staging');
 	const desktop = { width: 1440, height: 1000 };
 	const mobile = { width: 390, height: 844 };
 	const members = await makeMembers();
 	const ownerContext = await browser.newContext({
 		baseURL,
+		storageState,
 		viewport: desktop,
 	});
 	const helperContext = await browser.newContext({
 		baseURL,
+		storageState,
 		viewport: desktop,
 	});
 	const owner = await ownerContext.newPage();
@@ -215,8 +220,10 @@ test('capture the published GiveToGive walkthrough', async ({
 			path.join(directory, 'manifest.json'),
 			JSON.stringify(
 				{
-					title: 'GiveToGive — published site walkthrough',
+					title: `GiveToGive — ${captureEnvironment} community walkthrough`,
 					baseURL,
+					environment: captureEnvironment,
+					origin: captureOrigin,
 					capturedAt: new Date().toISOString(),
 					fixtureDisclosure:
 						'Alex Rivera, Jamie Brooks, and the illustrated Asks are temporary synthetic demonstration records. No real payment was made. All demonstration database records are removed after capture.',
@@ -343,7 +350,7 @@ test('capture the published GiveToGive walkthrough', async ({
 		await capture(
 			page,
 			'Home — welcome',
-			'The published landing page: warm paper, cobalt, coral, and original mutual-aid artwork.',
+			`The actual ${captureEnvironment} landing page at ${captureOrigin}: warm paper, cobalt, coral, and original mutual-aid artwork.`,
 		);
 		await scrollSection(page, '.home-ways');
 		await capture(
@@ -730,7 +737,7 @@ test('capture the published GiveToGive walkthrough', async ({
 		await capture(
 			helper,
 			'Contribute — money pledge dialog',
-			'Decimal currency amounts are pledges only. GiveToGive does not charge, collect, or transfer funds.',
+			'This Ask uses off-platform money pledges. No money is collected in this contribution dialog; these self-reported offers are not verified Stripe payments.',
 		);
 		await helper
 			.getByRole('dialog')
@@ -801,7 +808,7 @@ test('capture the published GiveToGive walkthrough', async ({
 			await capture(
 				surface,
 				title,
-				'The responsive published view at a 390-pixel phone width, with readable content and reachable member navigation.',
+				`The responsive ${captureEnvironment} view at a 390-pixel phone width, with readable content and reachable member navigation.`,
 			);
 		}
 		expect(
@@ -818,11 +825,13 @@ test('capture the published GiveToGive walkthrough', async ({
 			path.join(directory, 'manifest.json'),
 			JSON.stringify(
 				{
-					title: 'GiveToGive — published site walkthrough',
+					title: `GiveToGive — ${captureEnvironment} community walkthrough`,
 					baseURL,
+					environment: captureEnvironment,
+					origin: captureOrigin,
 					capturedAt: new Date().toISOString(),
 					fixtureDisclosure:
-						'Alex Rivera, Jamie Brooks, and the illustrated Asks were temporary synthetic demonstration records captured on the published site. No real payment was made. All demonstration database records were removed after capture.',
+						`Alex Rivera, Jamie Brooks, and the illustrated Asks were temporary synthetic demonstration records captured in ${captureEnvironment} at ${captureOrigin}. No real payment was made. All demonstration database records were removed after capture.`,
 					status: completed ? 'complete' : 'incomplete',
 					cleanup: 'complete',
 					errors,

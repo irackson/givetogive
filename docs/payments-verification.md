@@ -9,6 +9,43 @@ Earlier counts below are historical; they do not prove a completed full-populati
 
 ## October 3 security and freshness regression
 
+**21:36 UTC measured follow-up:** a separate read-only history-only browser
+test passed for the completed short28 run. Its normal synthetic admin session,
+exact owned agent link, ordinary click, exact route, individual-member heading,
+Live activity heading and 25 correctly filtered account-owned records each have
+explicit receipts. Zero page/console/HTTP/mutation errors; minimum RAM 2.781 GiB.
+Browser/API closed; independent inventory found zero owned Playwright Chrome
+processes. Earlier failures are retained, not overwritten or retroactively
+passed. This proves individual history navigation, not the full-population hour.
+
+At 21:33:50 UTC the replacement Checkout's automatic 21:29:27 expiry was
+independently reconciled: provider, app and normal owner view are expired/unpaid;
+actual platform/test event `evt_1UMaUlDed7vKVaptcwc0BW9W` has a processed signed
+inbox record. No invoice, subscription, payment intent, charge, paid timestamp,
+paid coverage or ledger entry exists. Both scoped operation/admission histories
+remain intact and all three normal members remain Neighbor. No payment was
+submitted. The old open-session pointer inspector must not run on this expired
+session unchanged; any terminal-only observation requires separate review.
+
+Current docs-only signed main `0cf39acf1` is READY on production deployment
+`dpl_4bKtKdb6cvecLWqGARhfzb9oeCB3`, with unchanged authored runtime/lock and
+all five financial/simulation gates off. The 17-state anonymous browser result
+below belongs to the preceding same-runtime deployment, not a new browser run.
+
+Capture-safety verification: 8/8 offline tests, 133/133 root unit tests, focused
+four-file lint and isolated helper/unit TypeScript checks pass. The opt-in
+walkthroughs require fresh contained capture namespaces and explicitly bound
+host-only staging cookies; expired cookies and cross-origin state are rejected.
+Manifests and captions now report actual origins/gates; simulation views require
+an explicitly pinned run present in the ordinary admin API, not arbitrary history.
+No capture E2E or PDF authoring occurred. The fresh253 readiness reader's 28/28
+offline tests pass; this is not live database readiness or a created/running run.
+
+Private receipts:
+`tmp/community-stage/history-only-b611f721-18fc-47f3-aa42-7bb12b361116-1791063363211.json`,
+`tmp/stripe-test-acceptance-manual/1aa24b5b-c467-4063-a62a-cd6df957b393/supporter-replacement-expiry-final-2026-10-03.json`,
+and `tmp/dark-production-publication-preflight-1791062440462.json`.
+
 **21:14 UTC measured follow-up:** signed verified `bfa90f213` is pushed and
 READY on public canonical production deployment
 `dpl_odip1yeXLq67Ya4FQd9Nzf3PDrZ1`, Node 24, with the source/lock below.

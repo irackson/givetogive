@@ -5,11 +5,12 @@ import {
 	type Locator,
 	type Page,
 } from '@playwright/test';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import type { RouterOutputs } from '../../src/trpc/react';
 import { cleanMembers, login, makeMembers, rpc, testSql } from './fixtures';
+import { captureSimulationRunId, captureStorageState, createCaptureDirectory } from './capture-safety';
 
 // Explicit, staging-only artifact generation. Never retain authentication DOM,
 // TOTP setup, credentials, raw network traces, or a protection-bypass header.
@@ -32,8 +33,9 @@ test('capture the accessible payment and operations staging walkthrough', async 
 			'This walkthrough requires the exact protected staging deployment.',
 		);
 	}
-	const directory = path.resolve('tmp/payments-walkthrough');
-	await mkdir(path.join(directory, 'images'), { recursive: true });
+	const simulationRunId = captureSimulationRunId(process.env['WALKTHROUGH_SIMULATION_RUN_ID']);
+	const storageState = await captureStorageState(baseURL, process.cwd(), process.env['APP_ENV']);
+	const directory = await createCaptureDirectory(process.cwd(), process.env['WALKTHROUGH_CAPTURE_ROOT'], 'payments-staging');
 	const members = await makeMembers();
 	const operatorCaseId = randomUUID();
 	const operatorCaseKey = `walkthrough-operator-${operatorCaseId}`;
@@ -82,6 +84,8 @@ test('capture the accessible payment and operations staging walkthrough', async 
 		title: 'GiveToGive — partial staging walkthrough',
 		baseURL,
 		environment: 'staging',
+		origin: new URL(baseURL).origin,
+		simulationRunPin: simulationRunId ?? null,
 		capturedAt: new Date().toISOString(),
 		status,
 		cleanup,
@@ -127,10 +131,11 @@ test('capture the accessible payment and operations staging walkthrough', async 
 		);
 	}
 	async function newPage() {
-		// The Playwright project supplies a host-only staging bypass cookie.
+		// Explicitly supply the validated host-only staging bootstrap cookie.
 		// Do not add global extraHTTPHeaders; Stripe/OAuth must never see it.
 		const context = await browser.newContext({
 			baseURL: baseURL!,
+			storageState,
 			viewport: desktop,
 		});
 		contexts.push(context);
@@ -396,7 +401,7 @@ test('capture the accessible payment and operations staging walkthrough', async 
 		if (!fundLinks.length)
 			omitted.push({
 				route: '/funds/[slug]',
-				reason: 'No actual public fund exists in this staging database; no fictional fund or balance was created.',
+				reason: availability.funds ? 'No actual public fund is visible to this capture; no fictional fund or balance was created.' : 'Funds are disabled by the genuine staging gate; this does not assert that no historical fund record exists.',
 			});
 		await navigate(guest, '/giving');
 		await expect(guest).toHaveURL(/\/signin\?/);
@@ -437,7 +442,7 @@ test('capture the accessible payment and operations staging walkthrough', async 
 		);
 		omitted.push({
 			route: '/giving/[id]',
-			reason: 'The capture account has no provider-confirmed payment. Receipt and payment-cancellation dialogs require a genuine owned record.',
+			reason: 'The new capture account has no owned financial or Checkout record. Existing historical test accounts and their unpaid/expired records require separately authorized authentication; none are impersonated for this capture.',
 		});
 		for (const [route, title, caption] of [
 			[
@@ -448,7 +453,7 @@ test('capture the accessible payment and operations staging walkthrough', async 
 			[
 				'/account/receiving',
 				'Receiving help',
-				'Actual Connect readiness. Disabled onboarding is preserved until the Stripe sandbox is configured.',
+				`Actual Connect readiness. Staging Ask payments are ${availability.askPayments ? 'enabled' : 'disabled'} and funds are ${availability.funds ? 'enabled' : 'disabled'}; onboarding follows these gates, not merely whether Stripe test credentials exist.`,
 			],
 			[
 				'/account/security',
@@ -635,7 +640,7 @@ test('capture the accessible payment and operations staging walkthrough', async 
 		await capture(
 			admin,
 			'Payments — per-Ask controls',
-			'One synthetic unpaid Ask demonstrates the new-payment reservation control. Environment-wide payment gates remain off.',
+			`One synthetic unpaid Ask demonstrates the new-payment reservation control. Actual staging gates: Ask payments ${availability.askPayments ? 'on' : 'off'}, Supporter subscriptions ${availability.subscriptions ? 'on' : 'off'}, funds ${availability.funds ? 'on' : 'off'}.`,
 			admin.getByText('Ask payment controls', { exact: true }),
 		);
 		await admin
@@ -649,7 +654,7 @@ test('capture the accessible payment and operations staging walkthrough', async 
 		await cancelDialog(admin);
 		omitted.push({
 			route: '/admin/payments/[id]',
-			reason: 'No fictional financial record is inserted; detailed refunds and provider-confirmed recovery await real sandbox payments. The generic operator-review dialog is captured separately with an explicitly synthetic nonfinancial case.',
+			reason: 'The new capture fixtures have no financial record; existing historical financial records are not selected or fabricated by this capture. The generic operator-review dialog uses an explicitly synthetic nonfinancial case. Refund states still require genuine provider-confirmed refundable payments.',
 		});
 		await navigate(admin, '/admin/funds');
 		await capture(
@@ -708,8 +713,8 @@ test('capture the accessible payment and operations staging walkthrough', async 
 		expect(runsResponse.status).toBe(200);
 		const runs =
 			runsResponse.data as unknown as RouterOutputs['admin']['simulations'];
-		const run =
-			runs.items.find((item) => item.agentCount === 100) ?? runs.items[0];
+		const run = simulationRunId ? runs.items.find((item) => item.id === simulationRunId) : undefined;
+		if (simulationRunId) expect(run, 'The explicitly pinned run must be present in the normal administrator run list.').toBeDefined();
 		if (run) {
 			const detailResponse = await rpc(
 				admin.request,
@@ -775,11 +780,9 @@ test('capture the accessible payment and operations staging walkthrough', async 
 		} else
 			omitted.push({
 				route: '/admin/simulations/[id]',
-				reason: 'No actual run exists in this environment; no fake running simulation was inserted.',
+				reason: 'WALKTHROUGH_SIMULATION_RUN_ID was not set. No arbitrary historical run was selected, and no fake running simulation was inserted.',
 			});
-		const completedRun = runs.items.find(
-			(item) => item.id !== run?.id && item.status === 'completed',
-		);
+		const completedRun = run?.status === 'completed' ? run : undefined;
 		if (completedRun) {
 			const result = await rpc(
 				admin.request,
@@ -790,12 +793,6 @@ test('capture the accessible payment and operations staging walkthrough', async 
 			expect(result.status).toBe(200);
 			const completed =
 				result.data as unknown as RouterOutputs['admin']['simulation'];
-			observedRuns.push({
-				id: completedRun.id,
-				mode: completed.run.mode,
-				status: completed.run.status,
-				registeredAgents: completed.agents.length,
-			});
 			await navigate(admin, `/admin/simulations/${completedRun.id}`);
 			await capture(
 				admin,
@@ -825,7 +822,7 @@ test('capture the accessible payment and operations staging walkthrough', async 
 					}),
 				);
 			}
-		}
+		} else omitted.push({ route: '/admin/simulations/[id]#completed', reason: 'The explicitly selected run is not completed, or no run was pinned. No unrelated completed history is substituted for this state.' });
 		for (const [page, route, title, caption] of [
 			[
 				guest,

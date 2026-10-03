@@ -11,6 +11,43 @@ model/ramp work below; historical measurements remain evidence, not new requirem
 
 ### October 3 active-goal checkpoint — supersedes paused/live handles below
 
+**21:36 UTC follow-up:** the read-only individual-member history browser check
+passed, with explicit receipts for the owned agent link, ordinary click, exact
+URL, both headings and 25 correctly `entityId`-filtered records. Page/console/
+HTTP/mutation errors were zero; minimum RAM was 2.781 GiB. Browser/API closed,
+and independent process inventory found no owned Playwright Chrome processes.
+The original failed combined sample and later pre-admission rejection remain
+preserved; this does not reconstruct the original failing href or prove an hour.
+
+Replacement operation `51033cb7-0087-4b98-9a56-62e2cd35d477` expired unpaid at
+21:29:27 UTC. Independent 21:33:50 provider/app/normal-member readback verifies
+matching expired status and processed signed expiry event
+`evt_1UMaUlDed7vKVaptcwc0BW9W`. Both cohort operations remain intact; there are
+zero subscriptions, paid coverage, ledger entries or financial submissions.
+All three members remain Neighbor. Never replay either expired Checkout.
+
+The latest docs-only signed main checkpoint `0cf39acf1` is READY on production,
+deployment `dpl_4bKtKdb6cvecLWqGARhfzb9oeCB3`; its authored runtime/lock match
+the tested `bfa90f213` release. Financial/simulation gates remain off. The
+17-state browser smoke below tested that same runtime, not a new browser run
+against the docs-only deployment.
+
+Capture safeguards now require fresh UUID-suffixed namespaces and explicit
+host-only, unexpired staging bootstrap cookies; production/loopback contexts
+receive empty state. Eight offline capture tests and all 133 root unit tests
+pass, with focused lint/type checks. Capture browsers and PDF generation have
+not run. The fresh253 setup/read-only readiness reader remains preparation-only;
+28 offline readiness tests pass, but no new cohort or controller exists.
+Capture manifests/captions distinguish the actual origin and gates. Simulation
+captures require an explicit `WALKTHROUGH_SIMULATION_RUN_ID` present in the
+normal admin run list; no arbitrary historical run is substituted. For the
+reviewed completed short run, pin `b611f721-18fc-47f3-aa42-7bb12b361116`.
+
+Latest history receipt:
+`tmp/community-stage/history-only-b611f721-18fc-47f3-aa42-7bb12b361116-1791063363211.json`.
+Latest expiry receipt:
+`tmp/stripe-test-acceptance-manual/1aa24b5b-c467-4063-a62a-cd6df957b393/supporter-replacement-expiry-final-2026-10-03.json`.
+
 **21:01 UTC follow-up:** signed verified `bfa90f213` is pushed to `main` and
 READY on the canonical production alias, deployment
 `dpl_odip1yeXLq67Ya4FQd9Nzf3PDrZ1`, Node 24. All five production financial/
