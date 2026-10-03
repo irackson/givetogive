@@ -12,12 +12,14 @@ import {
 } from './AdminPrimitives';
 import { EnvironmentNote, Panel, PaymentLoading } from './PaymentPrimitives';
 import { DownloadJsonButton } from './AdminTrends';
+import { activityCursor, activityPollingInterval, mergeActivityPage } from '@/lib/admin-activity-feed';
 
 type Feed = {
 	items: ActivityItem[];
 	nextCursor: number | null;
 	environment: string;
 	observedAt: Date;
+	catchingUp?: boolean;
 };
 
 export function AdminActivity({
@@ -48,32 +50,26 @@ export function AdminActivity({
 		queryKey,
 		queryFn: async (): Promise<Feed> => {
 			const previous = queryClient.getQueryData<Feed>(queryKey);
-			const after =
-				!before && previous?.items.length ?
-					Math.max(...previous.items.map((item) => item.id))
-				:	undefined;
+			const after = activityCursor(previous?.items, Boolean(before));
 			const fresh = await client.admin.activity.query({
 				...initial,
 				...(outcome ? { outcome } : {}),
 				...(from ? { from: new Date(`${from}T00:00:00Z`) } : {}),
 				...(to ? { to: new Date(`${to}T23:59:59.999Z`) } : {}),
 				...(before ? { before } : {}),
-				...(after ? { after } : {}),
+				...(after !== undefined ? { after } : {}),
 				limit: 100,
 			});
-			if (!after || !previous) return fresh;
-			const combined = new Map(
-				[...previous.items, ...fresh.items].map((item) => [
-					item.id,
-					item,
-				]),
-			);
-			const items = [...combined.values()]
-				.sort((a, b) => b.id - a.id)
-				.slice(0, 500);
-			return { ...fresh, items, nextCursor: items.at(-1)?.id ?? null };
+			if (after === undefined || !previous) return fresh;
+			const items = mergeActivityPage(previous.items, fresh.items);
+			return {
+				...fresh, items, nextCursor: items.at(-1)?.id ?? null,
+				catchingUp: fresh.items.length === 100,
+			};
 		},
-		refetchInterval: before ? false : 2000,
+		refetchInterval: (query) => activityPollingInterval(
+			Boolean(before), query.state.data?.catchingUp, query.state.status === 'error',
+		),
 		refetchIntervalInBackground: false,
 		retry: 2,
 	});

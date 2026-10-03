@@ -4,8 +4,65 @@ Recorded September 26-27, 2026 (America/New_York). Hosted timestamps are UTC.
 **Partial implementation acceptance, not a live-money release.**
 The authoritative requirements remain in [the contract](payments-implementation-plan.md).
 
-Latest: [October 3 recovery and provider-only acceptance](#october-3-recovery-and-provider-only-acceptance).
+Latest: [October 3 security and freshness regression](#october-3-security-and-freshness-regression).
 Earlier counts below are historical; they do not prove a completed full-population soak.
+
+## October 3 security and freshness regression
+
+Protected canonical staging deployment `dpl_9v2tUXxH8AJ7qsaaSn8UfMdCmmZS`
+is READY, Node 24, authored runtime digest
+`9a3d105bf3026e03726eba1621400a6f24aa47d3e1a300cb7f6b2dc606245e8f`.
+Supporters remain test-only; Ask/fund/live gates and all production money gates
+remain off. Production is still the previous dark release, not this new runtime.
+
+- Fresh targeted security/cadence/browser-observation source passes 125 root
+  unit tests, 121 isolated integration tests, 86 simulator tests, root/tool types,
+  full lint and a guarded build. No unit/integration/simulator skips.
+- Hosted supplemental E2E passed 36 of 40 cases, four explicit skips, zero
+  failures/retries, from 20:28:55.834 to 20:32:03.993 UTC on the exact deployment
+  above. Skips: disabled-payment state (Supporters enabled here), hosted
+  empty-queue recovery (opt-in off), and both screenshot captures (opt-ins off).
+  The suite includes real normal-cookie script/browser cross-account activity,
+  private-sink email verification/reset, authorization and admin controls.
+  Scoped cleanup left zero newly owned fixture users or browser/runner processes.
+  Exact deployment/time runtime logs show zero HTTP 5xx/error/fatal records.
+  Existing test-level console/page-error assertions passed; this is not a claim
+  of new global console instrumentation.
+- Fresh isolated CI E2E separately passed 36/40 cases, four explicit skips,
+  zero failures/retries, 20:33:31.458 to 20:37:17.940 UTC on unchanged source/lock.
+  Disabled-payment coverage passed here; simulation-record coverage is skipped
+  because CI simulations are off (and passed on staging). Hosted recovery and
+  both captures also remain opted out. Zero server-500/auth/global-error markers;
+  all owned browsers/server and listener 3100 are gone. No current-run fixture
+  users remain. Three September 27 fixture users were preserved, not deleted.
+- The three canonical clock/customer-bound test members passed nine unpaid
+  browser views. The first original $5 Supporter operation
+  `f827ab6e-ae5e-477c-935e-4e5c66b91636` expired unpaid at 20:24:36 UTC.
+  Independent 20:30:57.550 UTC readback verifies the actual owned expiry event,
+  processed signed inbox, matching expired app/normal-UI status, and no invoice,
+  subscription, paid coverage or ledger entries. All three remain Neighbor.
+  No payment submission occurred. Its uncertain ordinary UI acknowledgment
+  remains preserved; the expired financial operation must never be replayed.
+- Run `2ba5c5e4-f339-4b19-88a2-013c7ed447f1` failed continuous-hour coverage at
+  1,799 least-active post-warmup seconds and was safely stopped/drained.
+  Its 29,216 successes/199 rejections remain unchanged. The partial freshness
+  sample also failed: 32 events exceeded five seconds, maximum 5,583 ms, four
+  never rendered. New bounded pre-mutation observation and feed/publication
+  cadence fixes are deployed to staging, not yet accepted by a replacement run.
+  Fresh 28-member short regression is prepared but unlaunched; another genuine
+  mixed hour and full-denominator measurement are still required.
+- Three patch-level dependency fixes retain the original graph. Fresh NFT and
+  server-bundle scans are bounded negative observations, not proof of universal
+  safety; thirteen high audit entries from two unpatched advisories remain.
+  See [dependency security](dependency-security.md).
+
+Private receipts: `tmp/hosted-supplemental-e2e-run-1791059335834.json`,
+`tmp/hosted-supplemental-e2e-log-review-1791059335834.json`,
+`tmp/freshness-ci-e2e-postcheck-1791059876859.json`,
+`tmp/freshness-staging-release-inspection-1791057331751.json`, and
+`tmp/stripe-test-acceptance-manual/1aa24b5b-c467-4063-a62a-cd6df957b393/supporter-expiry-reconciliation.json`.
+Credential files and Checkout URLs stay ignored/private. Link CLI is in the
+icebox at Ian's request; no installation, wallet authentication or real purchase.
 
 ## October 3 recovery and provider-only acceptance
 

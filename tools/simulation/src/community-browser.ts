@@ -1,4 +1,4 @@
-import { chromium, type Browser } from 'playwright';
+import { chromium, type Browser, type BrowserContext } from 'playwright';
 import { z } from 'zod';
 import { safeBrowsePath } from './browser.ts';
 import {
@@ -9,7 +9,11 @@ import {
 	type EntityRef,
 } from './activity.ts';
 import { protectionHeaders } from './protection.ts';
-import { ApiRejection, type UiSession } from './ui-session.ts';
+import { ApiRejection, UiObservationUnavailable, type UiSession } from './ui-session.ts';
+import {
+	BrowserWorkflowFailure, BrowserObservationUnavailable, BrowserApiRejection, observeContributionControl, isBeforeMutationObservation,
+	type BrowserObservationState,
+} from './browser-observation.ts';
 import { Semaphore } from './semaphore.ts';
 import {
 	BrowserMutationUnresolved,
@@ -25,8 +29,10 @@ const units = {
 export class CommunityBrowser {
 	readonly slots: Semaphore;
 	private opening?: Promise<Browser>;
-	constructor(concurrency: number) {
+	private readonly launch: () => Promise<Browser>;
+	constructor(concurrency: number, launch = () => chromium.launch({ headless: true })) {
 		this.slots = new Semaphore(concurrency, 30);
+		this.launch = launch;
 	}
 	async action(
 		api: UiSession,
@@ -39,14 +45,19 @@ export class CommunityBrowser {
 	): Promise<EntityRef | undefined> {
 		return this.slots.run(async () => {
 			admit?.();
-			this.opening ??= chromium.launch({ headless: true });
-			const browser = await this.opening;
-			const context = await browser.newContext({
-				storageState: await api.context.storageState(),
-				viewport: { width: 1280, height: 900 },
-			});
+			const observation: BrowserObservationState = {
+				phase: 'browser_open', mutationAdmitted: false, mutationSent: false,
+				pageErrors: 0, consoleErrors: 0,
+			};
+			let context: BrowserContext | undefined;
+			let admissionError: unknown;
 			try {
-				let sent = false;
+				this.opening ??= this.launch();
+				const browser = await this.opening;
+				context = await browser.newContext({
+					storageState: await api.context.storageState(),
+					viewport: { width: 1280, height: 900 },
+				});
 				let rejectAdmission!: (error: unknown) => void;
 				const admissionFailed = new Promise<never>(
 					(__resolve, reject) => {
@@ -84,15 +95,19 @@ export class CommunityBrowser {
 							!expected ||
 							new URL(route.request().url()).pathname !==
 								`/api/trpc/${expected}` ||
-							sent
+							observation.mutationSent
 						) {
 							await route.abort();
 							return;
 						}
 						try {
+							observation.phase = 'mutation_admission';
 							beforeMutation?.(expected);
-							sent = true;
+							observation.mutationAdmitted = true;
+							observation.mutationSent = true;
+							observation.phase = 'mutation_request';
 						} catch (error) {
+							admissionError = error;
 							rejectAdmission(error);
 							await route.abort();
 							return;
@@ -112,6 +127,7 @@ export class CommunityBrowser {
 								timeout: 30000,
 							});
 							const body = await response.body();
+							observation.phase = 'mutation_response';
 							let failure: unknown;
 							try {
 								await verifyBrowserMutationResponse(
@@ -153,6 +169,7 @@ export class CommunityBrowser {
 				await context.setExtraHTTPHeaders({});
 				// Bypass attaches only to this origin, including the context API verification.
 				const headers = protectionHeaders(bypass);
+				observation.phase = 'identity';
 				const response = await context.request.get(
 					`${api.origin}/api/auth/session`,
 					{ headers, maxRedirects: 0 },
@@ -167,24 +184,23 @@ export class CommunityBrowser {
 					await response.dispose();
 				}
 				const page = await context.newPage();
-				let pageErrors = 0;
 				page.on('pageerror', () => {
-					pageErrors++;
+					observation.pageErrors++;
 				});
 				page.on('console', (message) => {
-					if (message.type() === 'error') pageErrors++;
+					if (message.type() === 'error') observation.consoleErrors++;
 				});
 				const checked = <T>(value: T): T => {
 					// Never log raw console bodies: they can contain private server responses.
-					if (pageErrors)
-						throw new Error(
-							`Browser reported ${pageErrors} console or page errors; inspect a redacted diagnostic separately.`,
-						);
+					if (observation.pageErrors || observation.consoleErrors)
+						throw new BrowserWorkflowFailure(observation);
 					return value;
 				};
 				const confirmMutation = async (
 					click: () => Promise<unknown>,
 				) => {
+					checked(undefined);
+					observation.phase = 'mutation_admission';
 					let timer: ReturnType<typeof setTimeout> | undefined;
 					const deadline = new Promise<never>((__resolve, reject) => {
 						timer = setTimeout(
@@ -206,11 +222,14 @@ export class CommunityBrowser {
 					} finally {
 						clearTimeout(timer);
 					}
+					observation.phase = 'ui_transition';
 					// The decoded response is not enough: callers still wait for the
 					// UI transition and verify the exact entity with their own API.
 				};
 				if (line.action === 'browse') {
+					observation.phase = 'navigation';
 					await page.goto(safeBrowsePath(line.path, api.origin).href);
+					observation.phase = 'browse_view';
 					await page.locator('main').waitFor();
 					await page
 						.getByRole('form', { name: 'Filter Asks' })
@@ -221,7 +240,9 @@ export class CommunityBrowser {
 					return checked(undefined);
 				}
 				if (line.action === 'create_ask') {
+					observation.phase = 'navigation';
 					await page.goto(`${api.origin}/asks`);
+					observation.phase = 'create_form';
 					await page
 						.getByRole('button', {
 							name: 'Post an ask',
@@ -268,6 +289,7 @@ export class CommunityBrowser {
 					await page.waitForURL((url) =>
 						/^\/asks\/[^/]+$/.test(url.pathname),
 					);
+					observation.phase = 'entity_verification';
 					const result = z
 						.object({
 							id: z.number().int().positive(),
@@ -289,6 +311,7 @@ export class CommunityBrowser {
 					return checked({ kind: 'ask', id: result.id });
 				}
 				if (line.action === 'set_contribution_status') {
+					observation.phase = 'contribution_history';
 					if (!entity?.askId || entity.kind !== 'contribution')
 						throw new Error(
 							'Browser contribution history needs its exact parent Ask reference.',
@@ -321,6 +344,7 @@ export class CommunityBrowser {
 							.click(),
 					);
 					await dialog.waitFor({ state: 'hidden' });
+					observation.phase = 'entity_verification';
 					const detail = (await api.query('ask.getAsk', {
 						id: entity.askId,
 					})) as {
@@ -341,6 +365,7 @@ export class CommunityBrowser {
 						'This browser action needs its selected Ask.',
 					);
 				if (line.action === 'save_ask') {
+					observation.phase = 'saved_view';
 					const detail = z
 						.object({
 							title: z.string(),
@@ -373,6 +398,7 @@ export class CommunityBrowser {
 							exact: true,
 						})
 						.waitFor();
+					observation.phase = 'entity_verification';
 					const saved = (await api.query('ask.getAsks', {
 						query: detail.title,
 						savedOnly: true,
@@ -384,6 +410,7 @@ export class CommunityBrowser {
 					return checked({ kind: 'ask', id: ask.id });
 				}
 				if (line.action === 'contribute') {
+					observation.phase = 'contribution_target';
 					if (ask.type === 'money')
 						throw new Error(
 							'Use the dedicated sandbox payment scenario for monetary Checkout.',
@@ -395,21 +422,24 @@ export class CommunityBrowser {
 					const known = new Set(
 						before.contributions.map((item) => item.id),
 					);
+					observation.phase = 'contribution_view';
 					await page.goto(`${api.origin}/asks/${ask.id}`);
 					await page.locator('.ask-detail').waitFor();
 					const offer = page.getByRole('button', {
 						name: 'Offer a contribution',
 						exact: true,
 					});
-					if (!(await offer.count())) {
-						// A script can fill this Ask while the browser navigates. Prove
-						// that change via the same member API; a missing selector alone
-						// is a driver fault, not permission to invent a safe outcome.
-						await freshContributionTarget(api, ask.id, line.amount);
-						throw new Error(
-							'Eligible Ask has no contribution control.',
-						);
-					}
+					await observeContributionControl(
+						observation,
+						() => freshContributionTarget(api, ask.id, line.amount),
+						async () => (await offer.count()) === 1 && await offer.isVisible(),
+						async () => {
+							await page.reload();
+							await page.locator('.ask-detail').waitFor();
+						},
+						admit,
+					);
+					observation.phase = 'contribution_form';
 					await offer.click();
 					await page
 						.getByRole('dialog')
@@ -428,6 +458,7 @@ export class CommunityBrowser {
 							.click(),
 					);
 					await page.getByRole('dialog').waitFor({ state: 'hidden' });
+					observation.phase = 'entity_verification';
 					const after = (await api.query('ask.getAsk', {
 						id: ask.id,
 					})) as {
@@ -455,16 +486,23 @@ export class CommunityBrowser {
 					'Browser workflow is not implemented for this action yet.',
 				);
 			} catch (error) {
-				if (error instanceof ApiRejection) throw error;
+				if (observation.pageErrors || observation.consoleErrors)
+					throw new BrowserWorkflowFailure(observation);
+				if (admissionError !== undefined && error === admissionError) throw error;
+				if (error instanceof BrowserWorkflowFailure) throw error;
+				if (error instanceof ApiRejection) throw new BrowserApiRejection(error, observation);
 				if (error instanceof ActivitySelectionChanged) throw error;
-				if (error instanceof BrowserMutationUnresolved) throw error;
+				if (error instanceof UiObservationUnavailable && isBeforeMutationObservation(observation))
+					throw new BrowserObservationUnavailable(observation);
 				// Playwright errors can embed DOM text, URLs or form values. Keep
 				// public telemetry phase-only; never persist their raw diagnostics.
-				throw new Error(
-					`Browser ${line.action} did not reach an independently verified outcome; private diagnostics withheld.`,
-				);
+				throw new BrowserWorkflowFailure(observation);
 			} finally {
-				await context.close();
+				try { await context?.close(); }
+				catch {
+					observation.phase = 'context_close';
+					throw new BrowserWorkflowFailure(observation);
+				}
 			}
 		});
 	}

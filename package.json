@@ -83,7 +83,8 @@
 	"packageManager": "npm@10.8.3",
 	"overrides": {
 		"@workflow/core": {
-			"nanoid": "5.1.16"
+			"nanoid": "5.1.16",
+			"devalue": "5.9.3"
 		},
 		"@workflow/world-local": {
 			"undici": "7.30.0"

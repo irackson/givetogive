@@ -19,8 +19,10 @@ import { CommunityControl, TerminalCommunityRun, assertTerminalCommunityCleanup 
 import { CommunityState } from './community-state.ts';
 import { Store } from './store.ts';
 import { flushOutbox } from './outbox.ts';
+import { controllerPollingDelay } from './controller-cadence.ts';
 import { HostedTransportError } from './transport.ts';
 import { observationRetryDelay } from './observation-retry.ts';
+import { browserDiagnostic } from './browser-observation.ts';
 import { assertCommunityCheckpoint, reviewedCheckpointStop } from './community-recovery.ts';
 import { registerCommunityShutdown } from './community-shutdown.ts';
 
@@ -161,6 +163,8 @@ function event(
 }
 async function controllerLoop() {
 	while (!stopping && !state.stopping && Date.now() < finishAt) {
+		const cycleStartedAt = Date.now();
+		let failed = false;
 		try {
 			await control.preflight();
 			const batch = await control.transport.control(
@@ -235,6 +239,7 @@ async function controllerLoop() {
 			);
 			lastControlAt = Date.now();
 		} catch (error) {
+			failed = true;
 			if (
 				error instanceof HostedTransportError &&
 				[401, 403, 409].includes(error.status)
@@ -256,7 +261,8 @@ async function controllerLoop() {
 				}),
 			);
 		}
-		if (!stopping && !state.stopping) await sleep(2000);
+		if (!stopping && !state.stopping)
+			await sleep(controllerPollingDelay(cycleStartedAt, Date.now(), failed));
 	}
 }
 async function userLoop(id: string) {
@@ -414,6 +420,7 @@ async function userLoop(id: string) {
 				job.wakeAt = Date.now() + observationDelay;
 				event(id, 'backing_off', 'Read-only observation unavailable before any member mutation.', {
 					lineId: job.line.id, outcome: 'observation_backoff', attempt: job.observationRetries,
+					...browserDiagnostic(error),
 				});
 				console.log(JSON.stringify({ user: id, driver, line: job.line.id, outcome: 'observation_backoff', attempt: job.observationRetries }));
 				continue;
@@ -440,6 +447,7 @@ async function userLoop(id: string) {
 				{
 					lineId: job.line.id,
 					outcome: rejected ? 'rejected' : 'ambiguous',
+					...browserDiagnostic(error),
 					...(error instanceof ApiRejection ?
 						{ httpStatus: error.status, errorCode: error.code }
 					:	{}),

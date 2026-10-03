@@ -27,6 +27,13 @@ supporter/fund sales and production simulations remain disabled. Protected stagi
 the final PDF, deployment identity, and full acceptance results must be recorded
 separately in the release handoff and [acceptance contract](payments-implementation-plan.md).
 
+October 3 checkpoint: protected canonical staging deployment
+`dpl_9v2tUXxH8AJ7qsaaSn8UfMdCmmZS` is READY on Node 24 with authored runtime
+digest `9a3d105bf3026e03726eba1621400a6f24aa47d3e1a300cb7f6b2dc606245e8f`.
+Its source/upload/lock and all-deployment protection were verified. Supporter
+test sales alone are enabled; Ask/fund and production gates remain off. This
+does not establish a paid member tier or completion of financial acceptance.
+
 ## Existing community capabilities retained
 
 | Capability | Tag | Behavior retained |
@@ -76,6 +83,7 @@ introduced. No paid tier is earned by assigning a label to a synthetic account.
 | Fair recovery queues | brand new | Attempt ordering and row claims prevent poison first-page records from starving newer work. Up to 20 batches per sweep; immediate workflows plus a daily Hobby-compatible fallback, not a five-minute recovery SLA. |
 | Global activity and financial history | partly implemented before | Ask-local activity/history existed. Cross-entity operational events, financial journals, admin actions, telemetry and simulation histories are new. |
 | Admin overview and drill-downs | brand new | Member/Ask/help/giving/recurring-revenue measures; activity filters and bounded export; payment history, journal/provider IDs, recovery queues; member detail and audited freeze/unfreeze controls. |
+| Live activity publication and cursor catch-up | newly finished | Foreground live-feed polling targets one second; full incremental pages catch up at 250 ms, preserving cursor zero after an initially empty result, de-duplicating IDs and retaining a bounded 500-event display. Archive pages remain non-polling. Controller publication accounts for request time within its one-second period, yields at least 250 ms and backs off to two seconds on failure. These timings are implementation policy, not proof of a five-second action-to-render target. |
 | Per-Ask payment pause | brand new | Authorized administrators can pause/resume new payment and fund-allocation reservations with an audited reason and stale-state protection. Existing Checkouts can still settle; refunds and recovery continue. No provider eligibility or environment gate is bypassed. |
 | Recovery-case review | brand new | Paginated private operator history with audited acknowledgement/escalation and idempotent retries. Reviewing a case cannot resolve a financial hold, change a payment, or claim money recovered. |
 | Analytics definitions | brand new | Giving excludes legacy pledges and supporter subscriptions. Verified net subtracts confirmed recipient refunds/disputes. Supporter MRR requires active, non-canceling, paid-through supporter subscriptions. Request latency is measured, not fabricated; missing observations remain unavailable. |
@@ -84,6 +92,7 @@ introduced. No paid tier is earned by assigning a label to a synthetic account.
 | Concurrent auth throttling | newly finished | The existing database limiter now updates atomically rather than losing simultaneous attempts. |
 | Password-reset revocation | newly finished | Resetting an existing account password also invalidates prior session versions/tokens; already-issued sessions are no longer silently retained. |
 | Environment isolation | brand new | Separate synthetic-only staging and CI databases/roles, environment identity, protected staging origin, private encrypted staging email sink, independent payment/supporter/fund flags, and explicit production live approval gate. |
+| Targeted dependency security hardening | newly finished | Retained the installed graph while patching brace-expansion to 5.0.12/1.1.21 and the scoped Workflow devalue override to 5.9.3; three Buffer-view disclosure regressions pass. Thirteen high audit entries remain from two unpatched braces/http-cache-semantics advisories, six in the production installation. Fresh local traces/bundles contain no observed chain paths/markers; this bounded packaging evidence is not universal unreachability or a zero-vulnerability audit. See the [security checkpoint](dependency-security.md). |
 
 Giving is not a bank-payout metric. Daily giving groups current net values by the
 original UTC payment date, not a historical cash-flow reconstruction. Simulation
@@ -103,14 +112,16 @@ required member transport or a replacement for the mixed-community soak.
 | Retry and identity protection | brand new | Caller-supplied user IDs do not grant identity; stable correlation IDs bind mutation retries. Atomic domain writes and persisted operation results prevent duplicate effects; ambiguous external Checkout outcomes require reconciliation. |
 | Checkout handoff tool | brand new | A gated test-mode Checkout preparation tool, not arbitrary card charging. No model access to Stripe secret keys or financial-administrator powers. |
 | Controlled sandbox checkout lane | brand new | Separate serial, fixed-scenario browser harness with server-attested owned test Checkout, finite persistent budgets, secret-isolated fixed test-card entry, and reconciliation-only handling after ambiguous submission. Local policy/driver tests pass; actual Stripe-hosted DOM/3DS/provider outcomes remain unverified. |
-| Tiny subscription-clock cohort | brand new | Explicit scoped operator endpoint creates/reads/advances one named test clock for a deterministic cohort of at most three synthetic members. Own-account binding occurs before first Checkout. Clock controls are not model tools; the 100-agent baseline has no clock scope. Actual renewals/cancellations remain unverified. |
+| Tiny subscription-clock cohort | brand new | Explicit scoped operator endpoint creates/reads/advances one named test clock for a deterministic cohort of at most three synthetic members. Own-account binding occurs before first Checkout. The fresh staging cohort now has a ready actual clock, three verified Accounts-v2 customer mappings and immutable canonical bindings. Clock controls are not model tools; the 100-agent baseline has no clock scope. App-linked paid renewals/cancellations remain unverified. |
 | Independent agents | brand new | Up to 100 Strands TypeScript agent instances with distinct synthetic accounts, personas, goals, budgets, memory and checkpoints. They share bounded local inference capacity, not one conversation or 100 loaded model copies. |
 | Ongoing scripted and browser community | brand new | Up to 280 independent normal-auth accounts, with 1–30 browser accounts and bounded browser/API pools. JSONL recurring rules react to current records and browser-created activity; exact references preserve returned IDs. No SQL activity, impersonation, privileged member token or fabricated entitlement. |
 | Cross-machine controller fencing | newly finished | One server-owned controller binds the cohort, program and both durable journals. Stale heartbeats never permit automatic takeover; reviewed recovery leaves the run paused and retains unresolved actions. |
 | Browser Ask identity and terminal connection state | newly finished | Save uses the exact canonical entity link even with duplicate titles. A completed/stopped runner is offline regardless of a recent heartbeat; terminal history remains available. |
 | Script/browser concurrency race handling | newly finished | An authoritative pre-admission target change waits for a new selection. A submitted or uncertain action still pauses rather than replaying; a real hosted stale-target regression proved zero browser POSTs. |
 | Browser streaming response verification | newly finished | Decodes the actual UI request-negotiated tRPC stream, including HTTP-200 application rejection. Captures the single response before success navigation discards it; forwarding disables retries/redirects, and entity/UI readback remains required. |
-| Full-community continuity evidence | brand new | All-participant warmup, least-recently-active endpoint, per-participant five-minute windows and action-gap checks distinguish an ongoing community from process uptime or a stopped browser. A 253-member run retained 39,591 successes but failed at 3,509 seconds after warmup; preserved unchanged and safely stopped. A fresh hour run remains required. |
+| Safe browser phase and intent diagnostics | newly finished | Error telemetry carries only a fixed phase vocabulary, admitted/sent intent flags and bounded page/console-error counts, never raw DOM, credentials or provider bodies. Post-response but unverified actions remain fail-closed; errors are not hidden to manufacture a retry or success. |
+| Pre-submit contribution control recovery | newly finished | A freshly API-eligible contribution target with a missing UI control gets at most two read-only reload/observations before any intent. Admission, sent/uncertain mutations, page/console errors and post-response verification failures forbid this retry. Deterministic tests prove the boundaries; no natural-run recovery or fresh soak success is inferred. |
+| Full-community continuity evidence | brand new | All-participant warmup, least-recently-active endpoint, per-participant five-minute windows and action-gap checks distinguish an ongoing community from process uptime or a stopped browser. The first 253-member run retained 39,591 successes but failed at 3,509 seconds after warmup. A second retained 29,216 successes/199 rejections but a halted browser limited coverage to 1,799 seconds; its partial dashboard measurement also failed the five-second target. Both were safely stopped with history preserved. A fresh hour run remains required. |
 | Observation versus mutation recovery | newly finished | Failed allowlisted GETs before intent get three bounded retries and fresh selection. Unknown POSTs, admitted writes, auth errors and generic browser faults never replay. The first full-population read halt was preserved as a failed soak, not rewritten as success. |
 | Whole-history release check and isolated migration rehearsal | newly finished | Exact-old/current builds, real old→current→old auth/session/Ask browser compatibility and final 36-case CI browser regression pass. A fresh ready no-compute backup precedes actual production 0011–0018 migration: nineteen migrations, legacy data/unrelated schema preserved and safe member defaults. Signed new-code dark release is published; anonymous browser/runtime checks pass. All production money/simulation gates stay off, with genuine paid acceptance still unfinished. |
 | Offline Stop checkpoint and claim cleanup | newly finished | A fresh normal-admin recovery receipt permits control-only application of one reviewed queued Stop, without member authentication/activity. Terminal cleanup requires empty mutation/outbox state and dead recorded controllers; historical outcomes remain unchanged. Actual stranded 253-member recovery verified. |
@@ -133,7 +144,7 @@ model agents share inference capacity rather than requiring one model per user.
 | Existing `/`, `/asks`, `/asks/[slugOrId]`, `/members/[id]` | Expanded navigation; payment-aware Ask progress and owner enrollment confirmation; Checkout quote dialog; optional supporter badge/preference. Existing non-monetary/legacy views remain. |
 | `/support` | Free/paid plan comparison, sign-in/gated configuration states, subscription Checkout or billing management. |
 | `/giving`, `/giving/[id]` | Private impact/history, payment detail, pending/failure/refund states, receipt link and Checkout cancellation confirmation. |
-| `/account/billing` | Own subscription/tier overview, paid-through/time-verification state, change preview/confirmation/history, pending invoice handoff, cancel/resume/undo and provider portal. `/account` and `/billing` redirect here. Provider-dependent states remain gated until sandbox setup. |
+| `/account/billing` | Own subscription/tier overview, paid-through/time-verification state, change preview/confirmation/history, pending invoice handoff, cancel/resume/undo and provider portal. `/account` and `/billing` redirect here. Provider-dependent states require genuine owned records and enabled feature/policy gates; configured credentials alone do not establish paid membership. |
 | `/account/receiving` | Recipient setup/readiness/restrictions, embedded provider components when configured, dashboard fallback. `/receiving` redirects here. |
 | `/account/security` | Session revocation confirmation and administrator authenticator/elevation controls. |
 | `/funds`, `/funds/[slug]` | Public fund list/detail, balances/allocation history, one-time/monthly gift dialog and unavailable/empty states. |
@@ -170,13 +181,38 @@ signed expiry delivery were verified. No paid subscription or main money path
 is established by that expiry. Larger ramps/freshness results are maintained in
 the [verification record](payments-verification.md), not inferred from fixtures.
 
+October 3 follow-up: unit 125/125, isolated integration 121/121, simulator
+86/86, types, full lint and guarded build passed at the protected-staging
+checkpoint above. Hosted E2E ran at 20:28-20:32 UTC: 36 passed, four explicit
+skips, zero failures; fresh isolated CI E2E at 20:33-20:37 UTC also passed
+36 tests with four explicit skips and no retries. Hosted results do not replace
+its isolated CI coverage. The fresh 28-account short regression is prepared
+with zero member activity, paid grants or controller ownership, not launched.
+The repaired short run, full-population hour and fresh action-to-render/history
+acceptance have not yet executed.
+
+20:43 UTC follow-up: the prepared 28-member short run started under detached
+supervision. Independent review finds every member with at least six genuine
+successes and all three browser members with real UI mutations, no halted or
+pending actions. Its dashboard measurement and terminal drain are still in
+progress; this is not a passed short regression or the required mixed hour.
+
+Application test credentials and the fresh canonical clock/customer bindings
+are configured; they are no longer blanket setup blockers. The original fresh
+$5 Checkout expired unpaid, and its actual signed expiry was processed; the
+expired handoff/uncertain acknowledgment history is retained, not replayed or
+counted as settlement. Provider restrictions must be assessed on the actual
+current surface and obeyed if displayed, not asserted as a universal manual-only
+test-card rule. No new paid tier, settled member payment or financial lifecycle
+acceptance is claimed.
+
 These are scoped results, not a replacement for the root release verification
 record. A protected ten-member deterministic smoke completed 30 real nonfinancial
 actions with 200 acknowledged telemetry records. No successful 100-agent autonomous soak or real Stripe
 payment/subscription/test-clock lifecycle is claimed here.
 
-Outstanding acceptance includes actual sandbox credentials/account setup,
-onboarding, every Checkout path, declines/3DS/async flows, webhook delivery,
+Outstanding acceptance includes recipient onboarding, paid completion of every
+Checkout path, declines/3DS/async flows, signed paid settlement delivery,
 renewals/plan changes/test clocks, refunds/disputes/payout failures, crash recovery,
 and the measured 10 -> 25 -> 100 -> 253 ongoing scripted/browser progression,
 one-hour mixed soak and cross-tier actions.

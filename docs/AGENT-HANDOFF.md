@@ -11,6 +11,115 @@ model/ramp work below; historical measurements remain evidence, not new requirem
 
 ### October 3 active-goal checkpoint — supersedes paused/live handles below
 
+**20:52 UTC short-run follow-up:** the actual ten-minute supervisor finished
+at 20:50:53.992 UTC, exit 0: 799 successes, five authoritative rejections, zero
+paused/backoff outcomes. Independent local review finds all 28 with at least
+21 successes, all browsers with real UI mutations, zero pending/outbox/claims,
+and both recorded processes dead. Hosted terminal/ownership review is pending.
+The 90-second dashboard window passed all 111/111 actions, maximum 2,086 ms,
+zero late/missing/unpublished events or browser errors. Its subsequent history
+assertion failed because the helper selected a run-level link as a member link;
+a separate ordinary member-link navigation passed both headings with no errors.
+Retain the original failed combined attempt; the helper selector is corrected,
+and independent scoped history readback is still being completed. This remains
+a short regression, not the required full-population hour.
+
+**20:43 UTC short-run follow-up:** fresh run
+`b611f721-18fc-47f3-aa42-7bb12b361116` is now running, not terminal acceptance.
+Detached start at 20:40:52.900 UTC is fsynced: supervisor 10456, child 19260,
+creation dates/parent verified after launch shell exited. Independent review
+finds all 28 members with at least six successes (231 total), all three browser
+members with real UI mutations, zero pending/outbox/halted participants. Two
+authoritative script rejections are retained, not counted as success. One
+90-second dashboard freshness/history measurement is in progress. Do not start
+another controller, reuse its program/journals or claim the hour requirement.
+
+**20:38 UTC follow-up:** current-source protected hosted and isolated CI E2E
+each pass 36/40 cases, four explicit environment/capture skips, zero failures
+or retries. Disabled-payment coverage passed in CI; simulation-record coverage
+passed on staging. Exact hosted test-window logs have zero 5xx/error/fatal
+records; CI has zero server-500/auth/global-error markers. Owned browsers,
+servers and listener 3100 are gone; no current-run fixture users remain. Three
+September 27 CI fixtures were preserved. Read `payments-verification.md` and
+the exact private receipts before treating these differently gated suites as
+financial, screenshot or soak acceptance.
+
+**20:31 UTC follow-up:** the original $5 test Checkout's 20:24:36 expiry
+deadline passed without card entry or payment submission. The ordinary visible
+agent-acknowledgment attempt had an uncertain result; its write-once intent and
+uncertainty receipt are preserved. A separate nonfinancial recovery was prepared
+but never invoked before expiry. Do not replay either financial preparation or
+the expired browser handoff. Read-only reconciliation verifies provider/app/UI
+expired and unpaid, matching processed signed expiry event, zero subscriptions,
+paid coverage and ledger entries. All three members remain Neighbor. Any
+replacement needs a fresh reviewed operation and retains this failed history.
+No paid member tier or settled financial acceptance is claimed. Link CLI is in
+the icebox at Ian's request, not installed/authenticated by this work.
+
+**19:55 UTC staging follow-up:** new protected canonical staging deployment
+`dpl_9v2tUXxH8AJ7qsaaSn8UfMdCmmZS` is READY with authored runtime digest
+`9a3d105bf3026e03726eba1621400a6f24aa47d3e1a300cb7f6b2dc606245e8f`;
+production remains the earlier disabled-gate release. Staging source/upload/lock,
+Node 24, all-deployment protection, existing env metadata and Supporter-only test
+gates are independently verified. Unit 125/125, isolated integration 121/121,
+simulator 86/86, types, full lint and guarded build pass. Fresh CI E2E and repaired
+mixed-run/freshness acceptance remain open; hosted E2E cannot replace the
+disabled-payment CI case. See `dependency-security.md` for residual advisories
+and the bounded fresh NFT/server-bundle scan.
+
+Fresh short-regression run `b611f721-18fc-47f3-aa42-7bb12b361116` is prepared,
+not launched: 28 independent synthetic accounts, 25 scripts/three browsers,
+126 namespaced JSONL lines, clean unowned journals, no SQL Ask activity or paid
+grants. Read `tmp/community-short28-plan.md` and `tmp/community-short-review.mjs`.
+Root approval and measured startup headroom are required before detached launch;
+never reuse old failed UUIDs, source files, journals or supervision logs.
+
+The three clock-bound normal members passed nine unpaid browser route checks.
+Only the first Supporter was prepared once: operation
+`f827ab6e-ae5e-477c-935e-4e5c66b91636`, $5 test Checkout, `checkout_open`, expires
+20:24:36 UTC. Its immutable manifest/admission and private provider handoff are
+under `tmp/stripe-test-acceptance-manual/1aa24b5b-c467-4063-a62a-cd6df957b393/`.
+Do not recreate/replay that preparation, pay a different operation, or use its
+expired URL. Actual provider inspection found conditional Link CLI guidance and
+a visible agent acknowledgment, not an explicit universal test-card prohibition.
+Root is reviewing the ordinary supported acknowledgment before any card entry;
+new restrictions must still fail closed. No card, submit, paid tier, signed paid
+settlement or lifecycle acceptance exists at this checkpoint.
+
+**19:30 UTC follow-up, superseding the live-run handles below:** run
+`2ba5c5e4-f339-4b19-88a2-013c7ed447f1` failed the continuous-hour requirement.
+A browser participant halted at 19:01:46; least-active post-warmup coverage
+stopped at 1,799 seconds. Normal admin Stop command 24 drained it at
+19:15:39.722 UTC, exit 0. Independent review verifies stopped/offline/unowned,
+zero pending mutations/outbox/claims/live processes, 29,216 preserved successes
+and 199 authoritative rejections. Ownership matches 776 Asks and 5,892
+contributions. Do not restart this terminal run or alter its failed history.
+The partial 45-second dashboard measurement also failed: 32 actions exceeded
+five seconds, maximum 5,583 ms, and four were not rendered. New local browser
+observation/phase diagnostics and publication/polling fixes are under verification;
+they are not yet a successful replacement hour or a deployed acceptance result.
+
+The three-member staging cohort `1aa24b5b-c467-4063-a62a-cd6df957b393` has
+actual ready clock `clock_1UMYQiDed7vKVaptsuDlwk2V` and three provider-verified
+Accounts-v2 customer mappings with immutable canonical bindings. Root executed
+each setup stage exactly once; readback at 19:17:48 UTC verifies zero owned
+Asks/payments/subscriptions/paid coverage/ledger entries. Setup receipt directory:
+`tmp/stripe-test-acceptance-clock-setup/<run-id>/`; final read-only evidence:
+`tmp/stripe-test-acceptance-clock-inspection.json`. Never rerun its clock/customer
+setup. Desired persona labels are not paid tiers. Ordinary member UI verification
+is still in progress, not passed. Revalidate actual Checkout controls before
+asserting a human-only test-card blocker: current installed Stripe guidance has
+no blanket sandbox-card automation prohibition, and the older blocking panel
+text was not retained. Never bypass a restriction if the actual provider displays it.
+
+Targeted dependency security fixes are local, not yet pushed: brace-expansion
+5.0.12/1.1.21 and an @workflow/core-only devalue 5.9.3 override. Original dependency
+graph is retained; no major upgrade, peer pruning, or broad npm audit fix. Final
+`npm ci --legacy-peer-deps` passes. Three Buffer serialization regressions failed
+on 5.9.2 and pass on 5.9.3. Thirteen high dependency-path audit findings remain,
+rooted in currently unpatched braces/http-cache-semantics; exposure review is
+in progress. Do not claim a zero-vulnerability audit or finished release checks.
+
 **Published dark release:** signed verified commit `ff131b6fd79f833753305ebe4fd79d0c6d4f56ec`
 was pushed to `main`. READY production deployment
 `dpl_7qTLBG19hfWoRxHABZp4i3mtdjHn` owns `givetogive.vercel.app`, Node 24.x.
@@ -78,7 +187,8 @@ migrations, ten legacy tables' data fingerprints preserved, unrelated schema
 preserved and safe defaults for existing users. Fresh ready/no-compute backup
 `br-aged-cherry-a4hn33kn` retains production at LSN `0/7C89E528`.
 Evidence: `tmp/production-payments-migration.json`. All five payment/live/fund/
-supporter/simulation gates remain disabled. No public code deployment yet.
+supporter/simulation gates remain disabled. Public dark code publication is
+verified above; financial feature activation remains separate.
 Rollback means old app code with additive schema retained, not restoring the
 entire shared database branch or rewriting migration history.
 
