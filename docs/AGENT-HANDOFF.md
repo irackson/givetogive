@@ -11,6 +11,27 @@ model/ramp work below; historical measurements remain evidence, not new requirem
 
 ### October 3 active-goal checkpoint — supersedes paused/live handles below
 
+**Hosted execution follow-up (supersedes the earlier preparation wording):**
+the guarded workflow was signed/pushed as `d9c184ab`, and actual credential-free
+cloud smoke `37160298140` passed. The new AES test secret is configured through
+CLI stdin; its local key copy is CurrentUser-DPAPI protected. No Stripe, DB,
+production or admin credentials were supplied to the community job.
+Authenticated attempts `37160782200` and `37161630172` failed **before member
+admission**, respectively during input wait and private materialization.
+Preserve their original ignored receipts, private drafts and unused inputs.
+The local operator now sends explicit binary Content-Length, and the tracked
+wrapper normalizes its module root, handles ordinary read-only SQLite SHM
+without permitting nonempty WAL, and emits only fixed safe failure phases.
+Root reran all **109/109** simulation tests (zero skips) and tools TypeScript:
+pass. These are repairs, not authenticated/paid/hour acceptance.
+Next: signed fresh source, credential-free smoke, then a separate five-member
+cohort under `tmp/community-hosted-smoke-setup3.mjs`; this helper is a reviewed
+five-path substitution of the preserved second helper. Do not consume or
+regenerate the untouched 253-user program. See the hosted guide for the actual
+failure run/cohort bindings. Production `d9c184ab` was observed READY on
+`dpl_E4iasMMtXfJeRgmaGtfiggyBjj9k`; application and lock fingerprints remain
+unchanged. No new paid transaction or PDF authoring run has occurred.
+
 **Hosted-test preparation follow-up:** Ian approved a manual, staging-only
 GitHub Actions runner using synthetic-account and limited staging credentials,
 with no production credentials, live payments or paid runner. Implementation

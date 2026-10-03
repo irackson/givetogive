@@ -19,7 +19,8 @@ import { encryptionKey, fileBytes, privateFile, seal, unseal, validateFiles } fr
 import { PrivateDraft } from './hosted-community-github.ts';
 import { HostedAttention, HostedTelemetryAttention, linuxProcessIdentity } from './hosted-community-attention.ts';
 
-const base = fileURLToPath(new URL('../', import.meta.url)), root = resolve(base, '../..');
+const base = resolve(fileURLToPath(new URL('../', import.meta.url))), root = resolve(base, '../..');
+let executionPhase = 'arguments';
 const bundleSchema = z.object({ purpose: z.literal('fresh-input'), manifest: manifestSchema, files: z.unknown() }).strict();
 const credentialSchema = z.object({ runId: z.string(), mode: z.literal('scripted'), origin: z.literal(approved.origin),
  databaseIdentity: z.literal(approved.databaseIdentity), runnerToken: z.string().min(20),
@@ -35,7 +36,7 @@ export function transportCredentials(raw: unknown) {
  }).strict().parse(raw);
  return credentialSchema.parse({ ...legacy, agents: legacy.agents.map(({ token: _unused, ...account }) => account) });
 }
-function privatePath(name: string) {
+export function privatePath(name: string) {
  const path = containedPath(base, name);
  let current = path;
  for (;;) {
@@ -43,6 +44,11 @@ function privatePath(name: string) {
   if (current === base) return path;
   const parent = dirname(current); requireHosted(parent !== current); current = parent;
  }
+}
+/** SHM is a lock index, not journal content; copying a main DB requires an empty WAL. */
+export function privateSQLiteSidecar(kind: string, size: number, regular: boolean, linked: boolean) {
+ requireHosted(['-wal', '-shm'].includes(kind) && regular && !linked && Number.isSafeInteger(size)
+  && (size === 0 || (kind === '-shm' && size === 32768)));
 }
 function sourceDigest() {
  const hash = createHash('sha256');
@@ -188,16 +194,19 @@ function terminalEvidence(value: ReturnType<typeof validateInput>) {
  } finally { telemetry.close(); }
 }
 async function hostedRun(mode: string) {
+ executionPhase = 'private-input-wait';
  const key = encryptionKey(process.env.COMMUNITY_BUNDLE_KEY);
  const binding = { runId: process.env.COMMUNITY_RUN_ID ?? '', headSha: process.env.COMMUNITY_EXPECTED_SHA ?? '', releaseId: Number(process.env.COMMUNITY_RELEASE_ID) };
  requireHosted(/^[0-9]+$/.test(process.env.COMMUNITY_RELEASE_ID ?? '') && /^[a-f0-9-]{36}$/.test(binding.runId));
  const draft = new PrivateDraft(binding, process.env.COMMUNITY_RECOVERY_TOKEN ?? '');
  const encryptedInput = await draft.waitInput(() => console.log(JSON.stringify({ awaitingPrivateInput: true, maximumWaitSeconds: 600, memberAdmission: false })));
+ executionPhase = 'private-input-validation';
  const value = validateInput(unseal(encryptedInput, key));
  requireHosted(value.manifest.mode === mode && value.manifest.runId === binding.runId && value.manifest.headSha === binding.headSha && value.manifest.releaseId === binding.releaseId);
- verifyLocalBindings(value.manifest);
+ executionPhase = 'source-binding'; verifyLocalBindings(value.manifest);
  // A missing/failed encrypted checkpoint sink must be discovered BEFORE member admission.
- await draft.inspect(); materialize(value);
+ executionPhase = 'private-materialization'; await draft.inspect(); materialize(value);
+ executionPhase = 'hosted-control-preflight';
  const manifest = await new CommunityControl(value.credentials, value.bypass, 3).preflight();
  requireHosted(manifest.runStatus === 'created');
  validateManifest(value.manifest); // Recheck five-minute provider/operator attestation after network/materialization.
@@ -251,8 +260,10 @@ async function hostedRun(mode: string) {
  let summary: ReturnType<typeof terminalEvidence> | undefined;
  try {
   // First encrypted consistent checkpoint also proves write access/private retention before admission.
+  executionPhase = 'private-pre-admission-checkpoint';
   await enqueue('checkpoint-00', { memberAdmission: false }); requireHosted(!uploadFailed);
   requireAdmission(value.manifest, interrupted, uploadFailed);
+  executionPhase = 'member-controller';
   child = spawn(process.execPath, ['--experimental-strip-types', 'src/community-supervisor.ts', 'run'],
    { cwd: base, env: runtimeEnvironment(value.manifest), stdio: ['ignore', 'ignore', 'ignore'] });
   const startedAt = process.hrtime.bigint();
@@ -281,11 +292,13 @@ async function hostedRun(mode: string) {
   if (observation) clearInterval(observation);
   await queue;
   try { summary = terminalEvidence(value); } catch { interrupted = true; }
+  executionPhase = 'private-terminal-checkpoint';
   await enqueue('final', { ...summary, exitCode, interrupted, acceptancePassed: false });
   console.log(JSON.stringify({ ...summary, exitCode, interrupted, encryptedRecoveryStored: !uploadFailed,
    fullAcceptancePassed: false, remainingAcceptance: 'Independent hosted ownership, original full-denominator freshness and history review' }));
   process.off('SIGINT', stop); process.off('SIGTERM', stop); key.fill(0);
  }
+ executionPhase = 'terminal-evidence';
  requireHosted(exitCode === 0 && !interrupted && !uploadFailed && summary?.terminalClean && summary.lifecycle === 'completed' &&
   summary.minimumBrowserMutations > 0 && summary.minimumParticipantMutations > 0 && summary.minimumSuccessesPerParticipant >= 3);
  requireHosted(mode !== 'full-hour' || summary.oneHourContinuousEvidence);
@@ -295,9 +308,13 @@ async function pack() {
  const manifest = validateManifest(JSON.parse(readFileSync(process.env.COMMUNITY_MANIFEST_FILE ?? '', 'utf8')));
  verifyLocalBindings(manifest); inspectJournals(privatePath(manifest.stateDirectory), manifest, true);
  const files = inputPaths(manifest).map(name => {
-  for (const suffix of ['-wal', '-shm']) if (name.endsWith('.sqlite') && existsSync(privatePath(name + suffix)))
-   requireHosted(lstatSync(privatePath(name + suffix)).size === 0);
+  for (const suffix of ['-wal', '-shm']) if (name.endsWith('.sqlite') && existsSync(privatePath(name + suffix))) {
+   const stat = lstatSync(privatePath(name + suffix)); privateSQLiteSidecar(suffix, stat.size, stat.isFile(), stat.isSymbolicLink());
+  }
   const bytes = readFileSync(privatePath(name));
+  if (name.endsWith('.sqlite') && existsSync(privatePath(name + '-wal'))) {
+   const stat = lstatSync(privatePath(name + '-wal')); privateSQLiteSidecar('-wal', stat.size, stat.isFile(), stat.isSymbolicLink());
+  }
   return privateFile(name, name.endsWith('credentials.json') ? Buffer.from(JSON.stringify(transportCredentials(JSON.parse(bytes.toString())))) : bytes);
  });
  const value = validateInput({ purpose: 'fresh-input', manifest, files });
@@ -317,4 +334,4 @@ async function main() {
  await hostedRun(command);
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url))
- await main().catch(() => { process.exitCode = 1; console.error('Hosted community failed closed; private diagnostics withheld. Never automatically rerun.'); });
+ await main().catch(() => { process.exitCode = 1; console.error(JSON.stringify({ hostedCommunityFailedClosed: true, phase: executionPhase, privateDiagnosticsWithheld: true, neverAutomaticallyRerun: true })); });

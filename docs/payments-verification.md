@@ -9,6 +9,20 @@ Earlier counts below are historical; they do not prove a completed full-populati
 
 ## October 3 security and freshness regression
 
+**Hosted execution follow-up:** credential-free cloud browser smoke
+`37160298140` passed at signed `d9c184ab`. Only a new encrypted-state key and
+private synthetic-account/staging-access bundle were configured; no provider,
+DB, production or admin secrets reached member children. Two authenticated
+attempts failed before admission: `37160782200` timed out awaiting input after
+the CLI Content-Length/SQLite-SHM issues, and `37161630172` exposed a trailing
+separator in private-root containment before checkpoint 00. Those failures and
+all original admissions remain preserved, not passed or automatically rerun.
+The normalization/sidecar regressions and safe phase diagnostics are repaired;
+root ran **109/109** simulation tests and tools TypeScript successfully, without
+skips. A fresh five-member runtime test is still required. The prepared
+253-user cohort remains unlaunched/unchanged; paid tiers, continuous hour,
+full-denominator freshness/history and final PDF remain unfinished.
+
 **22:50 UTC hosted implementation follow-up:** a reviewed manual Ubuntu test
 workflow now provides credential-free browser smoke, separate five-member
 authenticated smoke, then the exact prepared 253-member run. Root reran all

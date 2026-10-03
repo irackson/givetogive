@@ -3,17 +3,28 @@ import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import { approved, assertDraft, containedPath, inputPaths, repository, sha256, trustedExecution, validateManifest, type HostedManifest } from '../src/hosted-community-policy.ts';
 import { encryptionKey, fileBytes, privateFile, seal, unseal, validateFiles } from '../src/hosted-community-bundle.ts';
-import { gracefulShutdown, inspectJournals, requireAdmission, runtimeEnvironment, transportCredentials, validateInput } from '../src/hosted-community.ts';
+import { gracefulShutdown, inspectJournals, requireAdmission, runtimeEnvironment, transportCredentials, validateInput, privatePath, privateSQLiteSidecar } from '../src/hosted-community.ts';
 import { makeCredentials } from '../src/provisioning.ts';
 import { browserAccounts, validateCommunity } from '../src/community-config.ts';
 import { PrivateDraft } from '../src/hosted-community-github.ts';
 import { HostedAttention, HostedTelemetryAttention, linuxProcessIdentity } from '../src/hosted-community-attention.ts';
 
 const runId = 'c7a35c2e-8c48-4acd-99c7-9abc3d9bb998', headSha = 'a'.repeat(40);
+test('private materialization reaches a normalized module root on Windows and Linux', () => {
+ const base = resolve(fileURLToPath(new URL('../', import.meta.url)));
+ assert.equal(privatePath('.state/readonly-containment-check/example.json'), resolve(base, '.state/readonly-containment-check/example.json'));
+ assert.throws(() => privatePath('../outside-private-state'));
+});
+test('read-only SQLite lock index is allowed but nonempty WAL or linked sidecars are not', () => {
+ privateSQLiteSidecar('-wal', 0, true, false); privateSQLiteSidecar('-shm', 32768, true, false);
+ for (const [kind, size, regular, linked] of [['-wal', 1, true, false], ['-shm', 1, true, false], ['-shm', 32768, false, false], ['-shm', 32768, true, true]] as const)
+  assert.throws(() => privateSQLiteSidecar(kind, size, regular, linked));
+});
 function fixture() {
  const { credentials } = validateCommunity(transportCredentials(makeCredentials({ id: runId, mode: 'scripted', agent_count: 5 }, approved.origin, approved.databaseIdentity)), {});
  // makeCredentials emits legacy tokenId fields only fixtureIds? credentials schema strips those.
