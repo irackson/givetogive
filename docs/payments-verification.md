@@ -9,6 +9,23 @@ Earlier counts below are historical; they do not prove a completed full-populati
 
 ## October 3 security and freshness regression
 
+**22:50 UTC hosted implementation follow-up:** a reviewed manual Ubuntu test
+workflow now provides credential-free browser smoke, separate five-member
+authenticated smoke, then the exact prepared 253-member run. Root reran all
+107 simulation tests and tools TypeScript: pass, zero skips. Security review
+verified private unpublished draft retention, AES-256-GCM transport, exact
+run/source/journal bindings, bounded halted-member monitoring and owned graceful
+drain. This is implementation/offline evidence; no workflow has been dispatched
+or credentials installed at this checkpoint. Production/Stripe/database/admin
+credentials are not part of the hosted community job. See
+[the operational guide](hosted-staging-tests.md).
+
+Actual 22:50 UTC publication inspection verifies signed `4194c0e41` READY on
+`dpl_HJ7ZYhumGJQmKbZ6Re6PBSzEKJBm`, unchanged authored runtime/lock and all five
+production gates off. Its offline PDF tooling changes explain the upload
+manifest difference; `.github/` is excluded from future application uploads.
+No new browser/PDF or financial acceptance is claimed.
+
 **Hosted-test preparation follow-up:** actual provisioning/readiness now exists
 for fresh run `3275f37c-213f-48d8-a1e0-50ce35850559`: 253 verified independent
 synthetic accounts, a 1,115-rule recurring program, two immutable clean journals,

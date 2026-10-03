@@ -1,0 +1,105 @@
+name: Guarded staging community
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Manual phase; never rerun a mutation phase
+        type: choice
+        required: true
+        default: browser-smoke
+        options: [browser-smoke, authenticated-smoke, full-hour]
+      expected_sha:
+        description: Exact reviewed main commit SHA
+        type: string
+        required: true
+      run_id:
+        description: Separate approved smoke UUID or exact prepared hour UUID
+        type: string
+        required: false
+        default: 3275f37c-213f-48d8-a1e0-50ce35850559
+      release_id:
+        description: Exact pre-reviewed unpublished PRIVATE draft release ID
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: givetogive-staging-community
+  cancel-in-progress: false
+
+jobs:
+  browser-smoke:
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      github.repository == 'irackson/givetogive' && github.actor == 'irackson' &&
+      github.triggering_actor == 'irackson' && github.run_attempt == 1 &&
+      inputs.expected_sha == github.sha && inputs.mode == 'browser-smoke'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6; verified upstream tag
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6; verified upstream tag
+        with:
+          node-version: 24.x
+          package-manager-cache: false
+      - name: Locked tools install without staging credentials
+        working-directory: tools/simulation
+        run: npm ci --ignore-scripts
+      - name: Install exact locked Chromium and Linux dependencies
+        working-directory: tools/simulation
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Credential-free exact child-environment/cache smoke
+        working-directory: tools/simulation
+        env:
+          COMMUNITY_EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: node --experimental-strip-types src/hosted-community.ts browser-smoke
+
+  staging-community:
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      github.repository == 'irackson/givetogive' && github.actor == 'irackson' &&
+      github.triggering_actor == 'irackson' && github.run_attempt == 1 &&
+      inputs.expected_sha == github.sha &&
+      (inputs.mode == 'authenticated-smoke' || inputs.mode == 'full-hour')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    # Needed ONLY by the private draft recovery broker. No token persists in checkout or runner child.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.x
+          package-manager-cache: false
+      - name: Locked tools install without staging credentials
+        working-directory: tools/simulation
+        run: npm ci --ignore-scripts
+      - name: Install exact locked Chromium and Linux dependencies
+        working-directory: tools/simulation
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Credential-free exact child-environment/cache smoke
+        working-directory: tools/simulation
+        env:
+          COMMUNITY_EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: node --experimental-strip-types src/hosted-community.ts browser-smoke
+      - name: Private recovery broker and guarded staging execution
+        working-directory: tools/simulation
+        env:
+          COMMUNITY_MODE: ${{ inputs.mode }}
+          COMMUNITY_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          COMMUNITY_RUN_ID: ${{ inputs.run_id }}
+          COMMUNITY_RELEASE_ID: ${{ inputs.release_id }}
+          COMMUNITY_BUNDLE_KEY: ${{ secrets.COMMUNITY_STAGING_BUNDLE_KEY }}
+          COMMUNITY_RECOVERY_TOKEN: ${{ github.token }}
+        run: node --experimental-strip-types src/hosted-community.ts "$COMMUNITY_MODE"
+      # Intentionally no upload-artifact/cache step: private material must never enter public artifacts.

@@ -19,6 +19,29 @@ have been installed for it yet. Private state must remain encrypted and private,
 not be placed in public Actions artifacts. The standard public-repository runner
 is an alternative to laptop RAM, not proof of laptop/browser capacity.
 
+**22:50 UTC hosted-runner implementation checkpoint:** the manual three-phase
+workflow and private encrypted transport/recovery broker are implemented and
+reviewed, with 107/107 simulation tests and tools TypeScript passing. No workflow
+dispatch, secret installation or cloud activity result is claimed at this
+checkpoint. First run credential-free Linux browser smoke, then a separate
+five-member authenticated smoke (two API, three browser), before using the
+unchanged prepared 253-person program/journals. See
+[the hosted testing guide](hosted-staging-tests.md). Staging identity is marker
+UUID `d5e4408d-c2fa-404d-81c5-ef4336dd8cd7`, not its database name. Fresh input
+must prove zero persisted member tokens; only unused legacy placeholders are
+removed from the transport copy, never from original local credentials.
+The owned controller drains on ambiguous/halted activity; no automatic mutation
+rerun, public artifact, cache, production/Stripe/DB secret or paid runner is used.
+`.github/` is now excluded from Vercel application uploads.
+
+Signed `4194c0e41` is READY on production deployment
+`dpl_HJ7ZYhumGJQmKbZ6Re6PBSzEKJBm`. Actual 22:50 UTC read-only publication
+verification confirms all five financial/simulation gates off, unchanged
+production environment metadata/root link, and authored runtime/lock unchanged.
+The dry-upload comparison explicitly accounts for the signed offline PDF
+tooling changes and the new workflow exclusion; no private files are eligible.
+No fresh production browser capture or PDF is implied by this metadata check.
+
 Fresh run `3275f37c-213f-48d8-a1e0-50ce35850559` was created and provisioned
 once: 250 scripted members, three browser members, one limited runner credential,
 no member API tokens or paid grants. The 1,115-rule program and two fresh journals
