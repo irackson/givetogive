@@ -21,8 +21,9 @@ Tags describe origin, not deployment or acceptance:
 
 Snapshot: protected staging's supporter gate is enabled in test mode; Ask/fund
 and production gates remain disabled. Full genuine Stripe sandbox acceptance and live-money
-approval remain outstanding. This document does not claim that these changes
-have replaced the public production release. Protected staging verification,
+approval remain outstanding. The new code is published as an explicitly dark
+production release (verified runtime source at signed commit `ff131b6`): payments,
+supporter/fund sales and production simulations remain disabled. Protected staging verification,
 the final PDF, deployment identity, and full acceptance results must be recorded
 separately in the release handoff and [acceptance contract](payments-implementation-plan.md).
 
@@ -111,7 +112,7 @@ required member transport or a replacement for the mixed-community soak.
 | Browser streaming response verification | newly finished | Decodes the actual UI request-negotiated tRPC stream, including HTTP-200 application rejection. Captures the single response before success navigation discards it; forwarding disables retries/redirects, and entity/UI readback remains required. |
 | Full-community continuity evidence | brand new | All-participant warmup, least-recently-active endpoint, per-participant five-minute windows and action-gap checks distinguish an ongoing community from process uptime or a stopped browser. A 253-member run retained 39,591 successes but failed at 3,509 seconds after warmup; preserved unchanged and safely stopped. A fresh hour run remains required. |
 | Observation versus mutation recovery | newly finished | Failed allowlisted GETs before intent get three bounded retries and fresh selection. Unknown POSTs, admitted writes, auth errors and generic browser faults never replay. The first full-population read halt was preserved as a failed soak, not rewritten as success. |
-| Whole-history release check and isolated migration rehearsal | newly finished | Exact-old/current builds, real old→current→old auth/session/Ask browser compatibility and final 36-case CI browser regression pass. A fresh ready no-compute backup precedes actual production 0011–0018 migration: nineteen migrations, legacy data/unrelated schema preserved and safe member defaults. Public new-code rollout remains pending; all production money/simulation gates stay off. |
+| Whole-history release check and isolated migration rehearsal | newly finished | Exact-old/current builds, real old→current→old auth/session/Ask browser compatibility and final 36-case CI browser regression pass. A fresh ready no-compute backup precedes actual production 0011–0018 migration: nineteen migrations, legacy data/unrelated schema preserved and safe member defaults. Signed new-code dark release is published; anonymous browser/runtime checks pass. All production money/simulation gates stay off, with genuine paid acceptance still unfinished. |
 | Offline Stop checkpoint and claim cleanup | newly finished | A fresh normal-admin recovery receipt permits control-only application of one reviewed queued Stop, without member authentication/activity. Terminal cleanup requires empty mutation/outbox state and dead recorded controllers; historical outcomes remain unchanged. Actual stranded 253-member recovery verified. |
 | Durable local supervision | newly finished | Fsynced start/progress/terminal milestones survive stdout loss; strict parent IPC requests the ordinary admission-stop/drain path rather than Windows force-kill signals. A detached child survived launcher exit in a measured probe. Hard OS termination still requires explicit recovery; this is not hour-soak acceptance. |
 | Local models/runtime | brand new | Native Windows llama.cpp with pinned/hash-checked Qwen3.5-4B and Gemma 4 E2B candidates, loopback-only model endpoint, bounded contexts/output, memory headroom guards and benchmark reports. No paid inference fallback or termination of Ian's apps. |

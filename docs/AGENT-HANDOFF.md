@@ -11,6 +11,21 @@ model/ramp work below; historical measurements remain evidence, not new requirem
 
 ### October 3 active-goal checkpoint — supersedes paused/live handles below
 
+**Published dark release:** signed verified commit `ff131b6fd79f833753305ebe4fd79d0c6d4f56ec`
+was pushed to `main`. READY production deployment
+`dpl_7qTLBG19hfWoRxHABZp4i3mtdjHn` owns `givetogive.vercel.app`, Node 24.x.
+Local and remote have only `main`. Actual runtime checks at 18:44 UTC confirm
+payments/subscriptions/funds disabled and all three unsigned callbacks rejected
+with signature-required HTTP 400. One-browser anonymous production smoke passed
+17 route/state checks, with zero browser/console errors; browser closed.
+Runtime log review at 18:48 UTC found zero error/fatal/HTTP 5xx records since
+18:44 UTC. Evidence: `tmp/production-dark-release-probe.json`,
+`tmp/production-release-smoke/evidence.json`, `tmp/production-log-probe.json`.
+No production synthetic members, paid transactions or live gates were enabled.
+Authenticated production login, external OAuth/email delivery, Ian's selected
+verified administrator identity/MFA, and genuine paid Checkout acceptance remain
+separate unfinished checks. The pre-deployment notes below are historical.
+
 Ian explicitly resumed the goal and authorized subagents. The goal is active;
 the October 2 pause instructions and running-process handles below are historical.
 Do not restart session 19295/PID 29288: both are gone. The replacement run

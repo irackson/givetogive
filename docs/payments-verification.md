@@ -10,7 +10,17 @@ Earlier counts below are historical; they do not prove a completed full-populati
 ## October 3 recovery and provider-only acceptance
 
 Partial acceptance only; the goal is active. Production's additive schema was
-migrated with gates disabled; the public code release is still being prepared.
+migrated and the new code published, with every money/simulation gate disabled.
+
+- Signed verified commit `ff131b6fd79f833753305ebe4fd79d0c6d4f56ec` was pushed to
+  `main`; only `main` exists locally and remotely. READY production deployment
+  `dpl_7qTLBG19hfWoRxHABZp4i3mtdjHn` owns the canonical alias, Node 24.x.
+  Runtime checks confirm disabled payments/subscriptions/funds and signature
+  rejection on all three callbacks. Anonymous browser smoke passed 17 route/state
+  checks with zero browser/console errors; its browser was closed. A deployment
+  runtime-log query found zero error/fatal/HTTP 5xx records from 18:44–18:48 UTC.
+  This is a **dark release**, not paid, live-money or authenticated production
+  acceptance. The earlier pre-deployment checkpoint below is retained as history.
 
 - READY protected staging deployment `dpl_Dfsfv6kFCS6dQQHw16EoFv1gFNmo`, digest
   `c04e7dd2560d50b9e8653853401e8952757dfcda4c018b1d9c51b1c91b14efb0`, now loads
@@ -86,6 +96,8 @@ Release browser evidence:
 `tmp/release-compatibility-5e05c46b-63f6-4f5b-8842-5018a3749f72/evidence.json`.
 Final regression: `tmp/release-final-e2e/summary-1791051419962.json`.
 Production DDL: `tmp/production-payments-migration.json`.
+Published runtime/browser/log evidence: `tmp/production-dark-release-probe.json`,
+`tmp/production-release-smoke/evidence.json`, `tmp/production-log-probe.json`.
 
 ## October 2 actual Checkout expiry and corrected mixed-run acceptance — newest
 
