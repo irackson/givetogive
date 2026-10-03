@@ -9,11 +9,67 @@ Earlier counts below are historical; they do not prove a completed full-populati
 
 ## October 3 security and freshness regression
 
+**21:14 UTC measured follow-up:** signed verified `bfa90f213` is pushed and
+READY on public canonical production deployment
+`dpl_odip1yeXLq67Ya4FQd9Nzf3PDrZ1`, Node 24, with the source/lock below.
+All five production payment/live/supporter/fund/simulation gates remain off;
+environment metadata is unchanged. Fresh anonymous browser smoke passed all
+17 route/state checks, zero skips, 21:05:23–21:06:06 UTC: zero console/page errors,
+HTTP 5xx, blocked mutations or foreign navigations. Exact-window hosted logs
+have zero error/fatal/HTTP 5xx records. No production authentication, fixtures,
+financial effects or live enablement were performed. Four fresh screenshots
+exist; the Support-page full-page image needs recapture because its sticky
+header was stamped mid-page after scrolling. It is not approved for the PDF.
+
+The short28 run `b611f721-18fc-47f3-aa42-7bb12b361116` ended naturally at
+20:50:53.992 UTC, exit 0: 799 successes, 262 waiting outcomes, five authoritative
+HTTP 400/BAD_REQUEST rejections, zero paused/backoff outcomes. Every participant
+has at least 21 successes/seven successful mutations; the three browser users
+have 23/25/25 successful UI mutations. Independent journal, normal-admin API
+and read-only SQL reviews verify completed/offline/unowned, zero workers,
+pending/outbox/claims/controllers/live owned processes, and actual ownership of
+32 Asks/169 contributions. Post-warmup coverage was 533 seconds, maximum member
+action gap 46.493 seconds; this is not the required hour.
+
+Its 90-second dashboard measurement retained all 111 authoritative local/hosted
+successes: 111/111 rendered within five seconds, maximum 2,086 ms, no missing,
+late or unpublished records, browser errors or non-200 responses. The combined
+history assertion subsequently failed. Original failing href was not retained;
+a later diagnostic demonstrated that selecting the first Inspect simulation
+link can choose a run-level link. It did not record per-heading success receipts,
+and used the wrong API filter; neither is passed history acceptance. Corrected
+read-only `entityId` querying verified 25 exact-agent records. The separately
+instrumented history-only attempt stopped before auth/API/browser at 21:07:51
+because RAM was 2.187 GiB, below 2.5 GiB admission. Its zero errors are not a
+successful browser test. The fresh 21:13:37 check was 1.536 GiB. No unsafe retry,
+floor reduction or termination of other Codex/Chrome work followed.
+
+Replacement $5 test operation `51033cb7-0087-4b98-9a56-62e2cd35d477` was prepared
+exactly once after reconciliation of the expired original. Its ordinary native
+acknowledgment click timed out at 20:56:46 UTC: same notice, unchecked checkbox,
+no card or financial submit. Read-only 21:03:42 provider/app/normal-owner checks
+verify open/unpaid, no invoice/subscription/paid coverage/ledger, and all three
+members still Neighbor. Four historical provider-console errors remain
+unclassified, not waived or called a blanket automation ban. A fixed-category,
+read-only pointer/network diagnostic is reviewed and four offline safety tests
+pass, but it has not run. Expiry is 21:29:27 UTC; preserve both operations and
+uncertainty/admission records, never blindly replay them. Link CLI stays iceboxed.
+
+Private follow-up receipts: `tmp/anonymous-production-smoke-1791061523279.json`,
+`tmp/community-stage/review-b611f721-18fc-47f3-aa42-7bb12b361116-1791060744305.json`,
+`tmp/community-stage/terminal-api-proof-b611f721-18fc-47f3-aa42-7bb12b361116-1791060802644.json`,
+`tmp/community-stage/freshness-b611f721-18fc-47f3-aa42-7bb12b361116-1791060259268.json`,
+and the exact replacement reconciliation/acknowledgment receipts under the
+private three-member cohort directory. A fresh253/hour setup is plan-only;
+no new run, credentials, activity program or controller has been created.
+
+The timestamped baseline immediately below predates these follow-up outcomes.
+
 Protected canonical staging deployment `dpl_9v2tUXxH8AJ7qsaaSn8UfMdCmmZS`
 is READY, Node 24, authored runtime digest
 `9a3d105bf3026e03726eba1621400a6f24aa47d3e1a300cb7f6b2dc606245e8f`.
 Supporters remain test-only; Ask/fund/live gates and all production money gates
-remain off. Production is still the previous dark release, not this new runtime.
+remain off. Production now publishes this same runtime as the dark release above.
 
 - Fresh targeted security/cadence/browser-observation source passes 125 root
   unit tests, 121 isolated integration tests, 86 simulator tests, root/tool types,

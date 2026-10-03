@@ -70,7 +70,7 @@ pause, existing Dashboard credentials were retrieved without logging secret
 values or creating new keys. Development's publishable test key is now installed
 in `.env.staging.local` and as a sensitive variable in the protected staging
 project (production/preview scopes of that staging project, not public production).
-It needs a new staging deployment before the hosted app can use it. CI's existing
+The October 3 READY protected deployment includes that public test key. CI's existing
 standard application test key and matching publishable key are installed only
 in `.env.ci.local`; provider account and test-mode balance reads verified its
 separate CI sandbox. No gates, production configuration, Cloud
@@ -286,8 +286,10 @@ allowed. An incompatible policy fails closed before customer creation.
 
 Supporter and Sustainer are separate products. Stripe's portal same-product
 period-end downgrade option cannot enforce this cross-product requirement.
-Dedicated paid-upgrade and scheduled-downgrade services are still outstanding;
-do not enable portal plan changes and claim this requirement is implemented.
+Dedicated paid-upgrade, scheduled-downgrade, cancel/resume and undo services are
+implemented and pass isolated PostgreSQL/provider-stub regressions. Actual paid
+sandbox lifecycle acceptance remains outstanding. Keep portal plan changes off:
+the dedicated services, not that portal policy, enforce the product requirement.
 Review applicable subscription tax treatment/registration before live billing;
 automatic tax remains disabled and is not represented as configured.
 

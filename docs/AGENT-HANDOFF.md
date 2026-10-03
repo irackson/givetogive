@@ -11,6 +11,30 @@ model/ramp work below; historical measurements remain evidence, not new requirem
 
 ### October 3 active-goal checkpoint — supersedes paused/live handles below
 
+**21:01 UTC follow-up:** signed verified `bfa90f213` is pushed to `main` and
+READY on the canonical production alias, deployment
+`dpl_odip1yeXLq67Ya4FQd9Nzf3PDrZ1`, Node 24. All five production financial/
+simulation gates remain off; environment metadata is unchanged. Exact build
+and short runtime log review passed; fresh anonymous browser smoke is pending.
+Only `main` remains locally/remotely, synchronized. No live purchase is authorized.
+
+Independent short28 terminal readback now verifies completed/offline/unowned,
+zero workers/pending/outbox/claims and 32 Asks/169 contributions owned by the
+actual journal actors. The earlier history diagnostic did not retain explicit
+per-heading success receipts: its heading claim below was inferred, not proved.
+The original failing href was not retained, so the helper's run-level first-link
+selection is an established ambiguity, not a reconstructed exact failure.
+A separate exact-member, read-only history proof is being prepared.
+
+The new, once-prepared $5 sandbox replacement operation
+`51033cb7-0087-4b98-9a56-62e2cd35d477` remains unsubmitted. The ordinary visible
+acknowledgment attempt timed out at 20:56:46 UTC; the panel remained, the checkbox
+was unchecked, and no card was entered or payment submitted. Original and new
+write-once intent/uncertainty records remain intact. Do not blindly replay either
+acknowledgment or financial preparation. Replacement expiry is 21:29:27 UTC;
+current provider/app reconciliation and safe diagnostics must precede any next
+action. Unknown provider-console errors are not waived. Link CLI stays iceboxed.
+
 **20:52 UTC short-run follow-up:** the actual ten-minute supervisor finished
 at 20:50:53.992 UTC, exit 0: 799 successes, five authoritative rejections, zero
 paused/backoff outcomes. Independent local review finds all 28 with at least
@@ -18,8 +42,9 @@ paused/backoff outcomes. Independent local review finds all 28 with at least
 and both recorded processes dead. Hosted terminal/ownership review is pending.
 The 90-second dashboard window passed all 111/111 actions, maximum 2,086 ms,
 zero late/missing/unpublished events or browser errors. Its subsequent history
-assertion failed because the helper selected a run-level link as a member link;
-a separate ordinary member-link navigation passed both headings with no errors.
+assertion failed; the helper could select a run-level link as a member link.
+The follow-up's heading-success claim was later found to be inferred, not an
+explicit recorded assertion (see the 21:01 UTC correction above).
 Retain the original failed combined attempt; the helper selector is corrected,
 and independent scoped history readback is still being completed. This remains
 a short regression, not the required full-population hour.

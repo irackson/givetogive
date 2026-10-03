@@ -120,6 +120,26 @@ an existing integration, but is not the simulator's member-action transport.
 
 ## Ordered delivery and acceptance evidence
 
+**October 3, 21:14 UTC follow-up:** signed `bfa90f213` is READY on canonical
+production, Node 24, all five financial/simulation gates still off. Fresh
+anonymous browser smoke passes 17/17 states with no console/page/server errors.
+The 28-member ten-minute regression completed and drained: 799 successes,
+five preserved authoritative rejections, genuine browser mutations and verified
+32-Ask/169-contribution ownership. All 111 measured dashboard updates met the
+five-second target, maximum 2,086 ms. The combined history assertion did not
+pass; the original href was not retained and follow-up heading claims were
+inferred, not explicitly recorded. Corrected exact-agent API reads pass, but
+the separate history-only browser stopped before admission at 2.187 GiB RAM.
+No new253 run is created or running; its fresh preparation remains plan-only.
+Original failed hour histories stay unchanged. Canonical tiny-cohort clock and
+all three customer bindings are verified; no paid tiers are granted. The new
+$5 replacement remains open/unpaid at 21:03:42 after the ordinary acknowledgment
+timed out without card or submit. Read-only provider/pointer diagnostics and
+actual paid settlement remain required; no universal test-card ban is inferred.
+Latest RAM at 21:13:37 is 1.536 GiB; do not lower the admission floor or disturb
+other active Codex/Chrome work. See the measured verification record for receipts.
+The older timestamped table below is historical, not current process liveness.
+
 **October 3, 20:43 UTC follow-up:** fresh current-source CI E2E separately
 passed 36/40 cases with four explicit environment/capture skips, no failures or
 retries. Protected hosted E2E also passed 36/40 with different gate coverage;
@@ -214,11 +234,12 @@ handoff. Later receipts must supersede this timestamp rather than erase failed h
 
 This checkpoint does not reduce P01–P05, S04–S05 or T03–T06 to mock tests.
 
-- **Independent work continues:** finish the already-running 253-account hour
-  and authoritative continuity/ownership/drain review; sample steady-load admin
-  freshness/history; finish canonical tiny-cohort clock/customer setup with
-  write-once operator intents and supported shared guards; verify the three
-  independent normal sessions; audit least-privilege key permissions; prepare
+- **Independent work continues:** finish explicit short-run history navigation,
+  then create and verify a fresh253-account hour (none currently running), with
+  authoritative continuity/ownership/drain review and steady-load dashboard
+  freshness/history. Tiny-cohort canonical clock/customer setup and three normal
+  unpaid sessions are verified; do not rerun that setup. Audit least-privilege
+  key permissions; prepare
   isolated Ask/recipient/fund prerequisites and failure/recovery scenarios;
   capture non-paid public, auth, empty/error and control-room views. Preserve
   current live controller/journals, measured RAM guards and expired/ambiguous
@@ -227,11 +248,14 @@ This checkpoint does not reduce P01–P05, S04–S05 or T03–T06 to mock tests.
   Checkouts.** Actual staging Development and CI test account/key setup is
   configured. Fresh staging run `1aa24b5b-c467-4063-a62a-cd6df957b393` has three
   verified password-auth synthetic members and scoped private credentials;
-  October 3 18:57 UTC readback proves zero Asks, customer-clock bindings,
-  payment-account mappings, payments, subscriptions, paid coverage and ledger
-  journals. Desired Supporter/Sustainer/Supporter personas are not paid tiers.
-  Do not rerun its once-only identity or admin-creation setup. Clock/customer
-  preparation is not yet completed, and is not a reason to ask Ian for new keys.
+  Its earlier 18:57 UTC identity-only readback was superseded by genuine canonical
+  clock/customer setup. Current readback has the terminal expired original and
+  unpaid replacement, no subscription/paid coverage/ledger and all three Neighbor.
+  Desired Supporter/Sustainer/Supporter personas are not paid tiers. Do not rerun
+  its once-only identity/admin/clock/customer setup or either financial preparation.
+  Existing credentials are not a reason to ask Ian for new keys. The original
+  expired admission remains preserved in the finite budget; later admissions
+  require a separate reviewed budget check, not resetting its private journal.
 - **Human Checkout boundary:** Ian must complete the fresh hosted **test** card
   Checkouts if the provider's agent-control panel continues to prevent automated
   entry. Prepare the actual owned $5/$15/$5 sessions only when he is present;

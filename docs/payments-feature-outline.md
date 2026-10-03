@@ -22,7 +22,7 @@ Tags describe origin, not deployment or acceptance:
 Snapshot: protected staging's supporter gate is enabled in test mode; Ask/fund
 and production gates remain disabled. Full genuine Stripe sandbox acceptance and live-money
 approval remain outstanding. The new code is published as an explicitly dark
-production release (verified runtime source at signed commit `ff131b6`): payments,
+production release (latest verified runtime source at signed commit `bfa90f213`): payments,
 supporter/fund sales and production simulations remain disabled. Protected staging verification,
 the final PDF, deployment identity, and full acceptance results must be recorded
 separately in the release handoff and [acceptance contract](payments-implementation-plan.md).
@@ -33,6 +33,14 @@ digest `9a3d105bf3026e03726eba1621400a6f24aa47d3e1a300cb7f6b2dc606245e8f`.
 Its source/upload/lock and all-deployment protection were verified. Supporter
 test sales alone are enabled; Ask/fund and production gates remain off. This
 does not establish a paid member tier or completion of financial acceptance.
+
+October 3, 21:14 UTC follow-up: the same authored runtime is READY on canonical
+production deployment `dpl_odip1yeXLq67Ya4FQd9Nzf3PDrZ1`; fresh anonymous smoke
+passes 17/17 states with no browser/console/server errors. The ten-minute mixed
+28-member regression completed and drained with 799 successes; its dashboard
+sample passed 111/111 within five seconds. Individual history verification and
+the full253 continuous hour remain open. The latest ordinary Stripe acknowledgment
+timed out without card entry/payment submission; actual paid tiers remain unproved.
 
 ## Existing community capabilities retained
 
