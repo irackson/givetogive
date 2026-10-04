@@ -4,11 +4,12 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync, mkdtempSync, mkdirSync, symlinkSync, rmSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { jsonlStreamProducer } from '@trpc/server/unstable-core-do-not-import';
 import superjson from 'superjson';
 import { approved } from '../src/hosted-community-policy.ts';
 import { fixtureIds } from '../src/provisioning.ts';
-import { safePath, boundedObserverReads, boundedObserverCleanup, ObserverCancellation, observerPollWindow, observerActivityResponses, runHostedObserver } from '../src/hosted-community-observer.ts';
+import { safePath, loadObserverChromium, boundedObserverReads, boundedObserverCleanup, ObserverCancellation, observerPollWindow, observerActivityResponses, runHostedObserver } from '../src/hosted-community-observer.ts';
 import { validateObserverInput, memoryAdmission, observerPath, assertObserverSource, assertJournalOwnership,
  expectedObserverBrowserIds, allowedObserverRequest, suppressedShellPrefetch, activityEnvelopes, exactHistoryQuery, freshnessEvidence,
  type ObserverInput, type LocalSuccess, type HostedSuccess, type Rendered } from '../src/hosted-community-observer-evidence.ts';
@@ -27,6 +28,11 @@ function input():ObserverInput {
 const copy=<T>(value:T):T=>structuredClone(value);
 const rpc=(name:string,data:unknown,batch=false)=>`${approved.origin}/api/trpc/${name}?${batch?'batch=1&':''}input=${encodeURIComponent(JSON.stringify(data))}`;
 const query=(data:unknown)=>({json:data});
+test('actual installed CJS Playwright entry exposes a usable Chromium type without launching a browser',async()=>{
+ const chromium=await loadObserverChromium(fileURLToPath(new URL('..',import.meta.url)));
+ assert.equal(chromium.name(),'chromium');
+ assert.equal(typeof chromium.launch,'function');
+});
 test('strict input is synthetic/admin/password-only, full253 and independently fresh',()=>{
  const value=input();assert.equal(validateObserverInput(value,now),value);
  // These mutations deliberately violate nested/literal input types to exercise rejection.

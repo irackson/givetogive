@@ -8,7 +8,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { freemem } from 'node:os';
 import { setTimeout as sleep } from 'node:timers/promises';
-import type { Browser, Page, Response } from 'playwright';
+import type { Browser, BrowserType, Page, Response } from 'playwright';
 import { jsonlStreamConsumer } from '@trpc/server/unstable-core-do-not-import';
 import observerSuperjson from 'superjson';
 import { UiSession } from './ui-session.ts';
@@ -143,6 +143,13 @@ export function safePath(base: string, name: string) {
   const parent = dirname(cursor); guard(parent !== cursor); cursor = parent;
  }
 }
+/** require.resolve selects Playwright's CJS entry; its browser types live on default. */
+export async function loadObserverChromium(base: string) {
+ const require = createRequire(join(base, 'package.json'));
+ const { default: playwright } = await import(pathToFileURL(require.resolve('playwright')).href);
+ guard(typeof playwright?.chromium?.launch === 'function');
+ return playwright.chromium as BrowserType;
+}
 function exclusiveJson(path: string, value: unknown) {
  const descriptor = openSync(path, 'wx', 0o600);
  try { writeSync(descriptor, JSON.stringify(value)); fsyncSync(descriptor); } finally { closeSync(descriptor); }
@@ -258,7 +265,7 @@ export async function runHostedObserver(raw: unknown, options: ObserverOptions) 
   }
   ownedHosted(await rpc('admin.simulation',{id:input.runId}),input);
   phase = 'browser-admission'; validateObserverInput(input); memoryAdmission(freemem() / 2 ** 30, true);
-  const { chromium } = await execute(() => import(pathToFileURL(require.resolve('playwright')).href));
+  const chromium = await execute(() => loadObserverChromium(base));
   browser = await execute<Browser>(() => chromium.launch({headless:true,timeout:30000}), ownedBrowser => ownedBrowser.close());
   const storageState = await execute(() => api!.context.storageState());
   const context = await execute(() => browser!.newContext({storageState,viewport:{width:1280,height:900},acceptDownloads:false,serviceWorkers:'block'}), context => context.close());
