@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { observerChildEnvironment, bindObserverHandoff, collectObserverArtifacts } from '../src/hosted-community-observer-parent.ts';
+import { observerChildEnvironment, bindObserverHandoff, collectObserverArtifacts, validObserverNetworkDiagnostics, observerNetworkAcceptance } from '../src/hosted-community-observer-parent.ts';
 import { approved, sha256, type HostedManifest } from '../src/hosted-community-policy.ts';
 import { fileBytes, seal, unseal, type PrivateFile } from '../src/hosted-community-bundle.ts';
 import { fixtureIds } from '../src/provisioning.ts';
@@ -28,18 +28,23 @@ function handoff() {
  return {protocolVersion:1,purpose:'observer-input',manifestDigest:sha256(JSON.stringify(manifest)),githubRunId:123,input};
 }
 const namespace=`.state/runs/${approved.runId}/observer-${controllerId}`;
+function networkProof(){return {rawFailedRequests:1,expectedSuccessfulQueryAborts:1,unqualifiedFailedRequests:0,rawBodyFailures:0,
+ decodedQueries:2,captureUnavailable:0,capacityFailures:0,nonSuccessResponses:0,
+ phases:{navigation:0,freshness:1,history:0,cleanup:0},failures:{aborted:1,timeout:0,other:0},
+ bodyFailurePhases:{navigation:0,freshness:0,history:0,cleanup:0},statusPhases:{navigation:0,freshness:0,history:0,cleanup:0},
+ captureStages:{unavailable:0,deadline:0,bytes:0,decode:0,scope:0,delivery:0}};}
 function fixture() {
  const base=mkdtempSync(join(tmpdir(),'g2g-observer-offline-'));mkdirSync(join(base,namespace),{recursive:true});
  const member=fixtureIds(approved.runId,0);
  const start=Date.parse('2026-10-03T12:00:00Z');
  const admission={runId:approved.runId,controllerId,createdAt:new Date(start-1000).toISOString(),observerOnly:true,noAutomaticRetry:true};
- const freshness={fiveSecondTargetMet:true,completed:true,requestedSeconds:90,drainSeconds:7,authoritativeActions:1,renderedActions:1,
+ const freshness={networkDiagnostics:networkProof(),fiveSecondTargetMet:true,completed:true,requestedSeconds:90,drainSeconds:7,authoritativeActions:1,renderedActions:1,
  hostedObservedActions:1,hostedNeverObservedActions:0,neverRenderedActions:0,lateActions:0,invalidTimingActions:0,maximumActionToRenderedMs:123,
  startedAt:new Date(start).toISOString(),cutoffAt:new Date(start+90000).toISOString(),
  participantWindowCounts:Array.from({length:253},(__unused,index)=>({id:fixtureIds(approved.runId,index).id,successes:index===0?1:0})),
  measured:[{eventId:1,externalId:`simulation:${approved.runId}:11111111-1111-1111-1111-111111111111`,actorId:member.userId,
  actionAt:start+1000,firstRenderedAt:start+1123,actionToRenderedMs:123,renderedTimestampMatches:true,hostedNeverObserved:false,renderTiming:'dom-mutation-observer'}]};
- const receipt={runId:approved.runId,controllerId,cleanupComplete:true,members:253,observerIsParticipant:false,memberBrowserUsers:3,observerBrowsers:1,
+ const receipt={networkDiagnostics:networkProof(),runId:approved.runId,controllerId,cleanupComplete:true,members:253,observerIsParticipant:false,memberBrowserUsers:3,observerBrowsers:1,
  requestedSeconds:90,drainSeconds:7,passed:true,freshnessPassed:true,browserClosed:true,apiClosed:true,observationAborted:false,
  memoryFloorBreached:false,parentCancelled:false,minimumFreeGiB:2.5,finishedAt:new Date(start+100000).toISOString(),fullHourAcceptance:false,noMemberActions:true,noControlActions:true,
  diagnostics:{consoleErrors:0,pageErrors:0,failedRequests:0,nonSuccessResponses:0,blockedRequests:0,feedBodyErrors:0},
@@ -55,6 +60,41 @@ test('observer child receives only PATH and fixed worker marker, never inherited
  STRIPE_SECRET_KEY:'discard',DATABASE_URL:'discard',NODE_OPTIONS:'discard',SIM_CREDENTIALS:'discard',PASSWORD:'discard',GITHUB_TOKEN:'discard'};
  assert.deepEqual(observerChildEnvironment(environment),{PATH:'public-runtime',G2G_HOSTED_OBSERVER_WORKER:'1'});
  assert.deepEqual(observerChildEnvironment({}),{G2G_HOSTED_OBSERVER_WORKER:'1'});
+});
+test('new raw network proof is exact, bounded numeric, internally consistent and monotonic; no failure category is waived',()=>{
+ const good=networkProof(),diagnostics={failedRequests:0,nonSuccessResponses:0,feedBodyErrors:0};
+ assert.equal(validObserverNetworkDiagnostics(good),true);assert.equal(observerNetworkAcceptance(good,good,diagnostics),true);
+ for(const name of ['rawFailedRequests','expectedSuccessfulQueryAborts','unqualifiedFailedRequests','rawBodyFailures','decodedQueries','captureUnavailable','capacityFailures','nonSuccessResponses'])
+  for(const bad of [NaN,Infinity,-1,.5,Number.MAX_SAFE_INTEGER+1,'0'])assert.equal(validObserverNetworkDiagnostics({...good,[name]:bad}),false);
+ for(const patch of [{private:'unknown'}, {rawFailedRequests:2},{decodedQueries:0},{failures:{aborted:0,timeout:1,other:0}},
+  {phases:{navigation:0,freshness:0,history:0,cleanup:0}}, {captureStages:{...good.captureStages,unknown:0}},
+  {bodyFailurePhases:{navigation:0,freshness:0,history:0}}, {statusPhases:{...good.statusPhases,history:1}}])
+  assert.equal(validObserverNetworkDiagnostics({...good,...patch}),false);
+ for(const patch of [{capacityFailures:1},{rawBodyFailures:1,bodyFailurePhases:{...good.bodyFailurePhases,history:1},captureStages:{...good.captureStages,decode:1}},
+  {rawFailedRequests:2,unqualifiedFailedRequests:1,phases:{...good.phases,history:1},failures:{...good.failures,other:1}},
+  {nonSuccessResponses:1,statusPhases:{...good.statusPhases,history:1}}]){
+  const value={...good,...patch};assert.equal(validObserverNetworkDiagnostics(value),true);
+  assert.equal(observerNetworkAcceptance(value,good,diagnostics),false);
+ }
+ const later={...good,rawFailedRequests:2,expectedSuccessfulQueryAborts:2,decodedQueries:3,
+  phases:{...good.phases,history:1},failures:{...good.failures,aborted:2}};
+ assert.equal(observerNetworkAcceptance(later,good,diagnostics),true);
+ assert.equal(observerNetworkAcceptance(good,later,diagnostics),false);
+ const shifted={...good,phases:{...good.phases,freshness:0,history:1}};
+ assert.equal(observerNetworkAcceptance(shifted,good,diagnostics),false);
+ assert.equal(observerNetworkAcceptance(good,undefined,diagnostics),false);
+ assert.equal(observerNetworkAcceptance(good,good,{...diagnostics,failedRequests:1}),false);
+});
+test('historical failed receipt missing new metadata remains original failure with cleanup and exact retained bytes',()=>{
+ const f=fixture();try{
+  const {networkDiagnostics:__unused,...old}=f.receipt;f.write('receipt.json',{...old,passed:false,failedPhase:'history',
+   diagnostics:{...old.diagnostics,failedRequests:248,feedBodyErrors:94,consoleErrors:8}});
+  const before=readFileSync(join(f.base,namespace,'receipt.json')),result=collectObserverArtifacts(f.base,namespace);
+  assert.equal(result.acceptancePassed,false);assert.equal(result.cleanupConfirmed,true);
+  assert.deepEqual(fileBytes(result.files.find(file=>file.name.endsWith('/receipt.json'))!),before);
+  assert.deepEqual(readFileSync(join(f.base,namespace,'receipt.json')),before);
+  f.write('receipt.json',old);assert.equal(collectObserverArtifacts(f.base,namespace).acceptancePassed,false,'Old shapes cannot mint a NEW pass.');
+ }finally{f.close();}
 });
 test('exact full-hour handoff binds digest/job/controller namespace and rejects all foreign or malformed fields',()=>{
  const raw=handoff(),value=bindObserverHandoff(raw,manifest,123);assert.equal(value.outputName,namespace);

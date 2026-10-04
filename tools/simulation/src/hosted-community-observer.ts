@@ -8,15 +8,16 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { freemem } from 'node:os';
 import { setTimeout as sleep } from 'node:timers/promises';
-import type { Browser, BrowserType, Page, Response } from 'playwright';
+import type { Browser, BrowserType, Page, CDPSession, ConsoleMessage } from 'playwright';
+import { ObserverNetwork } from './hosted-community-observer-network.ts';
 import { jsonlStreamConsumer } from '@trpc/server/unstable-core-do-not-import';
 import observerSuperjson from 'superjson';
 import { UiSession } from './ui-session.ts';
 import { protectionHeaders } from './protection.ts';
 import { communityContinuity } from './community-evidence.ts';
-import { runnerFiles, approved, containedPath } from './hosted-community-policy.ts';
+import { runnerFiles, selectFullRunApproval, containedPath } from './hosted-community-policy.ts';
 import { guard, validateObserverInput, observerPath, memoryAdmission, assertObserverSource, allowedObserverRequest, suppressedShellPrefetch,
- freshnessEvidence, assertJournalOwnership, expectedObserverBrowserIds, activityEnvelopes, exactHistoryQuery, type ObserverInput, type LocalSuccess, type HostedSuccess, type Rendered } from './hosted-community-observer-evidence.ts';
+ freshnessEvidence, assertJournalOwnership, expectedObserverBrowserIds, activityQuery, type ObserverInput, type LocalSuccess, type HostedSuccess, type Rendered } from './hosted-community-observer-evidence.ts';
 
 export type ObserverOptions = { toolsDirectory: string; outputName: string; signal?: AbortSignal };
 export type ObserverDiagnostics = { consoleErrors: number; pageErrors: number; failedRequests: number;
@@ -91,7 +92,7 @@ export function observerPollWindow(now: number, end: number) {
   : { kind:'read' as const, timeoutMilliseconds:Math.min(15000,remaining) };
 }
 /** Decode the UI's request-negotiated query transport; no raw bodies/errors are retained. */
-export async function observerActivityResponses(url: string, status: number, requestAccept: string,
+export async function observerQueryResponses(url: string, status: number, requestAccept: string,
  body: Uint8Array, input: ObserverInput, signal?: AbortSignal): Promise<unknown[]> {
  const cancellation = new ObserverCancellation(signal);
  // tRPC may abort its transport controller on normal stream completion. Do not
@@ -103,13 +104,33 @@ export async function observerActivityResponses(url: string, status: number, req
   cancellation.require();
   guard(status === 200 && body.byteLength <= 1_048_576 && allowedObserverRequest(url,'GET',input));
   const names = new URL(url).pathname.slice('/api/trpc/'.length).split(',');
-  guard(names.includes('admin.activity'));
+  guard(names.every(name=>name==='admin.activity'||name==='admin.simulation'));
   const text = new TextDecoder('utf-8',{fatal:true}).decode(body);
   if(requestAccept === 'application/jsonl') {
    // The consumer can resolve data before parsing its tail. Validate the whole
    // retained finite body so truncated/junk tails cannot silently pass.
    const lines=text.split('\n'),tail=lines.pop();guard(tail?.trim()===''&&lines.length>0&&lines.length<=1024);
-   for(const line of lines)if(line.trim())JSON.parse(line);
+   // Validate every promise frame, not only the portion consumed before tRPC's
+   // successful transport abort. Extra, rejected or unresolved frames fail closed.
+   const frames=lines.filter(line=>line.trim()).map(line=>observerSuperjson.deserialize(JSON.parse(line)));
+   const registered=new Set<number>(),settled=new Set<number>();
+   const encoded=(raw:unknown)=>{
+    guard(Array.isArray(raw)&&raw.length>=1&&Array.isArray(raw[0])&&raw[0].length<=1);
+    for(const definition of raw.slice(1)){
+     guard(Array.isArray(definition)&&definition.length===3&&definition[1]===0
+      &&(definition[0]===null||typeof definition[0]==='string'||(Number.isInteger(definition[0])&&definition[0]>=0))
+      &&Number.isSafeInteger(definition[2])&&definition[2]>=0&&!registered.has(definition[2]));
+     registered.add(definition[2]);
+    }
+   };
+   const first=frames[0] as Record<string,unknown>;
+   guard(first&&typeof first==='object'&&!Array.isArray(first)&&Object.keys(first).length===names.length);
+   names.forEach((__unused,index)=>{guard(Object.hasOwn(first,String(index)));encoded(first[String(index)]);});
+   for(const frame of frames.slice(1)){
+    guard(Array.isArray(frame)&&frame.length===3&&registered.has(frame[0])&&!settled.has(frame[0])&&frame[1]===0);
+    settled.add(frame[0]);encoded(frame[2]);
+   }
+   guard(registered.size===settled.size);
    const stream = new ReadableStream<Uint8Array>({start(controller){controller.enqueue(body);controller.close();}});
    const [head] = await cancellation.run(() => jsonlStreamConsumer<Record<string,Promise<unknown>>>({
     from:stream,deserialize:value=>observerSuperjson.deserialize(value as ReturnType<typeof observerSuperjson.serialize>),
@@ -123,17 +144,24 @@ export async function observerActivityResponses(url: string, status: number, req
     const result = (await envelope.result) as Record<string,unknown>;guard(result && typeof result === 'object' && Object.hasOwn(result,'data'));
     return await result.data;
    })));
-   return values.filter((__unused,index)=>names[index]==='admin.activity');
+   return values;
   }
   guard(requestAccept === '' || requestAccept === 'application/json');
   const plain:unknown = JSON.parse(text);
-  return activityEnvelopes(url,plain).map(rawEnvelope=>{
+  const envelopes = Array.isArray(plain) ? plain : [plain]; guard(envelopes.length===names.length);
+  return envelopes.map(rawEnvelope=>{
    const envelope=rawEnvelope as RpcEnvelope;
    guard(!envelope.error && envelope.result && Object.hasOwn(envelope.result,'data'));
    return observerSuperjson.deserialize(envelope.result.data);
   });
  } catch { throw new Error('Observer activity body unavailable; private details withheld.'); }
  finally { clearTimeout(timer);cancellation.cancel();cancellation.detach();cancellation.signal.removeEventListener('abort',cancelTransport);transport.abort(); }
+}
+export async function observerActivityResponses(url: string, status: number, requestAccept: string,
+ body: Uint8Array, input: ObserverInput, signal?: AbortSignal): Promise<unknown[]> {
+ const names=new URL(url).pathname.slice('/api/trpc/'.length).split(',');
+ const values=await observerQueryResponses(url,status,requestAccept,body,input,signal);
+ return values.filter((__unused,index)=>names[index]==='admin.activity');
 }
 export function safePath(base: string, name: string) {
  const path = containedPath(base, name); let cursor = path;
@@ -209,18 +237,26 @@ function hostedSuccess(raw: HostedActivity, input: ObserverInput, started: numbe
 export async function runHostedObserver(raw: unknown, options: ObserverOptions) {
  if (options.signal?.aborted) throw cancelled();
  const input = validateObserverInput(raw), base = resolve(options.toolsDirectory);
+ const approved = selectFullRunApproval(input.runId);
  verifyObserverSource(base, input);
  const output = observerPath(base, options.outputName); safePath(base, options.outputName);
  guard(!existsSync(output)); mkdirSync(output, { mode: 0o700 });
  exclusiveJson(join(output,'admission.json'), { runId: input.runId, controllerId:input.rootProof.controllerId, createdAt: new Date().toISOString(), observerOnly: true, noAutomaticRetry: true });
  let browser: Browser | undefined, api: UiSession | undefined, page: Page | undefined;
+ let network: ObserverNetwork | undefined, cdp: CDPSession | undefined;
  let phase = 'warmup', aborted = false, memoryFloorBreached = false, timer: ReturnType<typeof setInterval> | undefined;
  const cancellation = new ObserverCancellation(options.signal);
  let browserClosing: Promise<void> | undefined, apiClosing: Promise<void> | undefined, apiCloseComplete = false;
  const closeBrowser = () => browserClosing ??= browser ? browser.close() : Promise.resolve();
  const closeApi = () => apiClosing ??= (api ? api.close() : Promise.resolve()).then(() => { apiCloseComplete = true; });
+ const consoleListener = (message:ConsoleMessage) => {if(message.type()==='error')diagnostics.consoleErrors++;};
+ const pageErrorListener = () => {diagnostics.pageErrors++;};
+ const detachObservers = () => {
+  network?.close(); page?.off('console',consoleListener); page?.off('pageerror',pageErrorListener);
+ };
  const onCancel = () => {
   aborted = true;
+  detachObservers();
   // Dispose assigned resources to interrupt already-issued navigation/GET requests.
   if (browser) void closeBrowser().catch(() => undefined);
   if (api) void closeApi().catch(() => undefined);
@@ -230,6 +266,7 @@ export async function runHostedObserver(raw: unknown, options: ObserverOptions) 
  const overallDeadline = Date.now()+330000;
  let minimumFreeGiB = Infinity, started = 0, cutoff = 0, completed = false;
  const hosted: HostedSuccess[] = [], rendered: Rendered[] = [], polls: Record<string, unknown>[] = [];
+ const historyFeeds:{url:string;procedureIndex:number;value:ActivityPage}[]=[];
  const diagnostics: ObserverDiagnostics = { consoleErrors: 0, pageErrors: 0, failedRequests: 0, nonSuccessResponses: 0, blockedRequests: 0, feedBodyErrors: 0 };
  const result: Record<string, unknown> = { runId: input.runId, controllerId:input.rootProof.controllerId, observerIsParticipant: false, members: 253, memberBrowserUsers: 3, observerBrowsers: 1,
   requestedSeconds: 90, drainSeconds: 7, passed: false, browserClosed: false, apiClosed: false, suppressedPrefetches: 0, steps: [] };
@@ -279,10 +316,28 @@ export async function runHostedObserver(raw: unknown, options: ObserverOptions) 
    return route.continue({headers:{...route.request().headers(),...protectionHeaders(input.protectionBypass)}});
   }));
   page = await execute(() => context.newPage(), page => page.close()); page.setDefaultTimeout(15000); page.setDefaultNavigationTimeout(15000);
-  page.on('console',message => {if(message.type()==='error')diagnostics.consoleErrors++;});
-  page.on('pageerror',()=>diagnostics.pageErrors++);
-  page.on('requestfailed',()=>diagnostics.failedRequests++);
-  page.on('response',response=>{if(response.status()>=400)diagnostics.nonSuccessResponses++;});
+  page.on('console',consoleListener);
+  page.on('pageerror',pageErrorListener);
+  cdp=await execute(()=>context.newCDPSession(page!),session=>session.detach());
+  network=new ObserverNetwork(cdp,input,(url,status,accept,body,signal)=>observerQueryResponses(url,status,accept,body,input,signal),capture=>{
+   const names=new URL(capture.url).pathname.slice('/api/trpc/'.length).split(',');
+   if(capture.phase==='history')for(const [index,name] of names.entries())if(name==='admin.activity')
+    historyFeeds.push({url:capture.url,procedureIndex:index,value:capture.values[index] as ActivityPage});
+   if(capture.phase!=='freshness')return;
+   const values=capture.values.filter((__unused,index)=>names[index]==='admin.activity') as ActivityPage[];
+   if(!values.length)return;
+   const record:Record<string,unknown>={requestStartedAt:capture.requestStartedAt,headersAt:capture.headersAt,status:200,
+    bodyFinishedAt:capture.finishedAt,bytes:capture.bytes,termination:capture.termination};
+   record.pages=values.map(value=>{
+    for(const item of value.items){const event=hostedSuccess(item,input,started,cutoff,capture.requestStartedAt,capture.finishedAt);if(event)hosted.push(event);}
+    return {observedAt:new Date(value.observedAt).getTime(),events:value.items.map(item=>({eventId:item.id,actionAt:new Date(item.occurredAt).getTime(),hostedStoredAt:new Date(item.createdAt).getTime()}))};
+   });polls.push(record);guard(hosted.length<=20000&&polls.length<=1000);
+  },issue=>{
+   if(issue==='request')diagnostics.failedRequests++;
+   else if(issue==='status')diagnostics.nonSuccessResponses++;
+   else diagnostics.feedBodyErrors++;
+  },cancellation.signal);
+  await execute(()=>network!.start());
   timer = setInterval(()=>{ const free = freemem()/2**30; minimumFreeGiB=Math.min(minimumFreeGiB,free);
    if(free<1.5||Date.now()>overallDeadline){memoryFloorBreached||=free<1.5;cancellation.cancel();} },500);
   phase = 'run-navigation'; guard((await execute(() => page!.goto(`${input.origin}/admin/simulations/${input.runId}`)))?.status()===200);
@@ -304,23 +359,7 @@ export async function runHostedObserver(raw: unknown, options: ObserverOptions) 
    const observer=new MutationObserver(capture);observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['datetime','class','style']});capture();
    (window as unknown as ObserverWindow).__communityObserver={samples,observer};
   }));
-  const requestStarts = new WeakMap(), pending = new Set<Promise<void>>();
-  const feed = (url:string)=>new URL(url).pathname.split('/').at(-1)?.split(',').includes('admin.activity');
-  page.on('request',request=>{if(feed(request.url()))requestStarts.set(request,Date.now());});
-  const responseListener=(response:Response)=>{
-   if(!feed(response.url()))return;
-   const record:Record<string,unknown>={requestStartedAt:requestStarts.get(response.request())??null,headersAt:Date.now(),status:response.status()};polls.push(record);
-   const task=(async()=>{try{
-    const body=await execute(() => response.body()),values=await execute(() => observerActivityResponses(response.url(),response.status(),response.request().headers()['trpc-accept']??'',body,input,cancellation.signal));
-    record.bodyFinishedAt=Date.now();record.pages=values.map(rawValue=>{
-     const value=rawValue as ActivityPage;
-     guard(Array.isArray(value.items)&&value.items.every(item=>item.runId===input.runId));
-     for(const item of value.items){const event=hostedSuccess(item,input,started,cutoff,Number(record.requestStartedAt??record.headersAt),Date.now());if(event)hosted.push(event);}
-     return {observedAt:new Date(value.observedAt).getTime(),events:value.items.map(item=>({eventId:item.id,actionAt:new Date(item.occurredAt).getTime(),hostedStoredAt:new Date(item.createdAt).getTime()}))};
-    });
-   }catch{diagnostics.feedBodyErrors++;record.bodyUnavailable=true;}})();pending.add(task);void task.finally(()=>pending.delete(task));
-  };
-  page.on('response',responseListener);phase='freshness';started=Date.now();cutoff=started+90000;const end=cutoff+7000;
+  phase='freshness';started=Date.now();cutoff=started+90000;const end=cutoff+7000;network.setPhase('freshness');
   try {
    while(Date.now()<end){
     cancellation.require();memoryAdmission(freemem()/2**30,false);
@@ -339,30 +378,22 @@ export async function runHostedObserver(raw: unknown, options: ObserverOptions) 
    }
    completed=true;
   }finally{
-   page.off('response',responseListener);await boundedObserverReads([...pending],5000,cancellation.signal);
+   await execute(()=>network!.settle());
    if(!aborted){const exact=await execute(() => page!.evaluate(()=>{const value=(window as unknown as ObserverWindow).__communityObserver;value.observer.disconnect();return [...value.samples.values()];}));rendered.push(...exact);}
   }
   const local=observerJournal(input,base).filter(event=>event.kind==='action_result'&&event.data.outcome==='success') as LocalSuccess[];
   evidence=freshnessEvidence(input,started,cutoff,completed,local,hosted,rendered);
-  exclusiveJson(join(output,'freshness.json'),{...evidence,browserPolls:polls,diagnostics,minimumFreeGiB,
+  exclusiveJson(join(output,'freshness.json'),{...evidence,browserPolls:polls,diagnostics,networkDiagnostics:network.diagnostics,minimumFreeGiB,
    timingNotes:'createdAt is transaction start, not commit; DOM/browser and runner action times share this VM; every missing/late event remains in the denominator.'});
-  phase='history';ownedHosted(await rpc('admin.simulation',{id:input.runId}),input);
+  phase='history';network.setPhase('history');ownedHosted(await rpc('admin.simulation',{id:input.runId}),input);
   const prefix=`/admin/simulations/${input.runId}/agents/`,link=page.locator(`.admin-event-list a[href^="${prefix}"]`).filter({hasText:'Inspect simulation'}).first();
   await execute(() => link.waitFor({state:'visible'}));const href=await execute(() => link.getAttribute('href')),selected=input.cohort.find(member=>href===`${prefix}${member.id}`);guard(selected);
-  const historyFeeds:{url:string;value:ActivityPage}[]=[];
-  const historyListener=(response:Response)=>{
-   if(!feed(response.url()))return;
-   const task=(async()=>{try{const body=await execute(() => response.body());
-    const values=await execute(() => observerActivityResponses(response.url(),response.status(),response.request().headers()['trpc-accept']??'',body,input,cancellation.signal));
-    for(const rawValue of values){const value=rawValue as ActivityPage;guard(Array.isArray(value.items));historyFeeds.push({url:response.url(),value});
-   }}catch{diagnostics.feedBodyErrors++;}})();pending.add(task);void task.finally(()=>pending.delete(task));
-  };
-  page.on('response',historyListener);await execute(() => link.click());
+  await execute(() => link.click());
   await execute(() => page!.waitForURL(`${input.origin}${href}`));guard(page.url()===`${input.origin}${href}`);
   await execute(() => page!.getByRole('heading',{name:'This individual member',exact:true}).waitFor({state:'visible'}));
   await execute(() => page!.getByRole('heading',{name:'Live activity',exact:true}).waitFor({state:'visible'}));
   const deadline=Date.now()+15000;
-  const actorFeeds=()=>historyFeeds.filter(record=>exactHistoryQuery(record.url,input.runId,selected.userId));
+  const actorFeeds=()=>historyFeeds.filter(record=>{const query=activityQuery(record.url,record.procedureIndex);return query.runId===input.runId&&query.actorId===selected.userId;});
   while(!actorFeeds().some(record=>record.value.items.length)){guard(Date.now()<deadline);await cancellation.wait(100);}
   guard(actorFeeds().every(record=>record.value.items.every(item=>item.runId===input.runId&&item.actorId===selected.userId)));
   const entity=await rpc('admin.activity',{runId:input.runId,entityType:'simulation',entityId:selected.id,limit:25});
@@ -373,21 +404,29 @@ export async function runHostedObserver(raw: unknown, options: ObserverOptions) 
    if(ids.length&&ids.every(id=>known.has(id)))break;
    guard(Date.now()<deadline);await cancellation.wait(100);
   }
-  page.off('response',historyListener);await boundedObserverReads([...pending],5000,cancellation.signal);
+  await execute(()=>network!.settle());
   result.history={href,agentId:selected.id,actorId:selected.userId,actualUiActorFilter:true,runScoped:true,renderedEvents:ids.length,entityOwnedEvents:entity.items.length,passed:true};
   guard(!aborted&&Object.values(diagnostics).every(count=>count===0));
   await execute(() => page!.screenshot({path:join(output,'history.png'),fullPage:false}));
+  network.setPhase('navigation');
   await execute(() => page!.goto(`${input.origin}/admin/simulations/${input.runId}`));
   await execute(() => page!.getByRole('heading',{name:'Live activity',exact:true}).waitFor({state:'visible'}));
   await execute(() => page!.screenshot({path:join(output,'dashboard.png'),fullPage:false}));
+  await execute(()=>network!.settle());
   guard(!aborted&&Object.values(diagnostics).every(count=>count===0));result.passed=evidence.fiveSecondTargetMet;
  }catch{result.passed=false;result.failedPhase=phase;}
  finally{
   if(timer)clearInterval(timer);
   const parentCancelled = options.signal?.aborted === true;
+  detachObservers();
   // Even a normal finish fences off late handlers; only this observer's resources are closed.
   cancellation.signal.removeEventListener('abort',onCancel);cancellation.cancel();cancellation.detach();
-  const cleanup = [closeBrowser(),closeApi(),...cancellation.pending];
+  const detachThenCloseBrowser = async()=>{
+   // Detachment cannot race a normal browser close or indefinitely prevent it.
+   const detached=await boundedObserverCleanup([cdp ? cdp.detach() : Promise.resolve()],5000);
+   await closeBrowser();guard(detached);
+  };
+  const cleanup = [detachThenCloseBrowser(),closeApi(),...cancellation.pending];
   result.cleanupComplete=(await boundedObserverCleanup(cleanup))&&!cancellation.cleanupFailed;
   result.browserClosed=Boolean(result.cleanupComplete&&(!browser||!browser.isConnected()));
   result.apiClosed=Boolean(result.cleanupComplete&&apiCloseComplete);
@@ -395,7 +434,7 @@ export async function runHostedObserver(raw: unknown, options: ObserverOptions) 
   // Preserve partial measurement rather than quietly replacing its denominator.
   if(started&&!evidence){try{const local=observerJournal(input,base).filter(event=>event.kind==='action_result'&&event.data.outcome==='success') as LocalSuccess[];
    evidence=freshnessEvidence(input,started,cutoff,false,local,hosted,rendered);exclusiveJson(join(output,'freshness.json'),{...evidence,diagnostics});}catch{result.denominatorUnavailable=true;}}
-  Object.assign(result,{finishedAt:new Date().toISOString(),diagnostics,minimumFreeGiB:Number.isFinite(minimumFreeGiB)?minimumFreeGiB:null,memoryFloorBreached,observationAborted:aborted,
+  Object.assign(result,{finishedAt:new Date().toISOString(),diagnostics,networkDiagnostics:network?.diagnostics??null,minimumFreeGiB:Number.isFinite(minimumFreeGiB)?minimumFreeGiB:null,memoryFloorBreached,observationAborted:aborted,
    parentCancelled,freshnessPassed:evidence?.fiveSecondTargetMet===true,fullHourAcceptance:false,noMemberActions:true,noControlActions:true});
   exclusiveJson(join(output,'receipt.json'),result);
  }

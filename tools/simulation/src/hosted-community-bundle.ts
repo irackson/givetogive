@@ -28,25 +28,38 @@ export function encryptionKey(raw: string | undefined) {
 /** Authenticate ciphertext before parsing, decompress with a strict output cap. Never log payloads. */
 export function seal(value: unknown, key: Buffer) {
  requireHosted(key.length === 32);
- const clear = Buffer.from(JSON.stringify(value)); requireHosted(clear.length <= maximum);
- const iv = randomBytes(12), cipher = createCipheriv('aes-256-gcm', key, iv);
- cipher.setAAD(magic);
- const encrypted = Buffer.concat([cipher.update(gzipSync(clear)), cipher.final()]);
- clear.fill(0);
- return Buffer.concat([magic, iv, cipher.getAuthTag(), encrypted]);
+ let clear: Buffer | undefined, compressed: Buffer | undefined, iv: Buffer | undefined;
+ let prefix: Buffer | undefined, tail: Buffer | undefined, encrypted: Buffer | undefined, tag: Buffer | undefined;
+ try {
+  clear = Buffer.from(JSON.stringify(value)); requireHosted(clear.length <= maximum);
+  iv = randomBytes(12); const cipher = createCipheriv('aes-256-gcm', key, iv);
+  cipher.setAAD(magic); compressed = gzipSync(clear);
+  prefix = cipher.update(compressed); tail = cipher.final();
+  encrypted = Buffer.concat([prefix, tail]); tag = cipher.getAuthTag();
+  return Buffer.concat([magic, iv, tag, encrypted]);
+ } finally {
+  // Only our owned byte buffers. Caller key/output and immutable JS strings are not erased here.
+  for (const bytes of [clear, compressed, iv, prefix, tail, encrypted, tag]) bytes?.fill(0);
+ }
 }
 export function unseal(bytes: Buffer, key: Buffer): unknown {
  requireHosted(key.length === 32 && bytes.length > 36 && bytes.length <= maximum && bytes.subarray(0, 8).equals(magic));
- const decipher = createDecipheriv('aes-256-gcm', key, bytes.subarray(8, 20));
- decipher.setAAD(magic); decipher.setAuthTag(bytes.subarray(20, 36));
- const compressed = Buffer.concat([decipher.update(bytes.subarray(36)), decipher.final()]);
- const clear = gunzipSync(compressed, { maxOutputLength: maximum });
- try { return JSON.parse(clear.toString('utf8')); } finally { clear.fill(0); compressed.fill(0); }
+ let prefix: Buffer | undefined, tail: Buffer | undefined, compressed: Buffer | undefined, clear: Buffer | undefined;
+ try {
+  const decipher = createDecipheriv('aes-256-gcm', key, bytes.subarray(8, 20));
+  decipher.setAAD(magic); decipher.setAuthTag(bytes.subarray(20, 36));
+  // Retain update's unauthenticated plaintext so final() failure cannot abandon it.
+  prefix = decipher.update(bytes.subarray(36)); tail = decipher.final();
+  compressed = Buffer.concat([prefix, tail]); clear = gunzipSync(compressed, { maxOutputLength: maximum });
+  return JSON.parse(clear.toString('utf8'));
+ } finally {
+  for (const owned of [prefix, tail, compressed, clear]) owned?.fill(0);
+ }
 }
 export function validateFiles(raw: unknown, names: string[]) {
  const files = z.array(fileSchema).max(30).parse(raw);
  requireHosted(files.length === names.length && new Set(files.map(file => file.name)).size === names.length);
  requireHosted(files.every(file => names.includes(file.name)));
- for (const file of files) fileBytes(file);
+ for (const file of files) fileBytes(file).fill(0);
  return files;
 }

@@ -20,6 +20,36 @@ export const approved = {
  actionJournalId: '94dc4a24-f891-4029-bbdb-71c82c74406c', telemetryJournalId: '6d6b3b5f-8869-4ce4-a885-a45dd1af28f2',
  stateDirectory: '.state/community-hour253regression2',
 } as const;
+/** Append-only exact-run approvals. Historical exported values and wire shapes stay unchanged.
+ * Adding a run requires reviewed actual provenance and a new signed trusted source checkpoint. */
+export type FullRunApproval = Readonly<{ [Key in keyof typeof approved]: string }>;
+const fullRunFields = ['runId','stateDirectory','sourceDigest','programDigest','actionJournalId','telemetryJournalId','setupDigest'] as const;
+/** Pure injectable registry validation for offline fixtures; it never changes the runtime registry. */
+export function validateFullRunApprovalRegistry(raw: unknown): readonly FullRunApproval[] {
+ const schema = z.object(Object.fromEntries(Object.keys(approved).map(key => [key,z.string()]))).strict();
+ const records = z.array(schema).min(1).max(16).parse(raw) as FullRunApproval[];
+ const identities = new Set<string>(), directories = new Set<string>();
+ for (const record of records) {
+  requireHosted(uuid.test(record.runId) && uuid.test(record.actionJournalId) && uuid.test(record.telemetryJournalId)
+   && /^\.state\/community-[a-z0-9-]+$/.test(record.stateDirectory));
+  for (const field of ['sourceDigest','programDigest','setupDigest'] as const) requireHosted(/^[a-f0-9]{64}$/.test(record[field]));
+  for (const field of Object.keys(approved) as (keyof typeof approved)[])
+   if (!fullRunFields.some(runField => runField === field)) requireHosted(record[field] === approved[field]);
+  for (const value of [record.runId,record.actionJournalId,record.telemetryJournalId]) {
+   requireHosted(!identities.has(value)); identities.add(value);
+  }
+  requireHosted(!directories.has(record.stateDirectory)); directories.add(record.stateDirectory);
+ }
+ return Object.freeze(records.map(record => Object.freeze({ ...record })));
+}
+/** The only runtime registry: historical run only. Fixture selectors are never accepted by consumers. */
+export const fullRunApprovals = validateFullRunApprovalRegistry([approved]);
+export function selectFullRunApproval(runId: unknown): FullRunApproval {
+ const record = fullRunApprovals.find(value => value.runId === runId); requireHosted(record); return record;
+}
+export function validateFullRunApprovalTuple(value: Pick<HostedManifest, typeof fullRunFields[number] | 'runnerDigest' | 'seedDigest'>, record: FullRunApproval) {
+ for (const field of [...fullRunFields,'runnerDigest','seedDigest'] as const) requireHosted(value[field] === record[field]);
+}
 export const runnerFiles = ['community-supervisor.ts', 'community-cli.ts', 'community-browser.ts',
  'browser-observation.ts', 'controller-cadence.ts', 'community-generate.ts', 'community-config.ts', 'activity.ts'];
 const hash = z.string().regex(/^[a-f0-9]{64}$/), id = z.string().regex(uuid);
@@ -44,11 +74,11 @@ export const observerInputPolicy = Object.freeze({ waitMilliseconds: 300000, max
 /** The trusted wrapper supplies its exact GITHUB_RUN_ID. Do not refresh the original launch attestation. */
 export function observerInputName(raw: HostedManifest, githubRunId: string) {
  const value = manifestSchema.parse(raw);
+ const selected = selectFullRunApproval(value.runId);
  requireHosted(value.mode === 'full-hour' && value.population === 253 && value.durationSeconds === 4500
   && value.runnerDigest === approved.runnerDigest && value.seedDigest === approved.seedDigest
   && value.release.cloudBrowserSmokePassed && value.release.authenticatedSmokePassed);
- for (const field of ['runId', 'stateDirectory', 'sourceDigest', 'programDigest', 'actionJournalId', 'telemetryJournalId', 'setupDigest'] as const)
-  requireHosted(value[field] === approved[field]);
+ validateFullRunApprovalTuple(value,selected);
  requireHosted(/^[1-9][0-9]*$/.test(githubRunId) && Number.isSafeInteger(Number(githubRunId)));
  return `community-observer-input-${value.runId}-${githubRunId}-1.g2genc`;
 }
@@ -63,9 +93,9 @@ export function validateManifest(raw: unknown, now = Date.now()): HostedManifest
  if (value.mode === 'full-hour') {
   requireHosted(value.population === 253 && value.durationSeconds === 4500);
   requireHosted(value.release.cloudBrowserSmokePassed && value.release.authenticatedSmokePassed);
-  for (const field of ['runId', 'stateDirectory', 'sourceDigest', 'programDigest', 'actionJournalId', 'telemetryJournalId', 'setupDigest'] as const)
-   requireHosted(value[field] === approved[field]);
- } else requireHosted(value.population === 5 && value.durationSeconds === 300 && value.runId !== approved.runId && value.stateDirectory !== approved.stateDirectory);
+  validateFullRunApprovalTuple(value,selectFullRunApproval(value.runId));
+ } else requireHosted(value.population === 5 && value.durationSeconds === 300
+  && !fullRunApprovals.some(record => value.runId === record.runId || value.stateDirectory === record.stateDirectory));
  return value;
 }
 export function trustedExecution(env: NodeJS.ProcessEnv, mode: string) {

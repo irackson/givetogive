@@ -11,6 +11,77 @@ model/ramp work below; historical measurements remain evidence, not new requirem
 
 ### October 3 active-goal checkpoint — supersedes paused/live handles below
 
+**October 4, 02:24 UTC retirement attempt (supersedes queued-zero below):**
+root reviewed the control-only helper and passed its 15 offline regression tests,
+then invoked it once. Ordinary synthetic-admin Stop **25** was queued at
+02:23:41 UTC. The isolated child exited 1, with zero stderr, before writing its
+worker intent or acquiring ownership. The global exclusive intent and original
+files remain preserved. **Do not rerun the helper or enqueue another Stop.**
+Investigate its pre-intent guard read-only, reconcile the existing command and
+actual controller state, then separately review any control-only continuation.
+No member replay, financial request, history reset or acceptance is authorized
+by this failed retirement. Operational directory:
+`tmp/hosted-community-retirement/3275f37c-213f-48d8-a1e0-50ce35850559-1791080621477-135f10b545f6`.
+
+The repaired observer now retains raw requests as well as strictly proven
+completed-query cancellations. The credential-free Chromium fixture must prove
+one completed-response abort and retain one genuine truncated-response failure,
+under the exact sanitized child environment. **Actual Chromium execution is
+still pending.** Root's complete simulation suite passed **228/228**, with no
+skips; tools TypeScript passed. Checkout policy/protocol's **24/24** offline
+tests passed, but an executable hosted Checkout adapter and paid settlement
+remain unfinished. These tool changes do not change the deployed application,
+schema, lockfiles or eight core-runner fingerprints. The goal remains active.
+
+**02:33 UTC diagnosis:** a credential-free inert IPC probe reproduced exactly
+eight Windows system defaults added by Node 24.19.0/libuv 1.52.1. Strict removal
+of only those observed defaults before the frozen worker import passes the
+original environment guard; unknown/case-changed/secret keys still fail closed.
+Input, original copied bytes, SELECT-only journals and current runner manifest
+verify. Stop 25 remains the only admitted command; a new, separately reviewed
+continuation must consume that command, never enqueue another. The historical
+full-run approval now has an immutable exact-tuple selector; no new UUID is
+approved by that architectural change. Simulation suite **234/234** passes.
+
+**October 4, 01:43 UTC — current hosted-test state:** signed `7f0b1205`
+is published READY at `dpl_7bkFWYECxNZqSE7pnWfBhgb5dZM4`; production remains
+dark, Node 24, with unchanged application/lock/environment bindings. Its
+credential-free run `37167396403` and authenticated run `37167670642` passed.
+Sixth five-member cohort `2ae6c4bd-9b48-428f-86cd-a493b1fe7bd7` completed 95
+successes and 12 waits, with no rejected or ambiguous outcomes. Independent
+isolated SQL and normal-admin API review verified 10 Asks, 23 contributions,
+both cross-driver directions, clean completed/offline/unowned shutdown, and
+zero financial records. Minimum participation: 17 successes and nine actual
+mutation intents. Original ownership receipt ends `1791077778718.json`.
+
+The previously untouched 253-member cohort **has now run and failed**, not
+passed or remained unlaunched. Exact run `3275f37c-213f-48d8-a1e0-50ce35850559`,
+GitHub run `37168575277`, job `111336643641`, private draft `402773012`.
+All 253 passed warmup; original journals retained 2,090 successes, 783 waits,
+13 rejections, zero ambiguous outcomes, and only 88 continuous post-warmup
+seconds. The full-population dashboard window genuinely measured 665/665
+actions within 2,043 ms, but the observer failed in individual history.
+Its recorded request/body/console diagnostics remain failures to investigate,
+not waived. Browser/API closure is confirmed; local pending/outbox/claims are
+zero. Independent 01:56 UTC isolated SELECT review additionally verified
+52 Asks and 385 contributions against original journal entities, including
+16 API-to-browser and three browser-to-API contributions. All 253 are idle;
+the failed run is paused/offline with acknowledged controller release, zero
+active/queued workers, commands, financial records or other active controllers.
+It is not completed. Receipt: `tmp/community-stage/hosted-full-failure-review-3275f37c-213f-48d8-a1e0-50ce35850559-1791078965692.json`.
+Use a reviewed normal-admin Stop and control-only checkpoint to retire this
+already-released paused run; never fabricate a server recovery acknowledgment.
+
+Original recovery is preserved at
+`tmp/hosted-community-recovered/3275f37c-213f-48d8-a1e0-50ce35850559-20261004T014308Z-10bce781f0db`.
+Original pack proofs are readiness `1791077922556.json` and release
+`1791077905946.json`. Preserve its private assets, program, journals, and
+historical receipts: **do not reset, reseed, resume or rerun this failed history**.
+Next: independently review failed-state cleanup, repair and test exact creator
+prefetch/JSONL transport/history observation, then explicitly prepare a new
+reviewed cohort after confirming no live controller. No one-hour, paid-tier,
+financial-lifecycle or final-PDF acceptance is claimed. The goal remains active.
+
 **October 4, 00:58 UTC follow-up:** signed `754aa09d` is published READY at `dpl_23N6VRDAdbSBZvB5Nkv83qhkofFN`; canonical production, Node 24 and all five gates off remain verified. Credential-free hosted run `37166015279` and authenticated run `37166109716` passed. Fifth cohort `8aff9046-0977-47ce-bf69-19ba8d2950dd`: 90 successes/17 waits, no rejected/ambiguous/backoff outcomes; minimum 16 successes/nine actual mutation intents. Original recovery and independent isolated SQL/normal-admin API review verify 10 nonmonetary Asks, 21 contributions, eight API-to-browser and ten browser-to-API interactions, clean completed/offline/unowned termination, zero pending work/workers and zero financial records. Private recovery: `tmp/hosted-community-recovered/8aff9046-0977-47ce-bf69-19ba8d2950dd-20261004T005709Z-37efe7dbd2f0`; ownership receipt ends `1791075499961.json`. A public multi-MiB full-scale fixture exposed Base64-regex stack overflow; bounded canonical decoding repairs it with unchanged transport/file limits. Simulation suite 169/169, full-hour recovery fixtures 24/24 and independent full ownership fixtures 17/17 pass. The prepared 253-member run is still untouched/unlaunched. Preserve original fifth receipts and journals; publish the minimal decoder repair and obtain fresh same-commit hosted smoke before full dispatch. Full-run capacity audit, actual hour/dashboard proof, paid Stripe lifecycles and fresh final PDF remain pending. The goal is active; no hour/paid/full completion is claimed.
 
 **October 4, 00:43 UTC follow-up:** signed `a892df81` is published and both hosted runs passed: credential-free `37164919849`, authenticated `37165056980`. The fourth five-member cohort `550327d4-3e5f-4638-961a-f2a75b25787a` completed with 95 successes, 12 waits, no rejected/ambiguous/backoff results, and at least 17 successes/nine actual mutation intents per member. Original recovery and independent isolated SQL/normal-admin API review verify 10 nonmonetary Asks, 23 contributions, eight API-to-browser and ten browser-to-API interactions; completed/offline/unowned, no remaining workers or pending work, and zero financial records. Recovery: `tmp/hosted-community-recovered/550327d4-3e5f-4638-961a-f2a75b25787a-20261004T004223Z-3f83a884f532`; ownership receipt ends `1791074597212.json`. The separate full observer's Playwright filepath import was reproduced as exposing Chromium only through its CommonJS default; the minimal loader repair has a real installed-package regression test. All 167 simulation tests, strict tools TypeScript and zero-warning changed-file lint pass. Bind fresh hosted checks to the repaired signed commit before full-hour launch. The 253-member cohort is still untouched; Stripe lifecycle acceptance and the fresh final PDF remain unfinished. No hour or paid-tier pass is claimed.

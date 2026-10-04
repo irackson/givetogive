@@ -163,7 +163,7 @@ test('shell prefetch is synthetic-204 eligible only for explicit exact same-orig
  const value=input(),headers={'next-router-prefetch':'1',rsc:'1','sec-fetch-dest':'empty','sec-fetch-mode':'cors'};
  for(const path of ['/admin','/admin/activity','/admin/users','/admin/payments','/admin/funds','/admin/simulations',
   '/','/asks','/funds','/support','/signup','/account/security',`/admin/users/${encodeURIComponent(value.cohort[0]!.userId)}`,
-  `/members/${encodeURIComponent(value.cohort[0]!.userId)}`]) {
+  `/members/${encodeURIComponent(value.cohort[0]!.userId)}`,`/admin/users/${encodeURIComponent(value.admin.userId)}`]) {
   assert.equal(suppressedShellPrefetch(`${value.origin}${path}?_rsc=fixture`,'GET',headers,value),true);
   assert.equal(allowedObserverRequest(`${value.origin}${path}`,'GET',value),false,'Suppression must not admit actual navigation.');
   assert.equal(suppressedShellPrefetch(`${value.origin}${path}`,'GET',{},value),false);

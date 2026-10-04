@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { chromium } from 'playwright';
+import { runObserverCdpFixture, parseFixtureChildProof } from './hosted-community-observer-cdp-fixture.ts';
 import { browserAccounts, validateCommunity } from './community-config.ts';
 import { parseActivity } from './activity.ts';
 import { fixtureIds } from './provisioning.ts';
@@ -142,24 +143,39 @@ export function gracefulShutdown(signalOwnedChild: () => void) {
 async function browserSmoke() {
  requireHosted(freemem() / 2 ** 30 >= 2.5);
  // Exercise the EXACT supervisor allowlist/cache discovery, not a more permissive parent environment.
+ const parts:Buffer[]=[];let stdoutBytes=0,stderrBytes=0,oversized=false;
+ let proof:Record<string,unknown>;let stdout:Buffer|undefined;
+ try{
  const code = await new Promise<number | null>((done, reject) => {
   const child = spawn(process.execPath, ['--experimental-strip-types', 'src/hosted-community.ts', 'internal-browser-smoke'],
-   { cwd: base, env: supervisionEnvironment({ PATH: process.env.PATH }), stdio: ['ignore', 'ignore', 'ignore'] });
+   { cwd: base, env: supervisionEnvironment({ PATH: process.env.PATH }), stdio: ['ignore', 'pipe', 'pipe'] });
+  const stop=gracefulShutdown(()=>child.kill('SIGTERM'));
+  child.stdout.on('data',(chunk:Buffer)=>{stdoutBytes+=chunk.length;if(stdoutBytes>65536){oversized=true;stop();}else parts.push(Buffer.from(chunk));});
+  child.stderr.on('data',(chunk:Buffer)=>{stderrBytes+=chunk.length;if(stderrBytes>65536)stop();});
   child.once('error', reject); child.once('close', done);
  });
- requireHosted(code === 0);
- console.log(JSON.stringify({ credentialFreeBrowserSmoke: true, exactChildEnvironment: true, externalRequests: 0, memberSignIns: 0 }));
+ requireHosted(!oversized);stdout=Buffer.concat(parts);proof=parseFixtureChildProof(stdout,stderrBytes,code);
+ }
+ finally{stdout?.fill(0);for(const bytes of parts)bytes.fill(0);}
+ console.log(JSON.stringify({ credentialFreeBrowserSmoke: true, exactChildEnvironment: true, externalRequests: 0, memberSignIns: 0,fixture:proof }));
 }
 async function internalBrowserSmoke() {
  requireHosted(!process.env.COMMUNITY_BUNDLE_KEY && !process.env.COMMUNITY_RECOVERY_TOKEN && !process.env.SIM_CREDENTIALS);
  const browser = await chromium.launch({ headless: true });
+ let fixture:Record<string,unknown>|undefined;
+ const cancellation=new AbortController();
+ const stop=()=>{cancellation.abort();void browser.close().catch(()=>undefined);};
+ process.once('SIGTERM',stop);process.once('SIGINT',stop);
  try {
   const context = await browser.newContext();
   await context.route('**/*', route => route.abort());
   const page = await context.newPage(); await page.setContent('<h1>Credential-free hosted browser smoke</h1>');
   requireHosted(await page.locator('h1').textContent() === 'Credential-free hosted browser smoke');
   await context.close();
- } finally { await browser.close(); }
+  fixture=await runObserverCdpFixture(browser,cancellation.signal);
+ } finally { process.off('SIGTERM',stop);process.off('SIGINT',stop);await browser.close(); }
+ requireHosted(!browser.isConnected()&&fixture&&!cancellation.signal.aborted);
+ console.log(JSON.stringify({...fixture,browserClosed:true}));
 }
 async function snapshot(value: ReturnType<typeof validateInput>, key: Buffer, phase: string, summary: unknown, observerFiles: PrivateFile[] = []) {
  const files = [...value.files.filter(file => !file.name.endsWith('.sqlite')), ...observerFiles];

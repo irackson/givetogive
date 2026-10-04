@@ -1,5 +1,5 @@
 import { relative, resolve, isAbsolute, sep } from 'node:path';
-import { approved, uuid } from './hosted-community-policy.ts';
+import { selectFullRunApproval, uuid } from './hosted-community-policy.ts';
 import { fixtureIds } from './provisioning.ts';
 
 export type CohortMember = { id: string; userId: string };
@@ -31,6 +31,7 @@ export function validateObserverInput(raw: unknown, now = Date.now()): ObserverI
   'simulationLockDigest','stateDirectory','programDigest','actionJournalId','telemetryJournalId',
   'admin','protectionBypass','cohort','rootProof']);
  guard(value.protocolVersion === 1 && /^[a-f0-9]{40}$/.test(String(value.headSha)));
+ const approved = selectFullRunApproval(value.runId);
  for (const key of ['runId','origin','databaseIdentity','authoredSourceDigest','gitAuthoredSourceDigest',
   'lockDigest','runnerDigest','seedDigest','stateDirectory','programDigest','actionJournalId','telemetryJournalId'] as const)
   guard(value[key] === approved[key]);
@@ -83,7 +84,7 @@ export function expectedObserverBrowserIds(input: ObserverInput) {
 }
 export function observerPath(root: string, name: string) {
  guard(/^\.state\/runs\/[a-f0-9-]{36}\/observer-[a-f0-9-]{36}(?:\/[a-z-]+\.(?:json|png))?$/.test(name));
- guard(name.split('/')[2] === approved.runId);
+ selectFullRunApproval(name.split('/')[2]);
  const target = resolve(root, name), local = relative(resolve(root), target);
  guard(!isAbsolute(local) && local !== '..' && !local.startsWith(`..${sep}`));
  return target;
@@ -94,9 +95,9 @@ function queryEnvelope(raw: unknown): Record<string, unknown> {
  guard(Object.keys(envelope).every(key => key === 'json') && envelope.json !== null && typeof envelope.json === 'object' && !Array.isArray(envelope.json));
  return envelope.json as Record<string, unknown>;
 }
-export function activityQuery(urlString: string): Record<string, unknown> {
+export function activityQuery(urlString: string, procedureIndex?: number): Record<string, unknown> {
  const url = new URL(urlString), names = url.pathname.slice('/api/trpc/'.length).split(',');
- const index = names.indexOf('admin.activity'); guard(index >= 0);
+ const index = procedureIndex ?? names.indexOf('admin.activity'); guard(Number.isInteger(index) && index >= 0 && names[index]==='admin.activity');
  const raw = JSON.parse(url.searchParams.get('input') ?? 'null');
  return queryEnvelope(url.searchParams.get('batch') === '1' ? raw[String(index)] : raw);
 }
@@ -120,6 +121,7 @@ export function suppressedShellPrefetch(urlString: string, method: string, heade
   guard(['/admin','/admin/activity','/admin/users','/admin/payments','/admin/funds','/admin/simulations',
    '/','/asks','/funds','/support','/signup','/account/security'].includes(url.pathname)
    // ActivityTimeline/individual-member links, bounded to this exact synthetic cohort.
+   || url.pathname === `/admin/users/${encodeURIComponent(input.admin.userId)}`
    || input.cohort.some(member=>url.pathname===`/admin/users/${encodeURIComponent(member.userId)}`
     || url.pathname===`/members/${encodeURIComponent(member.userId)}`));
   const runHistory = url.pathname === '/admin/activity' && url.searchParams.getAll('runId').length === 1
