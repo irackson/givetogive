@@ -12,10 +12,14 @@ export function privateFile(name: string, bytes: Buffer): PrivateFile {
  return { name, digest: sha256(bytes), bytes: bytes.toString('base64') };
 }
 export function fileBytes(value: PrivateFile) {
- requireHosted(/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value.bytes));
+ // Repeated regex groups overflow V8's stack on ordinary multi-MiB journals.
+ // Bound before allocation and round-trip to reject the decoder's permissive forms.
+ requireHosted(typeof value.bytes === 'string' && value.bytes.length <= 4 * Math.ceil(maximum / 3));
  const bytes = Buffer.from(value.bytes, 'base64');
- requireHosted(bytes.length <= maximum && sha256(bytes) === value.digest);
- return bytes;
+ try {
+  requireHosted(bytes.length <= maximum && bytes.toString('base64') === value.bytes && sha256(bytes) === value.digest);
+  return bytes;
+ } catch (error) { bytes.fill(0); throw error; }
 }
 export function encryptionKey(raw: string | undefined) {
  requireHosted(typeof raw === 'string' && /^[a-f0-9]{64}$/.test(raw));

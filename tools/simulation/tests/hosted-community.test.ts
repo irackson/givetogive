@@ -60,6 +60,19 @@ test('private payload permits only exact run-scoped input files, rejects travers
  assert.throws(() => fileBytes({ ...files[0]!, bytes: 'not-base64!' }));
  assert.throws(() => containedPath('/workspace', '../workspace-evil/key'));
 });
+test('multi-MiB journal bytes decode without recursive-regex stack overflow', () => {
+ const bytes=Buffer.alloc(6*1024*1024);
+ for(let index=0;index<bytes.length;index++)bytes[index]=index%251;
+ assert.deepEqual(fileBytes(privateFile('public-offline-journal.sqlite',bytes)),bytes);
+});
+test('base64 rejects permissive decoder forms and noncanonical padding bits', () => {
+ const original=privateFile('public-offline.bin',Buffer.from([255]));
+ assert.deepEqual(fileBytes(original),Buffer.from([255]));
+ for(const bytes of ['/w','/w===','/w==\n','_w==','/x==','not-base64!'])
+  assert.throws(()=>fileBytes({...original,bytes}));
+ assert.throws(()=>fileBytes({...original,digest:'0'.repeat(64)}));
+ assert.equal(fileBytes(privateFile('public-empty.bin',Buffer.alloc(0))).length,0);
+});
 test('fresh full-hour binding is exact; smoke cannot consume the prepared journal; stale operator evidence is rejected', () => {
  const { manifest } = fixture(); assert.equal(validateManifest(manifest).population, 5);
  for (const patch of [{ runId: approved.runId }, { population: 253 }, { durationSeconds: 4500 }, { stateDirectory: approved.stateDirectory },
@@ -126,7 +139,7 @@ test('draft retention rejects published, foreign head/run, wrong release, public
  for (const patch of [{ draft: false }, { target_commitish: 'main' }, { id: 456 }, { tag_name: 'public-release' }, { body: '{}' }])
   assert.throws(() => assertDraft({ ...release, ...patch }, manifest));
  const encrypted = seal({ fixture: true }, randomBytes(32)); let posts = 0;
- const request = (async (_url, init) => {
+ const request = (async (__url, init) => {
   if (init?.method === 'POST') posts++;
   return new Response(JSON.stringify(release), { status: 200 }); // Anonymous visibility deliberately unsafe.
  }) as typeof fetch;
@@ -153,7 +166,7 @@ test('private upload is exclusive and verifies exact resulting ID/digest; ambigu
  const name = `community-recovery-${manifest.runId}-123-1-final.g2genc`;
  const asset = { id: 88, name, size: encrypted.length, digest: `sha256:${sha256(encrypted)}` };
  const release = releaseFixture(manifest); let posts = 0;
- const request = (async (_url, init) => {
+ const request = (async (__url, init) => {
   const headers = init?.headers as Record<string, string>;
   if (!headers?.Authorization) return new Response('', { status: 404 });
   if (init?.method === 'POST') { posts++; release.assets = [asset]; return Response.json({ ...asset, state: 'uploaded' }, { status: 201 }); }
@@ -163,7 +176,7 @@ test('private upload is exclusive and verifies exact resulting ID/digest; ambigu
  await draft.upload(name, encrypted); assert.equal(posts, 1);
  await assert.rejects(draft.upload(name, encrypted)); assert.equal(posts, 1);
  release.assets = [];
- const lostWrite = (async (_url, init) => {
+ const lostWrite = (async (__url, init) => {
   const headers = init?.headers as Record<string, string>;
   if (!headers?.Authorization) return new Response('', { status: 404 });
   if (init?.method === 'POST') { posts++; throw new Error('PRIVATE_TEST_SENTINEL_RESPONSE_LOSS'); }
@@ -191,7 +204,7 @@ test('read-only fresh journal inspection rejects pending intents, activity, owne
 });
 test('private-input wait is bounded/read-only; no upload, input replacement, decrypt or admission during wait', async () => {
  const { manifest } = fixture(), release = releaseFixture(manifest); let clock = 0, milestones = 0, requests = 0;
- const request = (async (_url, init) => {
+ const request = (async (__url, init) => {
   requests++; assert.ok(!init?.method || init.method === 'GET');
   const headers = init?.headers as Record<string, string>;
   return headers.Authorization ? Response.json(release) : new Response('', { status: 404 });
