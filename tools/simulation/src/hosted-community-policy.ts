@@ -39,6 +39,19 @@ export const manifestSchema = z.object({
  }).strict(),
 }).strict();
 export type HostedManifest = z.infer<typeof manifestSchema>;
+export const observerInputPolicy = Object.freeze({ waitMilliseconds: 300000, maximumAgeMilliseconds: 300000,
+ maximumBytes: 1024 * 1024, maximumAssets: 20 });
+/** The trusted wrapper supplies its exact GITHUB_RUN_ID. Do not refresh the original launch attestation. */
+export function observerInputName(raw: HostedManifest, githubRunId: string) {
+ const value = manifestSchema.parse(raw);
+ requireHosted(value.mode === 'full-hour' && value.population === 253 && value.durationSeconds === 4500
+  && value.runnerDigest === approved.runnerDigest && value.seedDigest === approved.seedDigest
+  && value.release.cloudBrowserSmokePassed && value.release.authenticatedSmokePassed);
+ for (const field of ['runId', 'stateDirectory', 'sourceDigest', 'programDigest', 'actionJournalId', 'telemetryJournalId', 'setupDigest'] as const)
+  requireHosted(value[field] === approved[field]);
+ requireHosted(/^[1-9][0-9]*$/.test(githubRunId) && Number.isSafeInteger(Number(githubRunId)));
+ return `community-observer-input-${value.runId}-${githubRunId}-1.g2genc`;
+}
 export function requireHosted(value: unknown): asserts value {
  if (!value) throw new Error('Hosted community guard rejected; private details withheld.');
 }

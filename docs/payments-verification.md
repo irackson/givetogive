@@ -9,6 +9,8 @@ Earlier counts below are historical; they do not prove a completed full-populati
 
 ## October 3 security and freshness regression
 
+**Newest hosted result, 23:56 UTC:** credential-free `37162207433` and authenticated `37162614570` passed at signed `2c682123`. The independent five-member cohort completed 95 successes and 12 waits, with zero rejected/ambiguous/backoff actions; each member had at least 17 successes and nine actual mutation intents. Original encrypted journals, isolated read-only SQL and normal synthetic-admin API independently verify 10 Asks, 23 contributions, both cross-driver ownership directions (eight API-to-browser, ten browser-to-API), completed/offline/unowned and zero workers/pending/outbox/claims. All eight financial counters are zero; all five accounts are Neighbor. This is genuine small-cohort acceptance, not paid tiers or one hour. Production exact `2c682123` is READY on `dpl_DLmDhdQjdNFuycwLmHuZ84Lrda3a`, Node 24, with all five gates off and unchanged authored source/lock/env metadata. The protected 253-member run remains unlaunched. The new read-only cloud observer is under integration review; its memory cost, actual full-denominator latency/history, Stripe lifecycles and final fresh PDF remain unaccepted.
+
 **Hosted execution follow-up:** credential-free cloud browser smoke
 `37160298140` passed at signed `d9c184ab`. Only a new encrypted-state key and
 private synthetic-account/staging-access bundle were configured; no provider,

@@ -15,7 +15,8 @@ import { CommunityControl } from './community-control.ts';
 import { communityContinuity } from './community-evidence.ts';
 import { supervisionEnvironment } from './community-supervisor.ts';
 import { approved, containedPath, inputPaths, manifestSchema, requireHosted, runnerFiles, sha256, trustedExecution, validateManifest, type HostedManifest } from './hosted-community-policy.ts';
-import { encryptionKey, fileBytes, privateFile, seal, unseal, validateFiles } from './hosted-community-bundle.ts';
+import { encryptionKey, fileBytes, privateFile, seal, unseal, validateFiles, type PrivateFile } from './hosted-community-bundle.ts';
+import { bindObserverHandoff, collectObserverArtifacts, observerChildEnvironment } from './hosted-community-observer-parent.ts';
 import { PrivateDraft } from './hosted-community-github.ts';
 import { HostedAttention, HostedTelemetryAttention, linuxProcessIdentity } from './hosted-community-attention.ts';
 
@@ -160,8 +161,8 @@ async function internalBrowserSmoke() {
   await context.close();
  } finally { await browser.close(); }
 }
-async function snapshot(value: ReturnType<typeof validateInput>, key: Buffer, phase: string, summary: unknown) {
- const files = value.files.filter(file => !file.name.endsWith('.sqlite'));
+async function snapshot(value: ReturnType<typeof validateInput>, key: Buffer, phase: string, summary: unknown, observerFiles: PrivateFile[] = []) {
+ const files = [...value.files.filter(file => !file.name.endsWith('.sqlite')), ...observerFiles];
  // Each SQLite backup is individually consistent; paired live snapshots are NOT a resume authorization.
  for (const name of ['activity.sqlite', 'community-telemetry.sqlite']) {
   const source = new DatabaseSync(privatePath(`${value.manifest.stateDirectory}/${name}`), { readOnly: true });
@@ -212,6 +213,11 @@ async function hostedRun(mode: string) {
  validateManifest(value.manifest); // Recheck five-minute provider/operator attestation after network/materialization.
  requireHosted(freemem() / 2 ** 30 >= 2.5);
  let child: ChildProcess | undefined, interrupted = false, checkpoint = 0, uploadFailed = false;
+ const observerCancellation = new AbortController();
+ let observerChild: ChildProcess | undefined, observerTask: Promise<void> | undefined;
+ let observerFiles: PrivateFile[] = [], observerPassed = false, observerFinished = false, observerCleanupConfirmed = mode !== 'full-hour';
+ let observerProcessClosed = mode !== 'full-hour';
+ const signalObserverOnce = gracefulShutdown(() => { observerChild?.kill('SIGTERM'); });
  let supervisorGone = false, ownedRunner: ReturnType<typeof linuxProcessIdentity> | undefined;
  const runnerLive = () => {
   if (!ownedRunner) return false;
@@ -230,6 +236,7 @@ async function hostedRun(mode: string) {
  });
  const stop = () => {
   interrupted = true;
+  observerCancellation.abort(); signalObserverOnce();
   if (!supervisorGone) signalSupervisorOnce(); else signalRunnerOnce();
  };
  const attention = new HostedAttention(new Set(value.credentials.agents.map(account => account.id)), new Set(value.lines.map(line => line.id)), kind => {
@@ -248,7 +255,7 @@ async function hostedRun(mode: string) {
  let queue: Promise<void> = Promise.resolve();
  const enqueue = (phase: string, summary: unknown) => {
   queue = queue.then(async () => {
-   const encrypted = await snapshot(value, key, phase, summary);
+   const encrypted = await snapshot(value, key, phase, summary, observerFiles);
    await draft.upload(`community-recovery-${binding.runId}-${process.env.GITHUB_RUN_ID}-1-${phase}.g2genc`, encrypted);
    console.log(JSON.stringify({ encryptedRecoveryStored: true, phase }));
   }).catch(() => { uploadFailed = true; stop(); });
@@ -266,6 +273,51 @@ async function hostedRun(mode: string) {
   executionPhase = 'member-controller';
   child = spawn(process.execPath, ['--experimental-strip-types', 'src/community-supervisor.ts', 'run'],
    { cwd: base, env: runtimeEnvironment(value.manifest), stdio: ['ignore', 'ignore', 'ignore'] });
+  if (mode === 'full-hour') {
+   observerTask = (async () => {
+    let outputName: string | undefined;
+    try {
+     // Separate, late password-only synthetic-admin input. No admin identity
+     // or broker credential is ever added to the member input/environment.
+     const intent = privatePath(`.state/runs/${binding.runId}/observer-consumed.json`);
+     writeFileSync(intent, JSON.stringify({ runId: binding.runId, headSha: binding.headSha,
+      githubRunId: Number(process.env.GITHUB_RUN_ID), attemptedAt: new Date().toISOString(), noAutomaticRetry: true }), { flag:'wx', mode:0o600 });
+     const bytes = await draft.waitObserverInput(value.manifest, String(process.env.GITHUB_RUN_ID), observerCancellation.signal,
+      () => console.log(JSON.stringify({ awaitingObserverInput: true, maximumWaitSeconds: 300, observerIsParticipant: false })));
+     let handoff;
+     try { handoff = bindObserverHandoff(unseal(bytes,key), value.manifest, Number(process.env.GITHUB_RUN_ID)); }
+     finally { bytes.fill(0); }
+     outputName = handoff.outputName;
+     observerCancellation.signal.throwIfAborted();
+     requireHosted(freemem() / 2 ** 30 >= 2.5);
+     // Worker independently rechecks the two local journals and actual
+     // acquired controller before normal admin sign-in and browser launch.
+     observerChild = spawn(process.execPath, ['--experimental-strip-types','src/hosted-community-observer-worker.ts'],
+      { cwd:base, env:observerChildEnvironment(process.env), stdio:['pipe','ignore','ignore'] });
+     let observerSpawnFailed = false;
+     const observerExit = new Promise<{code:number|null;signal:NodeJS.Signals|null}>((done) => {
+      observerChild!.once('error',() => { observerSpawnFailed = true; });
+      observerChild!.once('close',(code,signal) => { observerProcessClosed = true; done({code,signal}); });
+     });
+     observerChild.stdin!.on('error', () => { observerCancellation.abort(); signalObserverOnce(); });
+     observerChild.stdin!.end(JSON.stringify(handoff));
+     const exit = await observerExit;
+     const artifacts = collectObserverArtifacts(base, outputName); observerFiles = artifacts.files;
+     observerCleanupConfirmed = artifacts.cleanupConfirmed;
+     observerPassed = !observerSpawnFailed && exit.code === 0 && exit.signal === null && artifacts.acceptancePassed && !observerCancellation.signal.aborted;
+     requireHosted(observerPassed);
+    } catch {
+     // Preserve any original partial files only after owned worker closure.
+     if (outputName && observerProcessClosed) {
+      try {
+       const artifacts = collectObserverArtifacts(base,outputName);
+       observerFiles = artifacts.files; observerCleanupConfirmed = artifacts.cleanupConfirmed;
+      } catch { /* Failed capture is not acceptance or confirmed browser cleanup. */ }
+     }
+     console.log(JSON.stringify({ observerAttention: true, acceptancePassed: false })); stop();
+    } finally { observerFinished = true; }
+   })();
+  }
   const startedAt = process.hrtime.bigint();
   const log = privatePath(`.state/runs/${value.manifest.runId}/supervision.jsonl`);
   observation = setInterval(() => {
@@ -290,10 +342,19 @@ async function hostedRun(mode: string) {
  } finally {
   if (interval) clearInterval(interval);
   if (observation) clearInterval(observation);
+  if (observerTask) {
+   if (!observerFinished) { observerCancellation.abort(); signalObserverOnce(); }
+   let observerDeadline: ReturnType<typeof setTimeout> | undefined;
+   try {
+    await Promise.race([observerTask, new Promise<void>((done) => { observerDeadline = setTimeout(done,90000); })]);
+   } finally { if (observerDeadline) clearTimeout(observerDeadline); }
+   if (!observerFinished || !observerCleanupConfirmed || !observerPassed) interrupted = true;
+  }
   await queue;
   try { summary = terminalEvidence(value); } catch { interrupted = true; }
   executionPhase = 'private-terminal-checkpoint';
-  await enqueue('final', { ...summary, exitCode, interrupted, acceptancePassed: false });
+  await enqueue('final', { ...summary, exitCode, interrupted, acceptancePassed: false,
+   observerRequired: mode === 'full-hour', observerPassed, observerFinished, observerProcessClosed, observerCleanupConfirmed });
   console.log(JSON.stringify({ ...summary, exitCode, interrupted, encryptedRecoveryStored: !uploadFailed,
    fullAcceptancePassed: false, remainingAcceptance: 'Independent hosted ownership, original full-denominator freshness and history review' }));
   process.off('SIGINT', stop); process.off('SIGTERM', stop); key.fill(0);
@@ -301,7 +362,7 @@ async function hostedRun(mode: string) {
  executionPhase = 'terminal-evidence';
  requireHosted(exitCode === 0 && !interrupted && !uploadFailed && summary?.terminalClean && summary.lifecycle === 'completed' &&
   summary.minimumBrowserMutations > 0 && summary.minimumParticipantMutations > 0 && summary.minimumSuccessesPerParticipant >= 3);
- requireHosted(mode !== 'full-hour' || summary.oneHourContinuousEvidence);
+ requireHosted(mode !== 'full-hour' || (summary.oneHourContinuousEvidence && observerPassed && observerFinished && observerCleanupConfirmed));
 }
 async function pack() {
  // Local operator command: no GitHub/network request, no member authentication or writable journal opens.
