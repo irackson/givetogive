@@ -33,7 +33,7 @@ export interface CheckoutSurface {
 	requiresCaptchaOrWalletOrAttestation: boolean; unknownInstructions: boolean;
 	consoleErrors: number; pageErrors: number; httpErrors: number;
 }
-type Counters = { consoleErrors: number; pageErrors: number; httpErrors: number; blockedRequests: number; failedRequests: number; unexpectedPages: number };
+export type Counters = { consoleErrors: number; pageErrors: number; httpErrors: number; blockedRequests: number; failedRequests: number; unexpectedPages: number };
 const cardFields = {
 	number: 'input[name="cardNumber"],input[autocomplete="cc-number"]',
 	expiry: 'input[name="cardExpiry"],input[autocomplete="cc-exp"]',
@@ -140,7 +140,7 @@ async function uniqueVisible(frames: Frame[], selector: string, optional = false
 	requirePolicy(optional || !!found); return found;
 }
 /** DOM read only: compute redacted panel digest in the provider frame; return no DOM text/URLs. */
-async function observeSurface(page: Page, counters: Counters, now: number): Promise<CheckoutSurface> {
+export async function observeSurface(page: Page, counters: Counters, now: number): Promise<CheckoutSurface> {
 	const frames = await visibleFrames(page);
 	let panelCount = 0, controlCount = 0, panelDigest: string | null = null;
 	let testModeLabel = false, unknownInstructions = false, challenge = false, visible = false, enabled = false, unchecked = false, controlName = '';

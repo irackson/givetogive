@@ -1,5 +1,32 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 generic Checkout acceptance driver continuation
+
+The generic sandbox executor now refreshes the independently owned provider
+context after form entry, immediately before submission, and compares every
+binding field except the refreshed verification timestamp. Changed URL fragments,
+session IDs, amount, mode, expiry, ownership, live-mode or stale reads prevent
+submission; the consumed reservation remains ambiguous, never reusable.
+
+The generic driver reuses the existing exact reviewed agent-notice DOM digest
+and surface validators, with one durable SQLite notice permission per reserved
+member operation before the native checkbox click. The executor independently
+refreshes the provider context before granting that permission. No unknown
+notice, CAPTCHA, wallet, OTP or attestation is handled. Errors are counters only;
+provider DOM, entered fields, URLs and tokens are not logged. Browser startup
+requires 2.5 GiB free RAM and native controls retain a 1.5 GiB floor.
+
+These are implementation/offline regression results, NOT actual paid Checkout
+acceptance. The shared worker export changes the source fingerprint: old native
+runner approvals MUST NOT be reused. No old financial attempt was replayed or
+reset. Fresh run `01d34cf1-7880-4978-aec3-e3c3ccc94b67` and its retained recurring
+Supporter/Sustainer/decline plan remain the next normal-member UI acceptance
+cohort. Use ordinary `UiSession`/`UiCheckoutPreparation` member endpoints, not
+the generic CLI's MCP preparation path, for that acceptance. Pass the executor's
+`admitNotice` callback into `StripeCheckoutDriver`. Next verify the real notice
+transition and fresh payments on a memory-qualified host; then proceed through
+the full lifecycle/simulation acceptance contract, not merely these tests.
+
 ## October 8 latest override: lifecycle hour failed and was safely retired
 
 Executable release continuation: `scripts/checkout-release-inspect.mjs` defaults

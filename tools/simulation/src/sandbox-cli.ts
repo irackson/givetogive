@@ -49,7 +49,7 @@ try {
           }
           if (!tools.some(tool => tool.name === 'prepare_checkout')) throw new Error('Sandbox payment preparation is disabled.');
           await member.call('prepare_checkout', step.checkout, step.operationId); // Stable UUID, ignored opaque result.
-          const executor = new SandboxCheckoutExecutor(ledger, () => new StripeCheckoutDriver(bypass!, actor.email!));
+          const executor = new SandboxCheckoutExecutor(ledger, admitNotice => new StripeCheckoutDriver(bypass!, actor.email!, admitNotice));
           const result = await executor.execute({ context: id => member.sandboxRead('context', id), outcome: id => member.sandboxRead('outcome', id) },
             { credentials, actorId: actor.userId, operationId: step.operationId, protectionBypass: bypass!, maximumAmountCents: step.maximumAmountCents }, step.scenario);
           if (step.expectedTier && result.effectiveTier !== step.expectedTier) throw new Error('Webhook-verified effective tier does not match the scenario expectation.');

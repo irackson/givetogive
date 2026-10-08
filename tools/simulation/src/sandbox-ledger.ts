@@ -12,11 +12,23 @@ export class SandboxLedger {
     if (![runBudgetCents, actorBudgetCents].every(value => Number.isSafeInteger(value) && value > 0 && value <= 1_000_000)) throw new Error('Invalid finite sandbox budget.');
     this.runId = runId; this.runBudgetCents = runBudgetCents; this.actorBudgetCents = actorBudgetCents;
     mkdirSync(dirname(path), { recursive: true }); this.db = new DatabaseSync(path);
-    this.db.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS sandbox_attempts(run_id TEXT, operation_id TEXT, actor_id TEXT NOT NULL, amount_cents INTEGER NOT NULL, scenario TEXT NOT NULL, state TEXT NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY(run_id,operation_id));');
+    this.db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS sandbox_attempts(run_id TEXT, operation_id TEXT, actor_id TEXT NOT NULL, amount_cents INTEGER NOT NULL, scenario TEXT NOT NULL, state TEXT NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY(run_id,operation_id)); CREATE TABLE IF NOT EXISTS sandbox_agent_acknowledgments(run_id TEXT NOT NULL,operation_id TEXT NOT NULL,actor_id TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(run_id,operation_id));');
   }
   get(operationId: string): CheckoutAttempt | undefined {
     const row = this.db.prepare('SELECT operation_id AS operationId,actor_id AS actorId,amount_cents AS amountCents,scenario,state,updated_at AS updatedAt FROM sandbox_attempts WHERE run_id=? AND operation_id=?').get(this.runId, operationId);
     return row as CheckoutAttempt | undefined;
+  }
+  /** Nonfinancial notice permission is spent before the native click, including failures. */
+  acknowledgeAgentNotice(operationId: string, actorId: string) {
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const prior = this.get(operationId);
+      if (!prior || prior.actorId !== actorId || prior.state !== 'reserved') throw new Error('Agent notice requires the same reserved member operation.');
+      const existing = this.db.prepare('SELECT 1 FROM sandbox_agent_acknowledgments WHERE run_id=? AND operation_id=?').get(this.runId, operationId);
+      if (existing) throw new Error('Agent notice permission was already consumed; reconcile without clicking again.');
+      this.db.prepare('INSERT INTO sandbox_agent_acknowledgments VALUES (?,?,?,?)').run(this.runId, operationId, actorId, Date.now());
+      this.db.exec('COMMIT');
+    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
   }
   reserve(operationId: string, actorId: string, amountCents: number, scenario: CheckoutScenario) {
     if (!Number.isSafeInteger(amountCents) || amountCents <= 0) throw new Error('Invalid sandbox amount.');

@@ -89,3 +89,68 @@ test('sensitive driver exceptions are replaced with fixed phase-only errors and 
     assert.equal(store.get(context.operationId)?.state, 'ambiguous');
   } finally { store.close(); }
 });
+
+test('provider verification is refreshed after form entry and immediately before the only submit', async () => {
+  const { boundary, context } = fixture(); const store = ledger(); const events: string[] = [];
+  try {
+    const executor = new SandboxCheckoutExecutor(store, () => driver(events));
+    await executor.execute({
+      context: async () => { events.push('verify'); return { ...context, verifiedAt: new Date().toISOString() }; },
+      outcome: async () => ({ operationId: context.operationId, actorId: context.actorId, livemode: false, databaseStatus: 'succeeded', providerPaymentStatus: 'succeeded', providerErrorCode: null, webhookVerified: true }),
+    }, boundary, 'success');
+    assert.deepEqual(events, ['verify', 'open', 'verify', 'success', 'verify', 'submit', 'close']);
+  } finally { store.close(); }
+});
+
+test('agent notice permission is member-owned, consumed once and survives ledger restart', () => {
+  const path = join(mkdtempSync(join(tmpdir(), 'g2g-notice-')), 'sandbox.sqlite');
+  const operation = randomUUID(); const first = new SandboxLedger(path, 'sandbox-run', 1500, 1000);
+  assert.throws(() => first.acknowledgeAgentNotice(operation, 'one'), /reserved/);
+  first.reserve(operation, 'one', 500, 'success');
+  assert.throws(() => first.acknowledgeAgentNotice(operation, 'other'), /reserved/);
+  first.acknowledgeAgentNotice(operation, 'one'); first.close();
+  const reopened = new SandboxLedger(path, 'sandbox-run', 1500, 1000);
+  try {
+    assert.throws(() => reopened.acknowledgeAgentNotice(operation, 'one'), /already consumed/);
+    const second = randomUUID(); reopened.reserve(second, 'one', 500, 'success'); reopened.update(second, 'submitted');
+    assert.throws(() => reopened.acknowledgeAgentNotice(second, 'one'), /reserved/);
+  } finally { reopened.close(); }
+});
+
+test('the driver notice callback independently refreshes the exact admitted context', async () => {
+  const { boundary, context } = fixture(); const store = ledger(); const events: string[] = []; let reads = 0;
+  try {
+    const executor = new SandboxCheckoutExecutor(store, admitNotice => ({
+      ...driver(events), async fillFixture() { events.push('notice'); await admitNotice(); },
+    }));
+    await assert.rejects(executor.execute({
+      context: async () => (++reads < 3 ? context : { ...context, amountTotal: 600 }),
+      outcome: async () => ({}),
+    }, boundary, 'success'), /during filling/);
+    assert.deepEqual(events, ['open', 'notice', 'close']);
+    assert.equal(store.get(context.operationId)?.state, 'ambiguous');
+  } finally { store.close(); }
+});
+
+for (const patch of [
+  { status: 'expired' }, { paymentStatus: 'paid' }, { amountTotal: 600 },
+  { mode: 'subscription' }, { expiresAt: 1 },
+  { verifiedAt: new Date(Date.now() - 60000).toISOString() },
+  { sessionId: 'cs_test_replaced', url: 'https://checkout.stripe.com/c/pay/cs_test_replaced#opaque' },
+  { url: 'https://checkout.stripe.com/c/pay/cs_test_publicfixture#changed' },
+  { actorId: 'different-actor' }, { livemode: true },
+]) test(`changed or stale post-fill context prevents submission: ${Object.keys(patch).join(',')}`, async () => {
+  const { boundary, context } = fixture(); const store = ledger(); const events: string[] = []; let reads = 0;
+  try {
+    const executor = new SandboxCheckoutExecutor(store, () => driver(events));
+    await assert.rejects(executor.execute({
+      context: async () => (++reads < 3 ? context : { ...context, ...patch }),
+      outcome: async () => { throw Error('Outcome must not be read before a submit.'); },
+    }, boundary, 'success'), /during pre-submit verification/);
+    assert.equal(reads, 3);
+    assert.deepEqual(events, ['open', 'success', 'close']);
+    assert.equal(store.get(context.operationId)?.state, 'ambiguous');
+    await assert.rejects(executor.execute({ context: async () => context, outcome: async () => ({}) }, boundary, 'success'), /already/);
+    assert.equal(events.filter(event => event === 'submit').length, 0);
+  } finally { store.close(); }
+});
