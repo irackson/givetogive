@@ -58,6 +58,15 @@ prepares Checkout, submits payment, rotates credentials or repeats recovery.
 It shares staging controller concurrency. A successful diagnostic establishes
 only current key equality and metadata permissions, not the old runner's key
 state, binary download permission, native worker execution or paid acceptance.
+Actual diagnostic run `37853825780`, job `113573112238`, signed head `797e2d5`,
+completed successfully on October 8 at 22:29 UTC. Native Linux output confirmed
+current key equality, both private metadata reads and anonymous denial, with no
+ciphertext download or financial replay. This rules out a current key mismatch
+and current metadata-read permission failure; the failed original's cause is
+still unestablished. Independent provider/app reads at 22:27 UTC still show the
+original $15 Checkout open/unpaid, no invoice/subscription and zero paid coverage/
+ledger. Local full regression: 382 passed, one Linux-only skip, zero failures;
+application/simulator types and focused lint passed. No live gate changes.
 
 The readiness transport is implemented in `checkout-readiness.ts`: it verifies
 the exact manual run, sole still-live `checkout-parent` job, actor, head, attempt
