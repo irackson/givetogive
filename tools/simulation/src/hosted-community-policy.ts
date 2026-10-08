@@ -51,8 +51,27 @@ export function validateFullRunApprovalRegistry(raw: unknown): readonly FullRunA
  }
  return Object.freeze(records.map(record => Object.freeze({ ...record })));
 }
-/** The only runtime registry: historical run only. Fixture selectors are never accepted by consumers. */
-export const fullRunApprovals = validateFullRunApprovalRegistry([approved]);
+/** Actual fresh-cohort provenance, inspected October 8; not a fixture or completed-run claim.
+ * Empty journals and all 253 real synthetic password bindings were independently verified.
+ * The Linux source hash is from canonical Git blobs of the exact deployed application. */
+export const october8Approved = {
+ runId: '8b4d85f5-e07e-42f5-9402-3ffa866ff761',
+ origin: 'https://givetogive-staging.vercel.app', databaseIdentity: 'd5e4408d-c2fa-404d-81c5-ef4336dd8cd7',
+ databaseName: 'givetogive_staging_20260926',
+ deploymentId: 'dpl_5Qci3JLvJ5kLPKkv8GrdSMyzwfFb',
+ authoredSourceDigest: '96402c8a2286a883196b53d52bac33540ef1fa3bb31b3e259e0debd10f3c0dae',
+ gitAuthoredSourceDigest: '0c5a961a5c3042c0d9fc77eb969465bd8cb9892b32304ee2e499773342c9b4de',
+ lockDigest: '9ac35921aee67783a92cbef09ed109e5ef6ac073f41cbec85164bbf0e66952fb',
+ runnerDigest: '70a9780d0f64421e9a9885e012fe9ba143a3c82672382b4366d327f66b98d1c9',
+ setupDigest: '5bb0f4d56f95df669c27f513582e51d8dea2ff6cce22cc4ed39112bc0e037a22',
+ seedDigest: '51b7c3d5c35c685abb95e3f70a902b56535e5369e974e41b0804a780a31a7225',
+ sourceDigest: 'f88fbc7feda59860511083d5f6803deae3b6d8b807b863e56486243983bdb8ad',
+ programDigest: '7329fdb02d8dca23014062ad42b7846e32da86c9ba9776196f4f79349132907a',
+ actionJournalId: '41f88f0e-3f4d-4d2a-a9bf-898752ced471', telemetryJournalId: '2101a3c8-d572-4647-bd65-53c2889e90dc',
+ stateDirectory: '.state/community-hour253-oct8',
+} as const satisfies FullRunApproval;
+/** Only compiled reviewed approvals are operational; fixture selectors are never accepted. */
+export const fullRunApprovals = validateFullRunApprovalRegistry([approved, october8Approved]);
 export function selectFullRunApproval(runId: unknown): FullRunApproval {
  const record = fullRunApprovals.find(value => value.runId === runId); requireHosted(record); return record;
 }

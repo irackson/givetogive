@@ -1,5 +1,40 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 fresh-cohort journal and compiled approval checkpoint
+
+Run `8b4d85f5-e07e-42f5-9402-3ffa866ff761` remains created/unstarted. Independent
+read-only SQL and password verification proved all 253 exact synthetic accounts,
+zero member API tokens, exactly one scoped control token, no Ask/contribution/
+payment/subscription activity, and no active controller anywhere in staging.
+The reviewed local `community-cli validate` initialized NEW empty journals at
+`.state/community-hour253-oct8`, without member sign-ins or server activity.
+All eight journal counters are zero. Exclusive initialization intent and original
+receipt are retained; NEVER repeat initialization or regenerate the activity.
+Receipt: `tmp/community-stage/oct8-journal-provenance-1791477002876.json`.
+Read-only reinspection is available via
+`node --env-file=.env.staging.local tmp/bind-community-oct8-journals.mjs inspect`.
+
+Compiled registry now appends `october8Approved` AFTER the unchanged historical
+approval, binding actual source/program/journal identities and the exact READY
+staging deployment. Canonical Git runtime digest independently computed from
+the deployed commit's blobs is
+`0c5a961a5c3042c0d9fc77eb969465bd8cb9892b32304ee2e499773342c9b4de`.
+Program digest: `7329fdb02d8dca23014062ad42b7846e32da86c9ba9776196f4f79349132907a`.
+Action journal: `41f88f0e-3f4d-4d2a-a9bf-898752ced471`; telemetry journal:
+`2101a3c8-d572-4647-bd65-53c2889e90dc`. No environment/file can register a tuple.
+New tests verify matching current manifest/observer provenance, reject mixing
+historical/new tuples and stale admission, and preserve all fixture rejection
+checks. All 261 local tool tests pass (including 24 pre-existing untracked
+Checkout tests), tools TypeScript and explicit zero-warning changed-file lint
+pass. Lint was rerun with `--no-ignore` after discovering root lint ignores tools.
+These are offline checks, NOT a hosted rehearsal or hour acceptance.
+
+NEXT: sign/push this checkpoint, dispatch current-SHA credential-free hosted
+browser smoke, and prepare a SEPARATE five-member cohort for this new release.
+Bind its encrypted draft/input and verify natural completion, ownership and drain
+before admitting the original fresh253 journals to a full-hour launch. Approval
+alone never makes prior smoke receipts current or proves the required hour.
+
 ## October 8 published checkpoint and genuinely fresh community preparation
 
 Signed `12bb6e7051b292223449824075bef755de57aff7` passed hosted verification
