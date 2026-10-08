@@ -1,5 +1,59 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 failed-community retirement — supersedes queued Stop 25 below
+
+The separately reviewed continuation consumed existing Stop **25** successfully
+at **15:32:44 UTC**, without enqueuing a new command or replaying activity.
+Normal synthetic-admin API and isolated read-only SQL independently verified
+the run `3275f37c-213f-48d8-a1e0-50ce35850559` is **stopped**, offline/unowned,
+zero queued commands/workers/other controllers/financial records, all 253
+participants idle, with 52 Asks and 385 contributions preserved. Original
+journals and the prior failed attempt are byte-identical; only two drained
+control events were added to a separate copy. Worker exited 0 and acknowledged
+controller release. **Do not rerun either retirement helper.** This retires a
+failed run; it does not turn it into one-hour acceptance.
+
+Original receipt:
+`tmp/hosted-community-retirement/3275f37c-213f-48d8-a1e0-50ce35850559-1791473561547-4cc56ac141c8/continuation-result.json`.
+All 25 offline retirement/continuation/OS guard tests passed. One stale test
+assumed no original intent could exist; it now checks that any existing intent
+remains byte-identical rather than asking for evidence deletion.
+
+Security cleanup: an overly broad diagnostic read surfaced a staging automation
+protection token in tool output. Its value is not repeated here. The Vercel
+connector denied token deletion (403); the existing authenticated CLI performed
+the same explicitly scoped rotation successfully. Exact staging project
+`prj_HvlFV1kKHVsML73nlsJAFQNA7grP`, team `team_TXid48wU77cfhEg28L3EyLpn`,
+protection `all`, one replacement token, and old-token absence were read back.
+Only the ignored current `tools/simulation/.state/protection.json` was updated;
+historical recovery records are deliberately unchanged and their old token is
+revoked. Access probes independently confirmed old token -> 302 Vercel login,
+replacement token -> 200 JSON application session endpoint. Three Stripe test
+destinations were repaired at 15:41:40 UTC using the existing staging test key:
+platform snapshot, connected snapshot, and Accounts-v2 thin events. Exact
+sandbox `acct_1UKPU8Ded7vKVapt`, test mode and staging paths were verified before
+URL-only updates; independent readbacks prove events, versions and enabled
+status unchanged. All three protected routes returned 400 JSON for deliberately
+invalid signatures. Zero live writes/payment requests. Receipt:
+`tmp/staging-protection-rotation/78dbe5e4c254a9b8ad620a71-result.json`.
+Do not rerun the exclusive rotation operator; its default is read-only.
+Stripe CLI is now 1.53.1 (existing login/config preserved). Preserve all other
+credentials and deployment protection; do not weaken it.
+
+Protected staging remote build dispatched from the already signed/tested Git
+source `3da4c97fe21a3aa51f2ccbe51badb1a9e0fe5794` to staging project only:
+`dpl_EgBQ5axXnPxCJTEvzrkfr774yZqF`. Initial provider state INITIALIZING.
+Poll that exact deployment, verify runtime and normal synthetic-admin access,
+then explicitly assign/verify the canonical staging alias if needed. Do not
+reuse the old release inspection helper: its source/deployment hashes are
+historical. Root `.vercel/project.json` still points at production and was not
+modified; no environment updates, schema migrations or payment gates changed.
+
+Next: prepare a genuinely new immutable full-community cohort/approval using
+current reviewed code and deployment bindings. The historical full-run approval
+registry still contains only the failed original run. Do not reuse its journals,
+private draft, run UUID, account cohort or spent submission attempts.
+
 ## October 8 owner-access and verification checkpoint
 
 Ian authorized continuing independent high-value implementation and test fixes,
