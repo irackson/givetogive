@@ -93,7 +93,18 @@ export const october8NativeApproved = {
  stateDirectory: '.state/community-hour253-oct8-native',
 } as const satisfies FullRunApproval;
 /** Only compiled reviewed approvals are operational; fixture selectors are never accepted. */
-export const fullRunApprovals = validateFullRunApprovalRegistry([approved, october8Approved, october8NativeApproved]);
+export const october8LifecycleApproved = {
+ ...october8NativeApproved,
+ runId: '8cefab70-ee51-410c-88db-005c4412d8cf',
+ runnerDigest: 'b7aa8d7ee99c4d3c6c7d88d4b7b9071f5d2de1473d36e8da5ce1f8b3ab7f0e61',
+ setupDigest: '747d56ce7df3f3c777bb223f688392fa5663b4939216a09af73a51a3ddb8c882',
+ sourceDigest: '3a039416eebd8be7dd13f4196bbb1cb6e970748e6666b718b88c1368245bda09',
+ programDigest: '00527cb20ffa64214a75ee86b1d8a86f14b7651758fd1d228e75a42ffb38262a',
+ actionJournalId: '93d974e9-ba19-432c-beb9-55a6d0ea3400',
+ telemetryJournalId: 'e5d4cf17-ceb6-4250-b291-69ab7d76d0d8',
+ stateDirectory: '.state/community-hour253-oct8-lifecycle',
+} as const satisfies FullRunApproval;
+export const fullRunApprovals = validateFullRunApprovalRegistry([approved, october8Approved, october8NativeApproved, october8LifecycleApproved]);
 export function selectFullRunApproval(runId: unknown): FullRunApproval {
  const record = fullRunApprovals.find(value => value.runId === runId); requireHosted(record); return record;
 }

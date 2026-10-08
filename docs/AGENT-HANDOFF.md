@@ -1,5 +1,35 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 fresh lifecycle-fixed cohort prepared, not launched
+
+`ae10848c1e3c3c6fcc5fad709cdbe2a88b14f514` passed hosted read-only verification
+`37826640868`. Fresh protected staging release inspection
+`tmp/freshness-staging-release-inspection-1791485130132.json` passed with unchanged
+app source/lock, test-only billing gates, and no active controllers.
+
+Created fresh full cohort `8cefab70-ee51-410c-88db-005c4412d8cf` through normal
+admin API, then provisioned 253 synthetic password accounts and one control token.
+No Asks were seeded, no member API tokens exist, and no paid entitlements were
+granted. Generated 1,115 action lines with an isolated Ask namespace and initialized
+fresh journals without member sign-in or runner execution. Independent readiness
+`tmp/community-stage/hour253-readiness-8cefab70-ee51-410c-88db-005c4412d8cf-1791485227340.json`
+passed: all 253 password hashes, exact mappings, zero activity/financial records,
+zero pending work/outbox/claims, and empty journals. Its exact actual tuple is
+appended as `october8LifecycleApproved`; the three historical records are unchanged.
+
+Fresh five-member rehearsal `2cf162c5-2184-457e-98d9-53c24c9a377a` is also prepared,
+with 26 cross-driver action lines, independent accounts and empty journals.
+Helpers are under `tmp/community-*-oct8-lifecycle-*.mjs`. These are operator-only,
+ignored files, not published test evidence. Neither fresh run has launched.
+
+Next: bind fresh operator/recovery helpers to the signed approval head; obtain
+new release/readiness receipts before dispatch because the original five-minute
+freshness window expires. Run credential-free hosted admission and authenticated
+rehearsal before full-hour dispatch. Never replay retired failed cohorts or reuse
+old successful receipts as evidence for this new head. Simulator tests remain
+289/289; types and explicit lint pass. Production payments remain dark and the
+full goal remains incomplete.
+
 Latest continuation: signed lifecycle repair `a63eba2b49f5a6841b294697752252b6ca5f814d`
 passed hosted read-only verification `37826305273`, including public browser smoke.
 The native full cohort is retired, not accepted; see the lifecycle-race retirement
