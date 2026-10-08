@@ -3,9 +3,9 @@
 ## October 8 owner-access and verification checkpoint
 
 Ian authorized continuing independent high-value implementation and test fixes,
-and explicitly iceboxed his personal MFA enrollment. The goal controller still
-reports **paused**; its tool cannot resume it. Continue authorized work, but do
-not claim automatic goal continuation is active or create a replacement goal.
+and explicitly iceboxed his personal MFA enrollment. The goal controller first
+reported paused, then was rechecked after the app resumed it and now reports
+**active**. Preserve this existing goal; do not create a replacement.
 
 Dashboard policy now allows only the verified, unfrozen `inasusr@gmail.com` real
 account, evaluated from the current database rather than cookie role/email.
@@ -15,13 +15,33 @@ actions still require admin role and production step-up. Header and API/layout
 authorization share the policy; revoked identities hide navigation without
 swallowing infrastructure errors. Actual owner browser login is not yet tested.
 
-Verification: 139 application unit tests and 258 simulation/offline tooling
-tests passed. The targeted production-policy tests use the isolated CI database,
+Verification: 139 application unit tests, all 123 isolated integration tests and
+258 simulation/offline tooling tests passed. An initial integration run caught
+a frozen-user UNAUTHORIZED/FORBIDDEN regression; it was fixed and the complete
+123-test suite rerun cleanly. Production-policy tests use the isolated CI database,
 never production. A root TypeScript attempt with a bounded 768 MB heap ran out
 of heap; laptop free RAM subsequently measured 1.13 GiB. No local build/browser
 acceptance is claimed. The new read-only hosted verification workflow uses
 public placeholders, no secret inputs, no database/provider access and no
 deployment steps to remove this laptop bottleneck.
+
+Signed and verified owner-policy commit `ea059e9` is pushed and deployed READY
+on the canonical production alias (`dpl_AkCwwYQVYLzK95E8ARcSiKREAVAe`).
+Credential-free GitHub verification run **37800451605** passed all application
+and simulation type/unit checks. Public HTTP probes returned 200 for `/`,
+`/asks`, `/signin`, signed-out `/admin` redirected to sign-in, and the admin API
+returned 401. Payment availability retained production mode with Ask payments,
+subscriptions and funds all disabled; no live payments were enabled. The
+ten-minute runtime error query found no errors. Commit `175f0f9` adds hosted
+public Chromium verification (no sign-in or writes); inspect run **37800990394**
+which completed successfully. Actual Chromium rendered `/`, `/asks`, `/signin`
+and the signed-out `/admin` redirect with zero console/page/HTTP errors. This is
+public-route acceptance only, not owner login, paid Checkout or community soak.
+
+Local main is the only local branch. Four fresh remote Dependabot branches/PRs
+36–39 now propose SDK, sharp, source-map-js and Next updates. They contain
+dependency changes, not product features. Review separately before final branch
+cleanup; do not silently change dependencies during the access-policy release.
 
 The previously "pending" actual credential-free CDP fixture is already verified:
 GitHub run **37171683178**, attempt 1, completed successfully at source
