@@ -1,5 +1,52 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 published checkpoint and genuinely fresh community preparation
+
+Signed `12bb6e7051b292223449824075bef755de57aff7` passed hosted verification
+`37808325159`. Exact Git staging deployment `dpl_5Qci3JLvJ5kLPKkv8GrdSMyzwfFb`
+is READY and canonical at `https://givetogive-staging.vercel.app`. The deployment
+contains the truthful email-capture status, missing-token guidance, and mobile
+date-filter repair. Read-only receipt
+`tmp/freshness-staging-release-inspection-1791476725427.json` verifies compiled
+build/routes/no error markers, unchanged environment metadata during inspection,
+staging protection `all`, Node24, normal admin reads and no active controllers.
+Production root project link is unchanged. Runtime: sandbox subscriptions on,
+Ask/fund gates off, no live payments. Authored Windows source digest:
+`96402c8a2286a883196b53d52bac33540ef1fa3bb31b3e259e0debd10f3c0dae`.
+
+Both new published browser regressions passed (missing-token/invalid-link
+handling and editable/resettable mobile dates). Published 390x844 list/run/
+populated individual-history inspection passed WITHOUT injected CSS; date widths
+362px, no overflow and zero console/page/HTTP errors. Actual iPhone Safari and
+Ian's owner-authenticated dashboard remain unverified. Receipt/screenshots:
+`tmp/mobile-dashboard-inspection-1791476744798/`. All 142 root unit tests passed.
+
+Fresh normal-admin-created run **`8b4d85f5-e07e-42f5-9402-3ffa866ff761`** is
+prepared, NOT launched. Setup: `tmp/community-hour253-oct8-setup.mjs`; exclusive
+creation intent/result: `tmp/community-stage/create-hour253-oct8.json` and
+`tmp/community-stage/run-hour253-oct8.json`. Provisioning created 253 verified
+synthetic member credentials plus ONE run-scoped runner token, zero member API
+tokens, zero seeded Asks and zero paid grants. Desired tier labels are not paid
+entitlements. Independent program preparation verified those conditions and
+created 1,115 JSONL rules with run-specific Ask selection namespaces. Original
+base/program files are under `.state/runs/<run-id>/`; never regenerate them.
+Source/program-file SHA256:
+`f88fbc7feda59860511083d5f6803deae3b6d8b807b863e56486243983bdb8ad`.
+Setup SHA256: `5bb0f4d56f95df669c27f513582e51d8dea2ff6cce22cc4ed39112bc0e037a22`.
+Seed/runner/lock digests match historical tested code, not historical activity.
+
+NEXT: independently recheck fresh run/source bindings; create fresh empty action
+and telemetry journals at `.state/community-hour253-oct8`, record canonical Git
+runtime digest and actual program/journal provenance, then append ONE reviewed
+record to the compiled approval registry without changing the original record.
+Registry still contains only the historical approval: launch is NOT admitted.
+Sign/test/push that approval, bind a separate five-member hosted rehearsal to
+this release, verify it and only then launch the fresh 253-member hour with the
+original continuity/freshness/history/drain requirements. No process is running
+for this cohort, and no hour/paid acceptance is claimed. Preserve the retired
+run and all original receipts. Staging real email delivery is still captured by
+default; latest owner replacement was relayed once as described below.
+
 ## October 8 mobile date-filter repair
 
 Scoped activity-filter controls now occupy full rows below 600px; the previous
