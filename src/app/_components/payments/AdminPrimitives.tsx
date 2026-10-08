@@ -61,6 +61,7 @@ export function ActivityTimeline({
 								{item.actorId ?
 									<Link
 										className='text-link'
+										prefetch={false}
 										href={`/admin/users/${encodeURIComponent(item.actorId)}`}>
 										Member
 									</Link>
@@ -78,6 +79,7 @@ export function ActivityTimeline({
 								{href && (
 									<Link
 										className='text-link'
+										prefetch={false}
 										href={href}>
 										Inspect{' '}
 										{item.entityType.replaceAll('_', ' ')} ↗
@@ -86,6 +88,7 @@ export function ActivityTimeline({
 								{item.runId && (
 									<Link
 										className='text-link'
+										prefetch={false}
 										href={`/admin/simulations/${encodeURIComponent(item.runId)}`}>
 										Simulation run ↗
 									</Link>

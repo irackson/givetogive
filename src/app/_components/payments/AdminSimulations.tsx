@@ -928,6 +928,7 @@ export function AdminSimulation({
 									<Link
 										className='admin-agent'
 										key={agent.id}
+										prefetch={false}
 										href={`/admin/simulations/${id}/agents/${agent.id}`}>
 										<strong>{agent.name}</strong>
 										<StatusPill status={agent.state} />

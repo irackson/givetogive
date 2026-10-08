@@ -1,5 +1,36 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 real-dashboard abort categorization and demand-only detail links
+
+Signed observer repair `6e7d76602f9b6a9168a688ba022da1a32d10b2b5` passed hosted
+read-only workflow `37814844192` (application tests/types, simulation tests/types
+and published public browser smoke). This does not prove authenticated hour or
+paid acceptance.
+
+Two actual staging inspections used a normal synthetic-admin sign-in, SELECT-only
+cohort lookup and read-only dashboard requests. No member actions or controller
+mutations occurred. Fixed-category CDP diagnostics retained no URLs, headers,
+query strings or bodies. Both had zero console/page/HTTP errors, no blocked
+requests, and valid run-to-individual click-through. The second found three
+HTTP200 aborted admin-prefetch requests, 18 completed admin-prefetches, one
+completed actual RSC navigation, 56 scoped HTTP200 dashboard-query aborts, and
+two unscoped other aborts. These are categories, NOT proof that all aborts are
+harmless. Helper: `tmp/inspect-observer-abort-categories.mjs`.
+
+Read the installed Next prefetching guide before changing UI code. Four links
+now explicitly disable speculative prefetch: agent cards and live activity's
+member/entity/run links. This avoids detail-page downloads as a large live list
+changes; actual click-through remains a normal Next Link. New AST unit policy
+test checks these four props, not runtime navigation. All 143 application unit
+tests, application route types/TypeScript, focused lint and diff checks passed.
+
+NEXT: release this exact signed Git commit to protected staging after hosted
+verification; independently verify deployment/team/project/gates/source, then
+rerun the fixed-category diagnostic and actual passive collector. Prefetch fixes
+are not yet published-browser acceptance. Remaining unscoped aborts need exact
+categorization; strict observer acceptance is unchanged. Preserve paused full run,
+all original evidence and the four original untracked Checkout files.
+
 ## October 8 completed-response capture race repair
 
 Latest state supersedes older created/unstarted notes below: full cohort
