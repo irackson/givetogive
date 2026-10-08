@@ -3,7 +3,7 @@
  * only after native readiness. No automatic session creation or financial retry. */
 import { randomBytes } from 'node:crypto';
 import { existsSync,mkdirSync,openSync,writeFileSync,fsyncSync,closeSync,readFileSync,lstatSync,realpathSync } from 'node:fs';
-import { dirname,join,resolve } from 'node:path';
+import { basename,dirname,join,resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { freemem } from 'node:os';
 import { z } from 'zod';
@@ -17,6 +17,12 @@ import { CheckoutPrivateDraft } from './hosted-checkout-github.ts';
 const base=fileURLToPath(new URL('../',import.meta.url));
 const fail=():never=>{throw Error('Native Checkout bootstrap stopped; originals retained; no financial retry.');};
 function guard(value:unknown):asserts value {if(!value)fail();}
+export function checkoutBrowserCacheRoot(executable:string) {
+ // The executable lives inside <cache>/chromium-<revision>/<platform>/chrome.
+ // Child Playwright needs the shared cache, including the headless-shell sibling.
+ guard(/^chromium-[0-9]+$/.test(basename(dirname(dirname(executable)))));
+ return dirname(dirname(dirname(executable)));
+}
 export function checkoutBootstrapConfiguration(environment:NodeJS.ProcessEnv,platform:string,nodeMajor:number) {
  guard(platform==='linux'&&nodeMajor===24&&environment.GITHUB_REPOSITORY===approved.repository&&
   environment.GITHUB_REPOSITORY_OWNER===approved.actor&&environment.GITHUB_ACTOR===approved.actor&&
@@ -82,7 +88,7 @@ export async function executeCheckoutBootstrap() {
   guard(input.manifest.releaseId===config.releaseId&&input.manifest.job.id===jobId&&input.manifest.job.nonce===nonce);
   const home=join(directory,'member-home'),temp=join(directory,'member-tmp');mkdirSync(home,{mode:0o700});mkdirSync(temp,{mode:0o700});
   const executable=chromium.executablePath();guard(lstatSync(executable).isFile());
-  const environment=validateChildEnvironment({PATH:config.path,HOME:home,TMPDIR:temp,PLAYWRIGHT_BROWSERS_PATH:dirname(dirname(executable))});
+  const environment=validateChildEnvironment({PATH:config.path,HOME:home,TMPDIR:temp,PLAYWRIGHT_BROWSERS_PATH:checkoutBrowserCacheRoot(executable)});
   const draft=new CheckoutPrivateDraft(input.manifest,config.headSha,config.token);
   const result=await runHostedCheckoutParent(input,config.headSha,{root:directory,key,draft,memberEnvironment:environment,signal});
   original(directory,'bootstrap-result.json',{protocol:1,parentFailed:result.failed,finalRetentionVerified:!result.privateFinalRetentionStillRequired,

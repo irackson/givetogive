@@ -14,7 +14,10 @@ approval therefore correctly rejects new native readiness; append a separately
 reviewed current tuple, never rewrite old receipts. The workflow is manual only,
 exact actor/main/head/attempt 1, shares staging concurrency and installs locked
 dependencies/browser before narrowly scoped broker credentials are available.
-Local full suite 344 passed, one Linux-only skip; types and explicit lint passed.
+Browser cache source review fixed the native child to use the shared cache above
+the Chromium revision, including its locked headless-shell sibling. Regression
+covers the installed platform directory layout. Local full suite 345 passed,
+one Linux-only skip; types and explicit lint passed.
 No native dispatch, member sign-in or Checkout preparation/submission occurred.
 Next: current source approval, dedicated key configuration, root live-readiness
 observer/fresh-proof responder and pre-parent failure evidence recovery review.

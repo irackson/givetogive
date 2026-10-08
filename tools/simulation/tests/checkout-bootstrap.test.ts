@@ -5,11 +5,16 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync,writeFileSync,readdirSync,readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkoutBootstrapConfiguration } from '../src/checkout-bootstrap.ts';
+import { checkoutBootstrapConfiguration,checkoutBrowserCacheRoot } from '../src/checkout-bootstrap.ts';
 import { downloadBootstrapInput,initialCheckoutAssetName,checkoutResponseBytes } from '../src/checkout-input-mailbox.ts';
 import { approved } from '../src/hosted-checkout-policy.ts';
 import { seal } from '../src/hosted-community-bundle.ts';
 const HEAD='a'.repeat(40);
+test('child browser cache points above the Chromium revision to include the locked headless-shell sibling',()=>{
+ const cache=join(tmpdir(),'offline-cache-fixture');
+ for(const platform of ['chrome-linux64','chrome-win64'])assert.equal(checkoutBrowserCacheRoot(join(cache,'chromium-1243',platform,'chrome')),cache);
+ assert.throws(()=>checkoutBrowserCacheRoot(join(cache,'foreign-build','chrome-linux64','chrome')));
+});
 test('native bootstrap configuration requires exact manual identity and excludes unrelated credentials',()=>{
  const env={GITHUB_REPOSITORY:approved.repository,GITHUB_REPOSITORY_OWNER:approved.actor,GITHUB_ACTOR:approved.actor,
   GITHUB_TRIGGERING_ACTOR:approved.actor,GITHUB_REF:'refs/heads/main',GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',
