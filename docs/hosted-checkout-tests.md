@@ -121,6 +121,15 @@ Renewal, tier changes, cancellation, failed/3DS payments, refunds/disputes, mone
 References: [Stripe test cards](https://docs.stripe.com/testing), [webhook-based fulfillment](https://docs.stripe.com/checkout/fulfillment), [API-key safety](https://docs.stripe.com/keys-best-practices).
 # Local readiness observation
 
+Original financial admission is at
+`tmp/stripe-test-acceptance-manual/1aa24b5b-c467-4063-a62a-cd6df957b393/admission.sqlite`.
+Use `inspectOriginalCheckoutBudget` to verify its plan/anchors/consumed expired
+reservations before constructing UiCheckoutPreparation against that SAME store.
+The exact Sustainer checkout has `recurring: true`; don't replace the original
+input with a default-false sandbox fixture. The read-only inspector refuses
+changed budgets/anchors/requests, unproven expiry or an already consumed candidate.
+Historical expiry receipts still require current independent provider/DB checks.
+
 `checkout-root-preparation.ts` connects initial fresh readiness to a one-shot
 ordinary-member preparation, local owned opening proof and encrypted input
 handoff. It requires the original budget store and mandatory current operator

@@ -2,6 +2,22 @@
 
 ## October 8 latest override: lifecycle hour failed and was safely retired
 
+Original-budget continuation: actual retained plan inspection found the recurring
+flag is TRUE, not the FALSE offline fixture used in the new wrapper. Corrected
+the wrapper and added a regression rejecting the changed flag before preparation.
+`checkout-original-budget.ts` reads the original SQLite/plan/replacement anchors,
+both consumed $5 request hashes and terminal-expiry receipts without writes.
+It returns the exact unused recurring $15 step plus original store/digests; never
+admits the additional renewal budget. Actual local read-only execution passed:
+prior reservations1000 cents, candidate1500 cents, original anchor
+`0445c228a7b504d302692a3f3619f6684b5d528e953bf38ce5744eeecebe24d0`.
+Use `tmp/stripe-test-acceptance-manual/1aa24b5b-c467-4063-a62a-cd6df957b393/admission.sqlite`
+with UiCheckoutPreparation, NOT a new financial SQLite store. Original files stay
+unchanged. Full Windows suite361 passed/1 Linux-only skip; types/explicit lint pass.
+Exact-head hosted verification `37847055868` passed for `95e5bba`. Financial
+operator execution remains unwired; current source approval/dispatch and real
+payment acceptance are still required. No Checkout was created or submitted.
+
 Root input preparation continuation: `checkout-root-preparation.ts` connects
 fresh exact readiness and manifest/actor/step/budget checks to the existing
 ordinary-cookie `UiCheckoutPreparation`, owned local provider opening read and

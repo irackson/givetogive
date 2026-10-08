@@ -31,7 +31,7 @@ function fixture(mode = 'ok') {
   providerIdentityVerified: true, canonicalCustomerClockVerified: true, providerInvoiceAbsent: true, providerSubscriptionAbsent: true };
  const root = mkdtempSync(join(tmpdir(), 'g2g-root-prepare-'));
  const plan: SandboxPlan = { runId: approved.runId, runBudgetCents: 2500, actorBudgetCents: 1500, steps: [{ operationId: approved.operationId,
-  agentId: approved.memberId, scenario: 'success', maximumAmountCents: 1500, expectedTier: 'sustainer', checkout: { kind: 'supporter', tier: 'sustainer', recurring: false } }] };
+  agentId: approved.memberId, scenario: 'success', maximumAmountCents: 1500, expectedTier: 'sustainer', checkout: { kind: 'supporter', tier: 'sustainer', recurring: true } }] };
  const preparation = new UiCheckoutPreparation(join(root, 'original-budget.sqlite'), plan), calls: string[] = [];
  let now = NOW, closed = 0;
  const options = { root, key: Buffer.alloc(32, 4), plan, preparation, signal: new AbortController().signal, now: () => now,
@@ -80,10 +80,11 @@ test('uncertain preparation, provider failure and uncertain or stale transfer ne
  }
 });
 test('wrong current binding, stale readiness or malformed local secret fails before any member mutation', async () => {
- for (const mode of ['wrong-current', 'stale-readiness', 'missing-password']) {
+ for (const mode of ['wrong-current', 'stale-readiness', 'missing-password', 'changed-recurring']) {
   const f = fixture(mode); try {
    if (mode === 'stale-readiness') f.options.readiness.observedAt = new Date(NOW - 30001).toISOString();
    if (mode === 'missing-password') f.options.account.password = '';
+   if (mode === 'changed-recurring') f.options.plan.steps[0]!.checkout.recurring = false;
    await assert.rejects(prepareHostedCheckoutInput(f.manifest, HEAD, f.options));
    assert.equal(f.calls.includes('prepare'), false); assert.equal(f.options.preparation.state(approved.operationId), undefined);
   } finally { f.options.preparation.close(); }

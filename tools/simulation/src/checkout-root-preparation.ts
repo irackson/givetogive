@@ -52,7 +52,7 @@ export async function prepareHostedCheckoutInput(rawManifest: unknown, head: str
   const step = candidates[0]!;
   guard(step.agentId === options.account.id && step.scenario === manifest.scenario && step.maximumAmountCents === manifest.maximumAmountCents &&
    step.expectedTier === manifest.expectedTier && step.checkout.kind === 'supporter' && step.checkout.tier === manifest.expectedTier &&
-   !step.checkout.recurring && !step.checkout.askId && !step.checkout.fundId && !step.checkout.grossAmount && !step.checkout.quoteVersion &&
+   step.checkout.recurring === true && !step.checkout.askId && !step.checkout.fundId && !step.checkout.grossAmount && !step.checkout.quoteVersion &&
    options.preparation.state(manifest.operationId) === undefined);
   signal.throwIfAborted(); key = Buffer.from(options.key);
   const root = resolve(options.root);
