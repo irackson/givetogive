@@ -141,10 +141,28 @@ async function uniqueVisible(frames: Frame[], selector: string, optional = false
 }
 /** DOM read only: compute redacted panel digest in the provider frame; return no DOM text/URLs. */
 export async function observeSurface(page: Page, counters: Counters, now: number): Promise<CheckoutSurface> {
+	const observation: { phase: SurfaceReadPhase } = { phase: 'frame-discovery' };
+	try { return await observeSurfaceBody(page, counters, now, observation); }
+	catch (error) {
+		if (error instanceof Error && error.message === 'Hosted Checkout policy rejected; private details withheld.') throw error;
+		// Never retain the Playwright cause: it can contain private URLs or DOM values.
+		throw new SurfaceReadUnavailable(observation.phase);
+	}
+}
+export type SurfaceReadPhase = 'frame-discovery' | 'panel-dom' | 'card-controls';
+export class SurfaceReadUnavailable extends Error {
+	readonly phase: SurfaceReadPhase;
+	constructor(phase: SurfaceReadPhase) {
+		super('Checkout DOM read unavailable; private details withheld.');
+		this.phase = phase;
+	}
+}
+async function observeSurfaceBody(page: Page, counters: Counters, now: number, observation: { phase: SurfaceReadPhase }): Promise<CheckoutSurface> {
 	const frames = await visibleFrames(page);
 	let panelCount = 0, controlCount = 0, panelDigest: string | null = null;
 	let testModeLabel = false, unknownInstructions = false, challenge = false, visible = false, enabled = false, unchecked = false, controlName = '';
 	for (const frame of frames) {
+		observation.phase = 'panel-dom';
 		const read = await frame.evaluate(async () => {
 			const isVisible = (element: Element) => {
 				const box = element.getBoundingClientRect(), style = getComputedStyle(element);
@@ -187,6 +205,7 @@ export async function observeSurface(page: Page, counters: Counters, now: number
 	// A notice can visibly disable the underlying card fields. Observe its own
 	// controls first; editable/unique card controls become mandatory only after
 	// that notice is absent. Unknown or duplicate notices still fail validation.
+	observation.phase = 'card-controls';
 	const cards = panelCount ? undefined : await uniqueVisible(frames, cardFields.number, true);
 	const expiry = panelCount ? undefined : await uniqueVisible(frames, cardFields.expiry, true);
 	const cvc = panelCount ? undefined : await uniqueVisible(frames, cardFields.cvc, true);

@@ -3,7 +3,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { allowedCheckoutRequest, sandboxOrigin, stripeOwnedOrigin, type CheckoutScenario, type VerifiedCheckout } from './sandbox-policy.ts';
 import { protectionHeaders } from './protection.ts';
 import { freemem } from 'node:os';
-import { observeSurface, validateAcknowledgmentSurface, validateNativeSurface, OneNativeClick, type Counters, type CheckoutSurface } from './hosted-checkout-worker.ts';
+import { observeSurface, SurfaceReadUnavailable, validateAcknowledgmentSurface, validateNativeSurface, OneNativeClick, type Counters, type CheckoutSurface, type SurfaceReadPhase } from './hosted-checkout-worker.ts';
 import { approved } from './hosted-checkout-policy.ts';
 
 export interface CheckoutDriver {
@@ -37,6 +37,7 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   private lastSurface?: CheckoutSurface;
   private observedFreeBytes?: number;
   private surfaceReadFailure?: 'policy_rejected' | 'dom_read_unavailable';
+  private surfaceReadPhase?: SurfaceReadPhase;
   private readonly admitNotice?: () => Promise<void>;
   constructor(bypass: string, syntheticEmail: string, admitNotice?: () => Promise<void>) {
     if (!syntheticEmail.endsWith('@givetogive.invalid')) throw new Error('Only a synthetic fixture email is allowed.');
@@ -129,8 +130,10 @@ export class StripeCheckoutDriver implements CheckoutDriver {
     try {
       this.lastSurface = await observeSurface(this.page, this.counters, Date.now());
       this.surfaceReadFailure = undefined;
+      this.surfaceReadPhase = undefined;
     } catch (error) {
       this.surfaceReadFailure = error instanceof Error && error.message === 'Hosted Checkout policy rejected; private details withheld.' ? 'policy_rejected' : 'dom_read_unavailable';
+      this.surfaceReadPhase = error instanceof SurfaceReadUnavailable ? error.phase : undefined;
       throw new Error('Checkout surface observation failed; private details withheld.');
     }
     return this.lastSurface;
@@ -141,6 +144,7 @@ export class StripeCheckoutDriver implements CheckoutDriver {
     return { ...this.counters, noticeClickAttempts: this.noticeClick.attempts,
       ...(this.observedFreeBytes === undefined ? {} : { observedFreeMiB: Math.floor(this.observedFreeBytes / 1024 ** 2), runtimeMemoryFloorSatisfied: this.observedFreeBytes >= 1.5 * 1024 ** 3 }),
       ...(this.surfaceReadFailure ? { surfaceReadFailure: this.surfaceReadFailure } : {}),
+      ...(this.surfaceReadPhase ? { surfaceReadPhase: this.surfaceReadPhase } : {}),
       surfaceObserved: !!surface, ...(surface ? {
         testModeLabel: surface.testModeLabel, visibleCard: surface.visibleCard,
         panelCount: surface.panelCount, reviewedPanelMatches: surface.panelDigest === approved.panelDigest,

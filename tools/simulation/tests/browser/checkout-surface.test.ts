@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { chromium } from 'playwright';
-import { observeSurface, validateNativeSurface, validateAcknowledgmentSurface, type Counters } from '../../src/hosted-checkout-worker.ts';
+import { observeSurface, SurfaceReadUnavailable, validateNativeSurface, validateAcknowledgmentSurface, type Counters } from '../../src/hosted-checkout-worker.ts';
 import { StripeCheckoutDriver } from '../../src/stripe-checkout-driver.ts';
 
 const base = '<p>Test mode</p><input name="cardNumber"><input name="cardExpiry"><input name="cardCvc">';
@@ -57,6 +57,21 @@ test('actual Chromium reads a synthetic native surface without returning card va
 test('actual Chromium rejects ambiguous duplicate visible card controls', async () => {
   await fixture(base + '<input autocomplete="cc-number">', async page => {
     await assert.rejects(observeSurface(page, counters(), Date.now()));
+  });
+});
+
+test('actual Chromium DOM failures expose only the fixed observation phase, never the private cause', async () => {
+  await fixture(base + '<div class="AiAgentPaymentSteering">Synthetic notice</div>', async page => {
+    await page.evaluate(() => {
+      Object.defineProperty(crypto, 'subtle', { get() { throw Error('private-fixture-cause-sentinel'); } });
+    });
+    await assert.rejects(observeSurface(page, counters(), Date.now()), error => {
+      assert.ok(error instanceof SurfaceReadUnavailable);
+      assert.equal(error.phase, 'panel-dom');
+      assert.equal(error.cause, undefined);
+      assert.equal(String(error).includes('private-fixture-cause-sentinel'), false);
+      return true;
+    });
   });
 });
 
