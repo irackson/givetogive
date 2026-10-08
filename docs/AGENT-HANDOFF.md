@@ -1400,3 +1400,44 @@ flows. No fabricated paid invoices/coverage or manually assigned paid tiers.
 The unrelated Call plugin prompting fix was published as version 1.0.8 in the
 separate Personal Call Concierge project. Do not mix that repo's uncommitted
 changes or any phone/calendar actions into this checkpoint.
+## October 8 hosted rehearsal source-binding correction
+
+Owner read-only inspection now confirms `inasusr@gmail.com` is verified,
+unfrozen, real and dashboard-identity eligible. This is not evidence of an
+owner-authenticated iPhone dashboard session.
+
+Latest signed-main root CI `37809637210` and credential-free browser smoke
+`37809663563` succeeded at `a692ca51`. The private local October 8 operator's
+SSH preflight required ordinary Windows `PROGRAMDATA`; preserving that OS
+variable fixes verification without inheriting application secrets or relaxing
+Git signature checks. All 29 operator regression tests passed, including exact
+preservation of the four unfinished Checkout files.
+
+Five-member rehearsal `e335c4ee-9de1-4b67-8339-7daa44c3343f` was dispatched once
+as GitHub run `37810787464`, private draft `407054969`; encrypted input asset
+`622402673` was uploaded and independently inaccessible anonymously. The run
+failed closed at `source-binding`, BEFORE a member-controller or pre-admission
+checkpoint. Preserve all original manifests, receipts and uploaded ciphertext;
+do not retry that workflow or reset its journals.
+
+Root cause: the October 8 canonical Git source fingerprint used a flat path
+sort, which differs from runtime recursive `readdir().sort()` traversal for
+directory/file siblings. New `git-source-fingerprint.ts` matches recursive
+ordering and rejects linked sources. The independently extracted exact deployed
+Git archive (with `core.autocrlf=false`) matches canonical hash
+`19e1ac0db777ca2baa079a56e4313b467c0eaa40fb9bfb516a60be699d5f34f1`.
+The unused October 8 approval is corrected before full-run admission; historical
+approval and the failed signed checkpoint remain unchanged in Git history.
+Runner, seed and lock digests independently match the extracted archive.
+
+264 simulation tests, strict tools TypeScript, explicit zero-warning changed-file
+lint and diff checks passed. At 16:47:41 UTC the fresh 253-member cohort was
+reinspected: all 253 real synthetic passwords verified, zero member API tokens,
+zero activity/financial rows, no controllers, all eight journal counters zero;
+new read-only provenance receipt ends `1791478061406.json`. No reseed/reset.
+
+Next: publish this correction, obtain exact-new-commit credential-free smoke,
+prepare a separately identified five-member rehearsal (do not replay the failed
+dispatch), and verify original recovered journals plus independent server records
+before full-hour admission. The original full cohort remains unstarted. Actual
+Stripe paid lifecycle acceptance, full-hour acceptance and final PDF remain open.

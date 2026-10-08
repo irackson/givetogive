@@ -60,7 +60,9 @@ export const october8Approved = {
  databaseName: 'givetogive_staging_20260926',
  deploymentId: 'dpl_5Qci3JLvJ5kLPKkv8GrdSMyzwfFb',
  authoredSourceDigest: '96402c8a2286a883196b53d52bac33540ef1fa3bb31b3e259e0debd10f3c0dae',
- gitAuthoredSourceDigest: '0c5a961a5c3042c0d9fc77eb969465bd8cb9892b32304ee2e499773342c9b4de',
+ // Corrected before full-run admission: recursive traversal, not flat path sorting.
+ // Failed smoke 37810787464 and the original signed checkpoint remain preserved.
+ gitAuthoredSourceDigest: '19e1ac0db777ca2baa079a56e4313b467c0eaa40fb9bfb516a60be699d5f34f1',
  lockDigest: '9ac35921aee67783a92cbef09ed109e5ef6ac073f41cbec85164bbf0e66952fb',
  runnerDigest: '70a9780d0f64421e9a9885e012fe9ba143a3c82672382b4366d327f66b98d1c9',
  setupDigest: '5bb0f4d56f95df669c27f513582e51d8dea2ff6cce22cc4ed39112bc0e037a22',
