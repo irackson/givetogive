@@ -1,5 +1,42 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 owner-access and verification checkpoint
+
+Ian authorized continuing independent high-value implementation and test fixes,
+and explicitly iceboxed his personal MFA enrollment. The goal controller still
+reports **paused**; its tool cannot resume it. Continue authorized work, but do
+not claim automatic goal continuation is active or create a replacement goal.
+
+Dashboard policy now allows only the verified, unfrozen `inasusr@gmail.com` real
+account, evaluated from the current database rather than cookie role/email.
+Normal synthetic admin accounts are allowed only in staging/test. No agent
+backdoor, new credentials, or real-user role bootstrap was created. Financial
+actions still require admin role and production step-up. Header and API/layout
+authorization share the policy; revoked identities hide navigation without
+swallowing infrastructure errors. Actual owner browser login is not yet tested.
+
+Verification: 139 application unit tests and 258 simulation/offline tooling
+tests passed. The targeted production-policy tests use the isolated CI database,
+never production. A root TypeScript attempt with a bounded 768 MB heap ran out
+of heap; laptop free RAM subsequently measured 1.13 GiB. No local build/browser
+acceptance is claimed. The new read-only hosted verification workflow uses
+public placeholders, no secret inputs, no database/provider access and no
+deployment steps to remove this laptop bottleneck.
+
+The previously "pending" actual credential-free CDP fixture is already verified:
+GitHub run **37171683178**, attempt 1, completed successfully at source
+`8a505bd897cd8afceddffaa518bc22b6b6b17d01`. Its retained original proof shows
+actual Chromium/CDP, expected completed-query abort discrimination, genuine
+partial-failure retention, no member sign-ins/external requests, and cleanup.
+This is **not** authenticated history, one-hour community or paid acceptance.
+Receipt: `tmp/hosted-community-operator/browser-8a505bd897cd8afceddffaa518bc22b6b6b17d01/cdp-review-1791081705539.json`.
+
+Preserve the four pre-existing untracked hosted-Checkout adapter/transport files;
+their offline tests pass but they are not approved runtime acceptance. Preserve
+the failed full-community run and existing queued Stop 25: do not replay member
+actions, reset history, rerun its retirement helper, or enqueue another Stop.
+Reconcile that existing control separately before fresh community acceptance.
+
 **October 1 revision:** Ian authorized continuing with a persistent scripted
 community (250 users) alongside three browser agents initially, configurable up
 to 30. All member actions use the existing UI APIs and independent normal auth

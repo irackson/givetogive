@@ -295,6 +295,15 @@ work. Never call an unapproved live-money rollout complete.
 
 ## Icebox
 
+- **Ian's personal admin MFA enrollment — deferred by Ian, October 8, 2026.**
+  Dashboard viewing uses normal authentication and a fresh database identity
+  check: only the verified, unfrozen `inasusr@gmail.com` real account is allowed.
+  Synthetic admins remain available only in explicitly isolated staging/test;
+  agents use those normal accounts, not a secret production bypass. This does
+  not grant a financial admin role or remove existing production financial
+  step-up requirements. Live payment gates remain off. Revisit enrollment before
+  releasing live financial operator actions.
+
 - **Link CLI for future agent purchases — deferred by Ian, October 3, 2026.**
   Do not install or authenticate it during this release. This optional wallet
   integration is not required for GiveToGive sandbox testing and does not

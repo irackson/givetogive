@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/server/db';
 import { users } from '@/server/db/schema';
 import { applicationEnvironment } from '@/lib/environment';
+import { dashboardAccessAllowed } from '@/lib/dashboard-access';
 import { openSecret } from './crypto';
 
 export async function requireActiveUser(
@@ -15,6 +16,7 @@ export async function requireActiveUser(
 		where: eq(users.id, userId),
 		columns: {
 			id: true,
+			email: true,
 			role: true,
 			sessionVersion: true,
 			frozenAt: true,
@@ -63,9 +65,23 @@ export async function requireBillingIdentity(
 	}
 	return user;
 }
+export async function hasAdminDashboardAccess(
+	userId: string,
+): Promise<boolean> {
+	try {
+		const user = await requireActiveUser(userId);
+		return dashboardAccessAllowed(user, applicationEnvironment());
+	} catch (error) {
+		// A revoked identity must hide navigation, not fail the public layout.
+		// Infrastructure failures still propagate instead of masquerading as denial.
+		if (error instanceof TRPCError && error.code === 'UNAUTHORIZED')
+			return false;
+		throw error;
+	}
+}
 export async function assertAdmin(userId: string): Promise<void> {
 	const user = await requireActiveUser(userId);
-	if (user.role !== 'admin' || !user.emailVerified)
+	if (!dashboardAccessAllowed(user, applicationEnvironment()))
 		throw new TRPCError({ code: 'FORBIDDEN' });
 }
 export async function assertFinancialAdmin(
@@ -73,6 +89,11 @@ export async function assertFinancialAdmin(
 	elevationToken?: string,
 ): Promise<void> {
 	await assertAdmin(userId);
+	// Dashboard access is not a grant of financial authority. Personal MFA
+	// enrollment is deferred; existing production step-up remains mandatory.
+	const administrator = await requireActiveUser(userId);
+	if (administrator.role !== 'admin')
+		throw new TRPCError({ code: 'FORBIDDEN' });
 	if (applicationEnvironment() !== 'production') return;
 	try {
 		if (!elevationToken) throw new Error('Missing token');
@@ -81,6 +102,7 @@ export async function assertFinancialAdmin(
 		);
 		const user = await requireActiveUser(userId);
 		if (
+			user.role !== 'admin' ||
 			!payload ||
 			typeof payload !== 'object' ||
 			!('userId' in payload) ||

@@ -2,6 +2,7 @@ import { SiteFooter } from '@/app/_components/SiteFooter';
 import { SiteHeader } from '@/app/_components/SiteHeader';
 import { ThemeRegistry } from '@/app/ThemeRegistry';
 import { getServerAuthSession } from '@/server/auth';
+import { hasAdminDashboardAccess } from '@/server/security/authorization';
 import '@/styles/globals.css';
 import '@/styles/header.css';
 import { TRPCReactProvider } from '@/trpc/react';
@@ -23,6 +24,10 @@ export default async function RootLayout({
 	// Nonce-based CSP requires a fresh render for every document request.
 	await connection();
 	const session = await getServerAuthSession();
+	const isAdmin =
+		session?.user?.id ?
+			await hasAdminDashboardAccess(session.user.id)
+		:	false;
 
 	return (
 		<html
@@ -37,7 +42,7 @@ export default async function RootLayout({
 								<SiteHeader
 									memberName={session?.user?.name ?? null}
 									memberId={session?.user?.id ?? null}
-									isAdmin={session?.user?.role === 'admin'}
+									isAdmin={isAdmin}
 								/>
 								<main className='site-main'>{children}</main>
 								<SiteFooter />
