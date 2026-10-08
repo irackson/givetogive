@@ -1,5 +1,19 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 mobile date-filter repair
+
+Scoped activity-filter controls now occupy full rows below 600px; the previous
+130px flex minimum cramped native date text and the calendar control. Other
+simulation filter groups and desktop layouts are unchanged. The actual protected
+mobile history preview at 390x844 measured both date inputs at 362px, populated
+recorded history, no horizontal overflow and zero console/page/HTTP errors. This
+preview injected the authored stylesheet into the existing release: it is NOT
+published-CSS acceptance. Receipt/screenshots:
+`tmp/mobile-dashboard-inspection-1791476518498/`.
+The browser regression verifies width, editable dates, reset, and overflow.
+Release this signed checkpoint only after hosted checks, then rerun the mobile
+inspection without `--preview-date-layout` and the focused browser regressions.
+
 ## October 8 AgentMail verification follow-up
 
 Ian reported opening the delivered message reached the tokenless resend screen.

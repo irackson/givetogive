@@ -86,7 +86,7 @@ export function AdminActivity({
 					live={!before}
 				/>
 			</div>
-			<div className='admin-toolbar__filters'>
+			<div className='admin-toolbar__filters admin-activity-filters'>
 				<TextField
 					label='Outcome'
 					select

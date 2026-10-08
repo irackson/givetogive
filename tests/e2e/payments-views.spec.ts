@@ -55,6 +55,26 @@ async function enrollAuthenticator(page: Page) {
 	return { secret, code };
 }
 
+test('mobile activity dates remain readable and filters can be reset', async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await login(page, members[2]);
+	await page.goto('/admin/activity');
+	const from = page.getByLabel('From (UTC)', { exact: true });
+	const through = page.getByLabel('Through (UTC)', { exact: true });
+	await expect(from).toBeVisible();
+	await expect(through).toBeVisible();
+	for (const field of [from, through]) {
+		const bounds = await field.boundingBox();
+		expect(bounds?.width ?? 0).toBeGreaterThanOrEqual(240);
+	}
+	await from.fill('2026-10-01');
+	await through.fill('2026-10-08');
+	await page.getByRole('button', { name: 'Reset filters' }).click();
+	await expect(from).toHaveValue('');
+	await expect(through).toHaveValue('');
+	expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
 test('a deterministic simulation record waits for local provisioning and cannot pretend to start agents', async ({
 	page,
 }) => {

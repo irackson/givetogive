@@ -812,6 +812,12 @@
 		flex: 1;
 		min-width: 130px;
 	}
+	/* Native date controls need room for the full date and calendar affordance. */
+	.admin-activity-filters > .MuiFormControl-root {
+		flex: 1 1 100%;
+		min-width: 0;
+		width: 100%;
+	}
 	.payment-details dd {
 		max-width: 60%;
 	}
