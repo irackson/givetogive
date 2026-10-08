@@ -25,6 +25,9 @@ export const approved = {
 export type FullRunApproval = Readonly<{ [Key in keyof typeof approved]: string }>;
 const fullRunFields = ['runId','stateDirectory','sourceDigest','programDigest','actionJournalId','telemetryJournalId','setupDigest'] as const;
 const releaseHashFields = ['authoredSourceDigest','gitAuthoredSourceDigest','lockDigest','runnerDigest','seedDigest'] as const;
+// Tools are excluded from Vercel uploads. A new exact-run runner approval does
+// not imply a different application deployment; deployed app hashes stay fixed.
+const deployedHashFields = ['authoredSourceDigest','gitAuthoredSourceDigest','lockDigest'] as const;
 /** Pure injectable registry validation for offline fixtures; it never changes the runtime registry. */
 export function validateFullRunApprovalRegistry(raw: unknown): readonly FullRunApproval[] {
  const schema = z.object(Object.fromEntries(Object.keys(approved).map(key => [key,z.string()]))).strict();
@@ -40,7 +43,7 @@ export function validateFullRunApprovalRegistry(raw: unknown): readonly FullRunA
    requireHosted(/^[a-f0-9]{64}$/.test(record[field]));
   requireHosted(/^dpl_[A-Za-z0-9]+$/.test(record.deploymentId));
   const priorRelease = deployments.get(record.deploymentId);
-  if (priorRelease) for (const field of releaseHashFields) requireHosted(record[field] === priorRelease[field]);
+  if (priorRelease) for (const field of deployedHashFields) requireHosted(record[field] === priorRelease[field]);
   else deployments.set(record.deploymentId,record);
   // New reviewed releases may change code/deployment, never the isolated target.
   for (const field of ['origin','databaseIdentity','databaseName'] as const) requireHosted(record[field] === approved[field]);

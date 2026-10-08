@@ -1,5 +1,19 @@
 # Resume here: payments and simulation checkpoint
 
+Latest continuation: signed lifecycle repair `a63eba2b49f5a6841b294697752252b6ca5f814d`
+passed hosted read-only verification `37826305273`, including public browser smoke.
+The native full cohort is retired, not accepted; see the lifecycle-race retirement
+section below. Four additional injected-driver tests exercise the actual browser
+lifecycle branch, but are not real Chromium evidence. Exact-run approval validation
+now separates deployed app hashes from runner/seed hashes: simulator tools are
+excluded from Vercel uploads, so a new explicitly reviewed runner may reuse an
+unchanged app release. All historical approval records remain unchanged, and
+unknown runs/mixed runner tuples still reject. No new cohort has been authorized
+or dispatched by this change. The full local simulator suite passes 289 tests;
+types and explicit zero-warning lint pass. Next is fresh cohort provenance and
+signed approval, followed by exact-head hosted rehearsal/full acceptance; payment
+lifecycle and final-deliverable work remain open.
+
 ## October 8 failed cohort retired; fresh native-release cohort bound
 
 Signed checkpoint repair `1f5ecc348e354875b986216e7ff14f984eabd254` passed root

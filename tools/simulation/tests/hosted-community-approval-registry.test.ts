@@ -104,11 +104,29 @@ test('new release fixture binds exact code and deployment without mutating histo
  assert.throws(()=>selectManifestApproval(value));assert.throws(()=>validateManifest(value,NOW));
  assert.throws(()=>validateFullRunApprovalRegistry([next]));
  assert.throws(()=>validateFullRunApprovalRegistry([{...approved,deploymentId:next.deploymentId},next]));
- for(const field of ['authoredSourceDigest','gitAuthoredSourceDigest','lockDigest','runnerDigest','seedDigest'] as const)
+ for(const field of ['authoredSourceDigest','gitAuthoredSourceDigest','lockDigest'] as const)
   assert.throws(()=>validateFullRunApprovalRegistry([approved,{...foreign,[field]:'f'.repeat(64)}]));
  for(const patch of [{databaseIdentity:next.runId},{databaseName:'production'},{deploymentId:'https://evil.example'},
   {authoredSourceDigest:'invalid'},{gitAuthoredSourceDigest:'invalid'},{seedDigest:'invalid'}])
   assert.throws(()=>validateFullRunApprovalRegistry([approved,{...next,...patch}]));
+ assert.equal(fullRunApprovals.length,3);
+});
+
+test('new exact runner tuple can reuse the same app deployment without approving arbitrary runner code',()=>{
+ const next={...foreign,runnerDigest:'d'.repeat(64),seedDigest:'e'.repeat(64)};
+ const records=validateFullRunApprovalRegistry([approved,next]);
+ assert.deepEqual(records[0],approved);
+ const value={...manifest(),...next};
+ validateFullRunApprovalTuple(value,records[1]!);
+ validateReleaseApproval(value,records[1]!);
+ for(const field of ['runnerDigest','seedDigest'] as const) {
+  assert.throws(()=>validateReleaseApproval({...value,[field]:approved[field]},records[1]!));
+  assert.throws(()=>validateFullRunApprovalTuple({...value,[field]:approved[field]},records[1]!));
+  assert.throws(()=>validateFullRunApprovalRegistry([approved,{...next,[field]:'invalid'}]));
+ }
+ // Fixture registration is pure, never a runtime authorization or historical rewrite.
+ assert.throws(()=>selectFullRunApproval(next.runId));
+ assert.throws(()=>validateManifest(value,NOW));
  assert.equal(fullRunApprovals.length,3);
 });
 
