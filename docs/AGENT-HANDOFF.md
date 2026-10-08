@@ -1,5 +1,42 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 explicit operator-suppression proof and repeat-navigation check
+
+Passive observer diagnostics now separately retain
+`operatorSuppressedPrefetchAborts`. Qualification requires the exact existing
+shell-prefetch predicate, an explicit route intent BEFORE any response headers,
+an observed 204, and a canceled ERR_ABORTED terminal. It cannot qualify API reads,
+200 responses, document navigation, timeouts, missing/wrong/late intents, duplicate
+terminals or a second identical concurrent request. One intent binds one request;
+keys are bounded ephemeral hashes, not persisted URLs or headers.
+
+Parent validation preserves raw sums, monotonic snapshots and zero genuine error
+requirements. Positive suppression counts additionally require sufficient
+`suppressedPrefetches` operator receipt evidence. Historical shapes remain
+readable without restamping or altering original failures. New source/unit tests
+cover these conditions. All 272 simulation tests, strict tools TypeScript,
+explicit zero-warning changed-file lint and diff checks passed.
+
+Actual read-only staging proof:
+`tmp/observer-abort-category-inspection-1791480819498.json` recorded 26 explicit
+204 route fulfillments, 26 classified suppression aborts, 56 decoded queries,
+zero unqualified/body/capture/console/page/HTTP errors, and successful history
+navigation. No member action or controller mutation occurred.
+
+A subsequent THREE-history-navigation inspection remains disqualifying:
+`tmp/observer-abort-category-inspection-1791480985968.json` retained 131 raw
+aborts = 67 proved query aborts + 63 proved local suppression aborts + ONE
+unqualified HTTP200 RSC navigation abort. It decoded 69 queries, with zero body/
+capture/console/page/HTTP errors. Three real history navigations completed.
+Never claim this as a clean/full-hour pass. The diagnostic now records only fixed
+run/member/current-page relation categories to investigate that final abort.
+
+NEXT: sign/push this observer repair and bind new hosted checks, diagnose the
+remaining RSC abort without relaxing genuine error acceptance, and only then
+retire the preserved paused run through ordinary admin Stop if preparing a NEW
+cohort. Do not reset/replay/resume the failed cohort or reuse old approvals after
+source/deployment changes. Four original untracked Checkout files remain intact.
+
 ## October 8 published demand-only links and passive-capture evidence
 
 Exact signed application commit `33fb45dc23b576aba67d6ebdd628eeed7f367bff`

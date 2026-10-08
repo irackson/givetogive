@@ -49,23 +49,28 @@ const networkMaps={phases:['navigation','freshness','history','cleanup'],failure
 const safeCounter=(raw:unknown):raw is number=>typeof raw==='number'&&Number.isSafeInteger(raw)&&raw>=0;
 /** Validate raw fixed categories, never subtract or rewrite them into a passing receipt. */
 export function validObserverNetworkDiagnostics(raw:unknown):raw is Record<string,unknown> {
- if(!record(raw)||Object.keys(raw).length!==networkCounters.length+Object.keys(networkMaps).length
+ if(!record(raw))return false;
+ const hasSuppression=Object.hasOwn(raw,'operatorSuppressedPrefetchAborts');
+ if(Object.keys(raw).length!==networkCounters.length+Object.keys(networkMaps).length+(hasSuppression?1:0)
+  ||hasSuppression&&!safeCounter(raw.operatorSuppressedPrefetchAborts)
   ||!networkCounters.every(key=>safeCounter(raw[key])))return false;
  const sum=(name:keyof typeof networkMaps)=>Object.values(raw[name] as Record<string,number>).reduce((total,value)=>total+value,0);
  for(const [name,keys] of Object.entries(networkMaps)){
   const map=raw[name];if(!record(map)||Object.keys(map).length!==keys.length||!keys.every(key=>safeCounter(map[key])))return false;
  }
  const failures=raw.failures as Record<string,number>;
+ const suppressed=hasSuppression?Number(raw.operatorSuppressedPrefetchAborts):0;
  return safeCounter(sum('phases'))&&safeCounter(sum('failures'))&&safeCounter(sum('bodyFailurePhases'))&&safeCounter(sum('statusPhases'))
-  &&raw.rawFailedRequests===Number(raw.expectedSuccessfulQueryAborts)+Number(raw.unqualifiedFailedRequests)
+  &&raw.rawFailedRequests===Number(raw.expectedSuccessfulQueryAborts)+suppressed+Number(raw.unqualifiedFailedRequests)
   &&sum('phases')===raw.rawFailedRequests&&sum('failures')===raw.rawFailedRequests
-  &&Number(raw.expectedSuccessfulQueryAborts)<=failures.aborted!&&Number(raw.expectedSuccessfulQueryAborts)<=Number(raw.decodedQueries)
+  &&Number(raw.expectedSuccessfulQueryAborts)+suppressed<=failures.aborted!&&Number(raw.expectedSuccessfulQueryAborts)<=Number(raw.decodedQueries)
   &&sum('bodyFailurePhases')===raw.rawBodyFailures&&sum('statusPhases')===raw.nonSuccessResponses
   &&Number(raw.captureUnavailable)<=Number(raw.rawBodyFailures)&&sum('captureStages')<=Number(raw.rawBodyFailures);
 }
 export function observerNetworkAcceptance(final:unknown,snapshot:unknown,diagnostics:unknown):boolean {
  if(!validObserverNetworkDiagnostics(final)||!validObserverNetworkDiagnostics(snapshot)||!record(diagnostics))return false;
  for(const name of networkCounters)if(Number(snapshot[name])>Number(final[name]))return false;
+ if(Number(snapshot.operatorSuppressedPrefetchAborts??0)>Number(final.operatorSuppressedPrefetchAborts??0))return false;
  for(const [name,keys] of Object.entries(networkMaps))for(const key of keys)
   if(Number((snapshot[name] as Record<string,unknown>)[key])>Number((final[name] as Record<string,unknown>)[key]))return false;
  // A complete/valid JSONL teardown may be nonzero only in retained raw totals.
@@ -119,6 +124,8 @@ function acceptance(admission: unknown, freshness: unknown, receipt: unknown, co
  if (Object.keys(diagnostics).length !== 6
   || !['consoleErrors','pageErrors','failedRequests','nonSuccessResponses','blockedRequests','feedBodyErrors'].every(key=>diagnostics[key] === 0)) return false;
  if(!observerNetworkAcceptance(receipt.networkDiagnostics,freshness.networkDiagnostics,diagnostics))return false;
+ const suppressed=Number((receipt.networkDiagnostics as Record<string,unknown>).operatorSuppressedPrefetchAborts??0);
+ if(suppressed>0&&(!safeCounter(receipt.suppressedPrefetches)||suppressed>receipt.suppressedPrefetches))return false;
  if (!record(receipt.history)) return false;
  const history = receipt.history;
  const member = Array.from({length:253},(__unused,index)=>fixtureIds(approved.runId,index)).find(member=>member.id === history.agentId);

@@ -85,6 +85,24 @@ test('new raw network proof is exact, bounded numeric, internally consistent and
  assert.equal(observerNetworkAcceptance(good,undefined,diagnostics),false);
  assert.equal(observerNetworkAcceptance(good,good,{...diagnostics,failedRequests:1}),false);
 });
+test('suppression totals retain raw aborts and require matching operator fulfillment evidence',()=>{
+ const good=networkProof(),suppressed={...good,operatorSuppressedPrefetchAborts:1,rawFailedRequests:2,
+  phases:{...good.phases,navigation:1},failures:{...good.failures,aborted:2}};
+ assert.equal(validObserverNetworkDiagnostics(suppressed),true);
+ const diagnostics={failedRequests:0,nonSuccessResponses:0,feedBodyErrors:0};
+ assert.equal(observerNetworkAcceptance(suppressed,good,diagnostics),true);
+ assert.equal(observerNetworkAcceptance(good,suppressed,diagnostics),false);
+ for(const bad of [NaN,Infinity,-1,.5,Number.MAX_SAFE_INTEGER+1,'1',2])
+  assert.equal(validObserverNetworkDiagnostics({...suppressed,operatorSuppressedPrefetchAborts:bad}),false);
+ const f=fixture();try{
+  f.write('freshness.json',{...f.freshness,networkDiagnostics:suppressed});
+  f.write('receipt.json',{...f.receipt,networkDiagnostics:suppressed,suppressedPrefetches:0});
+  assert.equal(collectObserverArtifacts(f.base,namespace).acceptancePassed,false);
+  f.write('receipt.json',{...f.receipt,networkDiagnostics:suppressed,suppressedPrefetches:1});
+  assert.equal(collectObserverArtifacts(f.base,namespace).acceptancePassed,true);
+ }finally{f.close();}
+});
+
 test('historical failed receipt missing new metadata remains original failure with cleanup and exact retained bytes',()=>{
  const f=fixture();try{
   const {networkDiagnostics:__unused,...old}=f.receipt;f.write('receipt.json',{...old,passed:false,failedPhase:'history',

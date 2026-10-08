@@ -1,6 +1,7 @@
 // Passive CDP only: no fetch shim, proxy, raw diagnostic persistence or network entrypoint.
 import type { CDPSession } from 'playwright';
-import { allowedObserverRequest, activityQuery, guard, type ObserverInput } from './hosted-community-observer-evidence.ts';
+import { createHash } from 'node:crypto';
+import { allowedObserverRequest, suppressedShellPrefetch, activityQuery, guard, type ObserverInput } from './hosted-community-observer-evidence.ts';
 
 export type NetworkPhase = 'navigation' | 'freshness' | 'history' | 'cleanup';
 type Failure = 'aborted' | 'timeout' | 'other';
@@ -10,6 +11,7 @@ export type QueryCapture = { url: string; values: unknown[]; requestStartedAt: n
 type Decode = (url: string, status: number, accept: string, body: Uint8Array, signal?: AbortSignal) => Promise<unknown[]>;
 type RecordState = { url: string; accept: string; requestStartedAt: number; phase: NetworkPhase; scoped: boolean;
  status?: number; headersAt?: number; chunks: Buffer[]; queued: Buffer[]; bytes: number; ready: boolean;
+ suppressionKey?: string; suppressionConfirmed?: boolean;
  initial?: Promise<void>; streamUnavailable?: boolean; timer?: ReturnType<typeof setTimeout>; terminal?: 'finished' | Failure; finalized: boolean };
 type CdpEvent = Record<string, unknown>;
 const maximumBytes = 1_048_576, maximumRequests = 2048, maximumActiveBodies = 8;
@@ -18,6 +20,7 @@ const object = (raw: unknown): CdpEvent => raw !== null && typeof raw === 'objec
 /** Fixed categories only. URLs, headers, error strings and bodies never enter this summary. */
 export class ObserverNetwork {
  readonly diagnostics = { rawFailedRequests: 0, expectedSuccessfulQueryAborts: 0, unqualifiedFailedRequests: 0,
+  operatorSuppressedPrefetchAborts: 0,
   rawBodyFailures: 0, decodedQueries: 0, captureUnavailable: 0, capacityFailures: 0, nonSuccessResponses: 0,
   phases: { navigation: 0, freshness: 0, history: 0, cleanup: 0 }, failures: { aborted: 0, timeout: 0, other: 0 },
   bodyFailurePhases: { navigation: 0, freshness: 0, history: 0, cleanup: 0 },
@@ -26,6 +29,7 @@ export class ObserverNetwork {
  private phase: NetworkPhase = 'navigation';
  private closed = false;
  private records = new Map<string, RecordState>();
+ private suppressions = new Map<string, number>();
  private pending = new Set<Promise<void>>();
  private readonly session: Pick<CDPSession, 'on' | 'off' | 'send'>;
  private readonly input: ObserverInput;
@@ -38,13 +42,25 @@ export class ObserverNetwork {
   this.session = session; this.input = input; this.decode = decode; this.onCapture = onCapture; this.onIssue = onIssue; this.signal = signal;
  }
  setPhase(phase: NetworkPhase) { guard(['navigation','freshness','history','cleanup'].includes(phase)); this.phase = phase; }
+ private suppressionKey(url: string, method: string, headers: Record<string, string>) {
+  if (!suppressedShellPrefetch(url, method, headers, this.input)) return undefined;
+  return createHash('sha256').update(JSON.stringify([url,method,headers['next-router-prefetch'],headers.rsc])).digest('hex');
+ }
+ /** Called only by the owned route immediately before its synthetic 204 fulfillment. */
+ noteSuppressedPrefetch(url: string, method: string, headers: Record<string, string>) {
+  guard(this.active());const key=this.suppressionKey(url,method,headers);guard(key);
+  const record=[...this.records.values()].find(item=>item.suppressionKey===key&&!item.suppressionConfirmed&&!item.terminal);
+  if(record){guard(record.status===undefined);record.suppressionConfirmed=true;return;}
+  guard(this.suppressions.size<maximumRequests);
+  const count=(this.suppressions.get(key)??0)+1;guard(count<=maximumRequests);this.suppressions.set(key,count);
+ }
  private active() { return !this.closed && !this.signal?.aborted; }
  private retain(task: Promise<void>) { this.pending.add(task); void task.then(() => this.pending.delete(task), () => this.pending.delete(task)); }
  private issue(issue: Issue) { if (this.active()) this.onIssue(issue); }
  private erase(record: RecordState) {
   if (record.timer) clearTimeout(record.timer);
   for (const bytes of [...record.chunks, ...record.queued]) bytes.fill(0);
-  record.chunks = []; record.queued = []; record.url = ''; record.accept = '';
+  record.chunks = []; record.queued = []; record.url = ''; record.accept = ''; record.suppressionKey = undefined;
  }
  private bodyFailure(record: RecordState, unavailable = false) {
   if (record.finalized) return;
@@ -68,7 +84,13 @@ export class ObserverNetwork {
   const accept = rawAccept === 'application/jsonl' ? 'application/jsonl' : rawAccept === '' ? '' : rawAccept === 'application/json' ? 'application/json' : 'unknown';
   const scoped = request.method === 'GET' && allowedObserverRequest(request.url, 'GET', this.input)
    && new URL(request.url).pathname.startsWith('/api/trpc/');
+  const normalizedHeaders=Object.fromEntries(Object.entries(headers).filter((entry):entry is [string,string]=>typeof entry[1]==='string')
+   .map(([key,value])=>[key.toLowerCase(),value]));
+  const suppressionKey=this.suppressionKey(request.url,request.method,normalizedHeaders);
+  const count=suppressionKey?this.suppressions.get(suppressionKey)??0:0;
+  if(suppressionKey&&count){if(count===1)this.suppressions.delete(suppressionKey);else this.suppressions.set(suppressionKey,count-1);}
   this.records.set(id, { url: scoped ? request.url : '', accept: scoped ? accept : '',
+   suppressionKey, suppressionConfirmed:count>0,
    requestStartedAt: Date.now(), phase: this.phase, scoped, chunks: [], queued: [], bytes: 0, ready: false, finalized: false });
  };
  private response = (raw: unknown) => {
@@ -133,6 +155,9 @@ export class ObserverNetwork {
   const event = object(raw), record = typeof event.requestId === 'string' ? this.records.get(event.requestId) : undefined;
   if (!record || record.terminal) { if (termination !== 'finished') this.requestFailure(record, termination); return; }
   record.terminal = termination;
+  if (termination === 'aborted' && record.suppressionConfirmed && record.suppressionKey && !record.scoped && record.status === 204) {
+   this.diagnostics.operatorSuppressedPrefetchAborts++;record.finalized=true;this.erase(record);return;
+  }
   if (!record.scoped || record.status !== 200 || !record.initial || record.finalized || (termination !== 'finished' && termination !== 'aborted')) {
    if (termination !== 'finished') this.requestFailure(record, termination);
    if (record.scoped && record.status === 200 && !record.finalized) this.bodyFailure(record, true);
@@ -213,6 +238,6 @@ export class ObserverNetwork {
   this.phase = 'cleanup'; this.closed = true;
   this.session.off('Network.requestWillBeSent', this.request); this.session.off('Network.responseReceived', this.response);
   this.session.off('Network.dataReceived', this.data); this.session.off('Network.loadingFinished', this.finished); this.session.off('Network.loadingFailed', this.failed);
-  for (const record of this.records.values()) this.erase(record); this.records.clear();
+  for (const record of this.records.values()) this.erase(record); this.records.clear();this.suppressions.clear();
  }
 }

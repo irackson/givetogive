@@ -309,6 +309,7 @@ export async function runHostedObserver(raw: unknown, options: ObserverOptions) 
   await execute(() => context.route('**/*',route => {
    if (cancellation.signal.aborted) return route.abort();
    if (suppressedShellPrefetch(route.request().url(),route.request().method(),route.request().headers(),input)) {
+    network!.noteSuppressedPrefetch(route.request().url(),route.request().method(),route.request().headers());
     result.suppressedPrefetches = Number(result.suppressedPrefetches) + 1;
     return route.fulfill({status:204,body:''});
    }

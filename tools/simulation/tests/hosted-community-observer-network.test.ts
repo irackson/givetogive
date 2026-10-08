@@ -197,3 +197,44 @@ test('cancellation during completed-body acquisition discards late data and does
  finish({body:(await bytes([activity(x.input)])).toString('utf8'),base64Encoded:false});await Promise.resolve();await Promise.resolve();
  assert.equal(x.captures.length,0);assert.deepEqual(x.issues,[]);
 });
+
+test('owned prefetch suppression needs exact scope, explicit route intent, actual 204 and canceled abort',async()=>{
+ const headers={'next-router-prefetch':'1',rsc:'1'},address=fixture().origin+'/admin/users?_rsc=public-fixture';
+ for(const mode of ['proved','intent-first','no-intent','wrong-status','timeout','wrong-url'] as const){
+  const x=await setup();
+  const request=()=>x.session.emit('Network.requestWillBeSent',{requestId:'suppressed',request:{url:address,method:'GET',headers}});
+  const note=()=>x.collector.noteSuppressedPrefetch(mode==='wrong-url'?x.input.origin+'/admin/funds?_rsc=public-fixture':address,'GET',headers);
+  if(mode==='intent-first'){note();request();}else{request();if(mode!=='no-intent')note();}
+  x.session.response('suppressed',mode==='wrong-status'?200:204);
+  if(mode==='timeout')x.session.emit('Network.loadingFailed',{requestId:'suppressed',errorText:'net::ERR_TIMED_OUT',canceled:true});else x.session.abort('suppressed');
+  await x.collector.settle();const proved=mode==='proved'||mode==='intent-first';
+  assert.equal(x.collector.diagnostics.rawFailedRequests,1);
+  assert.equal(x.collector.diagnostics.operatorSuppressedPrefetchAborts,proved?1:0);
+  assert.equal(x.collector.diagnostics.unqualifiedFailedRequests,proved?0:1);
+  assert.equal(x.captures.length,0);assert.equal(x.collector.diagnostics.expectedSuccessfulQueryAborts,0);
+  assert.equal(x.issues.length===0,proved);x.collector.close();
+ }
+ const x=await setup();
+ for(const [addressValue,method,h] of [[url(x.input),'GET',headers],[address,'POST',headers],[address,'GET',{...headers,'sec-fetch-dest':'document'}]] as const)
+  assert.throws(()=>x.collector.noteSuppressedPrefetch(addressValue,method,h),/Observer guard rejected/);
+ x.collector.close();
+});
+
+test('one route suppression cannot qualify two simultaneous identical prefetch requests or a duplicate terminal',async()=>{
+ const x=await setup(),headers={'next-router-prefetch':'1',rsc:'1'},address=x.input.origin+'/admin/users?_rsc=public-fixture';
+ for(const id of ['one','two'])x.session.emit('Network.requestWillBeSent',{requestId:id,request:{url:address,method:'GET',headers}});
+ x.collector.noteSuppressedPrefetch(address,'GET',headers);
+ for(const id of ['one','two']){x.session.response(id,204);x.session.abort(id);}
+ x.session.abort('one');await x.collector.settle();
+ assert.equal(x.collector.diagnostics.rawFailedRequests,3);assert.equal(x.collector.diagnostics.operatorSuppressedPrefetchAborts,1);
+ assert.equal(x.collector.diagnostics.unqualifiedFailedRequests,2);assert.equal(x.captures.length,0);x.collector.close();
+});
+
+test('suppression intent cannot be retroactively attached after a real response was received',async()=>{
+ const x=await setup(),headers={'next-router-prefetch':'1',rsc:'1'},address=x.input.origin+'/admin/users?_rsc=public-fixture';
+ x.session.emit('Network.requestWillBeSent',{requestId:'late',request:{url:address,method:'GET',headers}});
+ x.session.response('late',204);
+ assert.throws(()=>x.collector.noteSuppressedPrefetch(address,'GET',headers),/Observer guard rejected/);
+ x.session.abort('late');await x.collector.settle();assert.equal(x.collector.diagnostics.operatorSuppressedPrefetchAborts,0);
+ assert.equal(x.collector.diagnostics.unqualifiedFailedRequests,1);x.collector.close();
+});
