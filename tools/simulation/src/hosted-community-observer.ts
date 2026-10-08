@@ -386,6 +386,15 @@ export async function runHostedObserver(raw: unknown, options: ObserverOptions) 
   evidence=freshnessEvidence(input,started,cutoff,completed,local,hosted,rendered);
   exclusiveJson(join(output,'freshness.json'),{...evidence,browserPolls:polls,diagnostics,networkDiagnostics:network.diagnostics,minimumFreeGiB,
    timingNotes:'createdAt is transaction start, not commit; DOM/browser and runner action times share this VM; every missing/late event remains in the denominator.'});
+  async function pauseDashboardReads() {
+   const pause=page!.getByRole('button',{name:'Pause live updates',exact:true});
+   if(await execute(()=>pause.count())===1)await execute(()=>pause.click());
+   await execute(()=>page!.getByRole('button',{name:'Resume live updates',exact:true}).waitFor({state:'visible'}));
+   await execute(()=>network!.settle());
+  }
+  // Only after the full live measurement/drain: use the real UI to stop future
+  // polling, and finish already-started reads before intentionally navigating.
+  await pauseDashboardReads();result.dashboardReadPauseAfterMeasurement=true;
   phase='history';network.setPhase('history');ownedHosted(await rpc('admin.simulation',{id:input.runId}),input);
   const prefix=`/admin/simulations/${input.runId}/agents/`,link=page.locator(`.admin-event-list a[href^="${prefix}"]`).filter({hasText:'Inspect simulation'}).first();
   await execute(() => link.waitFor({state:'visible'}));const href=await execute(() => link.getAttribute('href')),selected=input.cohort.find(member=>href===`${prefix}${member.id}`);guard(selected);
@@ -409,7 +418,7 @@ export async function runHostedObserver(raw: unknown, options: ObserverOptions) 
   result.history={href,agentId:selected.id,actorId:selected.userId,actualUiActorFilter:true,runScoped:true,renderedEvents:ids.length,entityOwnedEvents:entity.items.length,passed:true};
   guard(!aborted&&Object.values(diagnostics).every(count=>count===0));
   await execute(() => page!.screenshot({path:join(output,'history.png'),fullPage:false}));
-  network.setPhase('navigation');
+  await pauseDashboardReads();network.setPhase('navigation');
   await execute(() => page!.goto(`${input.origin}/admin/simulations/${input.runId}`));
   await execute(() => page!.getByRole('heading',{name:'Live activity',exact:true}).waitFor({state:'visible'}));
   await execute(() => page!.screenshot({path:join(output,'dashboard.png'),fullPage:false}));

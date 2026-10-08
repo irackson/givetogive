@@ -238,3 +238,11 @@ test('suppression intent cannot be retroactively attached after a real response 
  x.session.abort('late');await x.collector.settle();assert.equal(x.collector.diagnostics.operatorSuppressedPrefetchAborts,0);
  assert.equal(x.collector.diagnostics.unqualifiedFailedRequests,1);x.collector.close();
 });
+
+test('navigation drain includes scoped requests that have not received headers yet',async()=>{
+ const x=await setup();x.session.request('pending-headers',url(x.input));
+ await assert.rejects(()=>x.collector.settle(10),/Observer passive read deadline exceeded/);
+ x.session.buffers.set('pending-headers',(await bytes([activity(x.input)])).toString('base64'));
+ x.session.response('pending-headers');x.session.finish('pending-headers');await x.collector.settle();
+ assert.equal(x.captures.length,1);assert.deepEqual(x.issues,[]);x.collector.close();
+});

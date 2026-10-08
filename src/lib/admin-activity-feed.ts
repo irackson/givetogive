@@ -18,6 +18,7 @@ export function activityPollingInterval(
 	archived: boolean,
 	catchingUp = false,
 	failed = false,
+	liveUpdates = true,
 ): number | false {
-	return archived ? false : catchingUp && !failed ? 250 : 1000;
+	return archived || !liveUpdates ? false : catchingUp && !failed ? 250 : 1000;
 }

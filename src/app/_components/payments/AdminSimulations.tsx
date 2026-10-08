@@ -280,9 +280,11 @@ export function AdminSimulation({
 	id: string;
 	agentId?: string;
 }) {
+	const [liveUpdates, setLiveUpdates] = useState(true);
 	const query = api.admin.simulation.useQuery(
 		{ id },
-		{ refetchInterval: 2000, refetchIntervalInBackground: false },
+		{ refetchInterval: liveUpdates ? 2000 : false, refetchIntervalInBackground: false,
+			refetchOnWindowFocus: liveUpdates, refetchOnReconnect: liveUpdates },
 	);
 	const [tier, setTier] = useState('');
 	const [state, setState] = useState('');
@@ -361,15 +363,23 @@ export function AdminSimulation({
 					</p>
 				</div>
 				<div className='payment-actions'>
+					<Button aria-pressed={!liveUpdates} onClick={() => setLiveUpdates(value => !value)}>
+						{liveUpdates ? 'Pause live updates' : 'Resume live updates'}
+					</Button>
 					<StatusPill status={run.status} />
 					<StatusPill status={online ? 'connected' : 'offline'} />
 					<Freshness
 						updatedAt={query.dataUpdatedAt}
 						error={query.isError}
 						fetching={query.isFetching}
+						live={liveUpdates}
 					/>
 				</div>
 			</div>
+			{!liveUpdates && <p role='status' className='payment-muted'>
+				Live updates are paused for this view. Simulated users and recorded activity continue.
+				Resume live updates to catch up.
+			</p>}
 			{!online && !terminal && agents.length > 0 && (
 				<Alert severity='warning'>
 					The local runner is offline or its heartbeat is stale. The
@@ -618,6 +628,7 @@ export function AdminSimulation({
 					</div>
 					<AdminActivity
 						initial={{ runId: id, actorId: selected.userId }}
+						liveUpdates={liveUpdates}
 					/>
 				</>
 			:	<>
@@ -955,7 +966,7 @@ export function AdminSimulation({
 							</EmptyState>
 						}
 					</Panel>
-					<AdminActivity initial={{ runId: id }} />
+					<AdminActivity initial={{ runId: id }} liveUpdates={liveUpdates} />
 				</>
 			}
 			<Dialog

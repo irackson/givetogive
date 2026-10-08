@@ -31,6 +31,16 @@ test('incremental catch-up preserves each page before advancing the cursor', () 
 	assert.deepEqual(items.map((item) => item.id), Array.from({ length: 500 }, (__, index) => 801 - index));
 });
 
+test('pausing a view stops automatic catch-up without changing its cursor or disabling later resume', () => {
+	for (const archived of [false, true]) for (const catchingUp of [false, true]) for (const failed of [false, true])
+		assert.equal(activityPollingInterval(archived, catchingUp, failed, false), false);
+	const retained = [{ id: 7 }, { id: 3 }];
+	assert.equal(activityCursor(retained, false), 7);
+	assert.equal(activityPollingInterval(false, true, false, true), 250);
+	assert.equal(activityPollingInterval(false, false, false, true), 1000);
+	assert.deepEqual(retained, [{ id: 7 }, { id: 3 }]);
+});
+
 test('activity merge deduplicates retries and prefers fresh details', () => {
 	assert.deepEqual(mergeActivityPage([{ id: 2, detail: 'old' }, { id: 1, detail: 'one' }],
 		[{ id: 3, detail: 'three' }, { id: 2, detail: 'fresh' }]),

@@ -24,7 +24,9 @@ type Feed = {
 
 export function AdminActivity({
 	initial = {},
+	liveUpdates = true,
 }: {
+	liveUpdates?: boolean;
 	initial?: {
 		entityType?: string;
 		entityId?: string;
@@ -69,7 +71,10 @@ export function AdminActivity({
 		},
 		refetchInterval: (query) => activityPollingInterval(
 			Boolean(before), query.state.data?.catchingUp, query.state.status === 'error',
+			liveUpdates,
 		),
+		refetchOnWindowFocus: liveUpdates,
+		refetchOnReconnect: liveUpdates,
 		refetchIntervalInBackground: false,
 		retry: 2,
 	});
@@ -83,7 +88,7 @@ export function AdminActivity({
 					updatedAt={feed.dataUpdatedAt}
 					error={feed.isError}
 					fetching={feed.isFetching}
-					live={!before}
+					live={!before && liveUpdates}
 				/>
 			</div>
 			<div className='admin-toolbar__filters admin-activity-filters'>

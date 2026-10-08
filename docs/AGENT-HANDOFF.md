@@ -1,5 +1,40 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 dashboard-only pause and navigation drain implementation
+
+Signed `75a49f558c166205cf12c12d2b42fb433ab9ef90` passed hosted root verification
+`37818104065`. Repeat inspection
+`tmp/observer-abort-category-inspection-1791481225072.json` completed three
+history navigations without console/page/HTTP errors. All three RSC navigation
+requests finished; however, one scoped API read was canceled without available
+body capture during navigation, and strict acceptance correctly remained false.
+The intermittent navigation RSC abort is not yet conclusively diagnosed.
+
+New client-only Pause/Resume live updates control applies to the run's metrics
+and scoped activity feed together. It stops automatic interval/focus/reconnect
+polling while retaining the current data/cursor and manual retry. It does NOT
+pause simulated users, issue any controller mutation, or alter history. Text
+explicitly explains this distinction; toggle has aria-pressed. Resume restores
+normal bounded catch-up. Existing Next client-component guide was read first.
+
+Observer uses this real UI control ONLY AFTER the complete 90-second live
+measurement plus seven-second drain and its immutable freshness snapshot. It
+drains already-started reads before opening history and returning to the run.
+Passive settle now also waits for scoped requests lacking response headers,
+instead of wrongly treating those as drained. Genuine cancel/body failures still
+fail. New regression covers header-pending drain and paused/resumed intervals.
+All 144 application units, 273 simulation tests, both TypeScript checks, focused
+zero-warning lint and diff checks passed. No published pause-control acceptance
+is claimed yet; protected staging still serves application commit 33fb45d.
+
+NEXT: publish this signed change after hosted checks, then run the ignored real
+diagnostic with `--pause-navigation --repeat-history`. It explicitly verifies
+no new scoped requests over a paused interval, resumption starts requests, and
+repeat real-link navigation. Do not skip missing controls on the old deployment.
+After that, separately reviewed fresh cohorts/approvals/smoke/hour are still
+required. Preserve the paused failed cohort, original evidence and four original
+untracked Checkout files. No payments or member actions were attempted here.
+
 ## October 8 explicit operator-suppression proof and repeat-navigation check
 
 Passive observer diagnostics now separately retain

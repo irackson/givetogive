@@ -224,7 +224,7 @@ export class ObserverNetwork {
   guard(Number.isInteger(timeoutMilliseconds) && timeoutMilliseconds > 0 && timeoutMilliseconds <= 5000);
   let timer: ReturnType<typeof setTimeout> | undefined;
   try { await Promise.race([(async()=>{
-   while(this.pending.size||[...this.records.values()].some(record=>record.scoped&&record.status===200&&!record.finalized)){
+   while(this.pending.size||[...this.records.values()].some(record=>record.scoped&&!record.finalized)){
     guard(this.active());
     if(this.pending.size)await Promise.all([...this.pending]);
     else await new Promise<void>(resolve=>setTimeout(resolve,10));
