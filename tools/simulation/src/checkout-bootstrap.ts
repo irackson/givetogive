@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { freemem } from 'node:os';
 import { z } from 'zod';
 import { chromium } from 'playwright';
-import { approved,checkMemory,validateChildEnvironment } from './hosted-checkout-policy.ts';
+import { approved,approvedSourceTuple,checkMemory,validateChildEnvironment } from './hosted-checkout-policy.ts';
 import { checkoutParentSourceSnapshot,runHostedCheckoutParent } from './hosted-checkout-parent.ts';
 import { publishCheckoutReadiness } from './checkout-readiness.ts';
 import { downloadBootstrapInput,checkoutResponseBytes } from './checkout-input-mailbox.ts';
@@ -58,7 +58,7 @@ export async function executeCheckoutBootstrap() {
   const source=checkoutParentSourceSnapshot(config.headSha);
   // Do not announce readiness against historical source approval. Root must
   // append a separately reviewed current tuple before dispatch, never rebind old evidence.
-  guard(source.canonicalSourceDigest===approved.canonicalSourceDigest&&source.rootLockDigest===approved.rootLockDigest&&source.runnerDigest===approved.runnerDigest);
+  guard(approvedSourceTuple(source));
   guard(realpathSync(base)===base.replace(/[\\/]$/,''));
   const root=join(base,'.state');if(!existsSync(root))mkdirSync(root,{mode:0o700});
   guard(!lstatSync(root).isSymbolicLink()&&realpathSync(root)===root&&(lstatSync(root).mode&0o077)===0);

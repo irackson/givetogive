@@ -19,9 +19,10 @@ const planSchema = z.object({ version: z.literal(1), runId: z.literal(approved.r
  entries: z.array(entrySchema).length(3) }).strict();
 const originalId = 'f827ab6e-ae5e-477c-935e-4e5c66b91636', replacementId = '51033cb7-0087-4b98-9a56-62e2cd35d477';
 
-export function inspectOriginalCheckoutBudget(directory: string) {
+export function inspectOriginalCheckoutBudget(directory: string, phase: 'unused' | 'prepared' = 'unused') {
  let db: DatabaseSync | undefined;
  try {
+  guard(phase === 'unused' || phase === 'prepared');
   const root = resolve(directory);
   for (let cursor = root;; cursor = dirname(cursor)) {
    guard(!lstatSync(cursor).isSymbolicLink() && realpathSync(cursor) === cursor);
@@ -59,11 +60,16 @@ export function inspectOriginalCheckoutBudget(directory: string) {
   const budget = db.prepare('SELECT run_budget,actor_budget FROM ui_checkout_budget WHERE run_id=?').get(approved.runId);
   guard(budget?.run_budget === 2500 && budget.actor_budget === 1500);
   const intents = db.prepare('SELECT operation_id,actor_id,maximum_cents,state,request_hash FROM ui_checkout_intent WHERE run_id=? ORDER BY operation_id').all(approved.runId);
-  guard(intents.length === 2);
+  guard(intents.length === (phase === 'unused' ? 2 : 3));
   for (const [id, entry] of [[originalId, plan.entries[0]!], [replacementId, replacement]] as const) {
    const intent = intents.find(value => value.operation_id === id);
    guard(intent?.actor_id === entry.actorId && intent.maximum_cents === 500 && intent.state === 'prepared' &&
     intent.request_hash === hash(JSON.stringify({ ...entry.checkout, operationId: id })));
+  }
+  if (phase === 'prepared') {
+   const intent = intents.find(value => value.operation_id === candidate.operationId);
+   guard(intent?.actor_id === candidate.actorId && intent.maximum_cents === 1500 && intent.state === 'prepared' &&
+    intent.request_hash === hash(JSON.stringify({ ...candidate.checkout, operationId: candidate.operationId })));
   }
   const histories: string[] = [];
   for (const [id, filename] of [[originalId, 'supporter-expiry-reconciliation.json'], [replacementId, 'supporter-replacement-expiry-final-2026-10-03.json']]) {
@@ -80,7 +86,8 @@ export function inspectOriginalCheckoutBudget(directory: string) {
   const { actorId: __actorId, role: __role, ...step } = candidate;
   const sandboxPlan: SandboxPlan = { runId: approved.runId, runBudgetCents: 2500, actorBudgetCents: 1500, steps: [step] };
   return { plan: sandboxPlan, originalAdmissionDigest: admissionDigest, expiredHistoryDigests: histories as [string, string],
-   originalStore: sqlite, priorExpiredReservedCents: 1000, candidateReservedCents: 1500, candidateUnused: true,
+   originalStore: sqlite, priorExpiredReservedCents: 1000, candidateReservedCents: 1500, candidateUnused: phase === 'unused',
+   candidatePrepared: phase === 'prepared', preparationReplayAllowed: false,
    additionalRenewalBudgetNotAdmitted: true, readOnly: true, paymentAccepted: false, retryAllowed: false };
  } catch { return fail(); } finally { db?.close(); }
 }

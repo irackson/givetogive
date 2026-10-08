@@ -30,8 +30,11 @@ function fixture(mode = 'ok') {
   db.prepare('INSERT INTO ui_checkout_intent VALUES (?,?,?,?,?,?)').run(approved.runId, id, entries[0]!.actorId!,
    hash(JSON.stringify({ ...entries[0]!.checkout, operationId: id })), 500, 'prepared');
  }
- if (mode === 'consumed-candidate') db.prepare('INSERT INTO ui_checkout_intent VALUES (?,?,?,?,?,?)').run(approved.runId, approved.operationId,
-  approved.actorId, 'f'.repeat(64), 1500, 'unresolved');
+ if (['consumed-candidate','prepared-candidate','preparing-candidate','rejected-candidate','wrong-prepared-request','wrong-prepared-actor','wrong-prepared-amount'].includes(mode))
+  db.prepare('INSERT INTO ui_checkout_intent VALUES (?,?,?,?,?,?)').run(approved.runId, approved.operationId,
+   mode === 'wrong-prepared-actor' ? entries[0]!.actorId! : approved.actorId,
+   mode === 'consumed-candidate' || mode === 'wrong-prepared-request' ? 'f'.repeat(64) : hash(JSON.stringify({ ...entries[1]!.checkout, operationId: approved.operationId })),
+   mode === 'wrong-prepared-amount' ? 500 : 1500, mode === 'consumed-candidate' ? 'unresolved' : mode === 'preparing-candidate' ? 'preparing' : mode === 'rejected-candidate' ? 'rejected' : 'prepared');
  if (mode === 'wrong-request') db.exec("UPDATE ui_checkout_intent SET request_hash='changed'");
  db.close();
  for (const [id, filename] of [[originalId, 'supporter-expiry-reconciliation.json'], [replacementId, 'supporter-replacement-expiry-final-2026-10-03.json']]) {
@@ -50,6 +53,21 @@ test('SELECT-only inspection preserves original budget/anchors and produces exac
  assert.equal(result.additionalRenewalBudgetNotAdmitted, true); assert.equal(result.paymentAccepted, false);
  assert.equal(new Set(result.expiredHistoryDigests).size, 2);
  assert.equal(hash(readFileSync(f.sqlite).toString('base64')), before);
+});
+test('prepared inspection recognizes only the exact original admitted candidate without resetting it', () => {
+ const f = fixture('prepared-candidate'), before = hash(readFileSync(f.sqlite).toString('base64'));
+ assert.throws(() => inspectOriginalCheckoutBudget(f.directory), /Original Checkout budget unconfirmed/);
+ const result = inspectOriginalCheckoutBudget(f.directory, 'prepared');
+ assert.equal(result.candidateUnused, false); assert.equal(result.candidatePrepared, true);
+ assert.equal(result.preparationReplayAllowed, false); assert.equal(result.paymentAccepted, false);
+ assert.equal(hash(readFileSync(f.sqlite).toString('base64')), before);
+});
+test('prepared inspection rejects missing, uncertain or mismatched admissions without writes', () => {
+ for (const mode of ['ok','consumed-candidate','preparing-candidate','rejected-candidate','wrong-prepared-request','wrong-prepared-actor','wrong-prepared-amount']) {
+  const f = fixture(mode), before = hash(readFileSync(f.sqlite).toString('base64'));
+  assert.throws(() => inspectOriginalCheckoutBudget(f.directory, 'prepared'), /Original Checkout budget unconfirmed/);
+  assert.equal(hash(readFileSync(f.sqlite).toString('base64')), before);
+ }
 });
 test('changed anchors/budgets/request, unproven expiry or consumed candidate cannot reset admission', () => {
  for (const mode of ['wrong-anchor', 'changed-budget', 'wrong-request', 'unproven-expiry', 'consumed-candidate']) {

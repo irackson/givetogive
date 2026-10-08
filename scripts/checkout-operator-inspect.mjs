@@ -7,19 +7,20 @@ import { approved } from '../tools/simulation/src/hosted-checkout-policy.ts';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const guard = value => { if (!value) throw Error('Checkout operator prerequisites rejected; private details withheld.'); };
 
-export async function inspectLocalCheckoutPrerequisites() {
+export async function inspectLocalCheckoutPrerequisites(phase = 'unused') {
  let sql;
  const start = Date.now();
  const active = () => guard(Date.now() >= start && Date.now() - start <= 90000);
  try {
   guard(process.platform === 'win32' && Number(process.versions.node.split('.')[0]) === 24);
+  guard(phase === 'unused' || phase === 'prepared');
   const { isolatedConfiguration, verifyIsolatedTarget } = await import('./isolated-environment.ts');
   const configuration = isolatedConfiguration(process.env, 'staging');
   guard(configuration.identity === approved.databaseIdentity && process.env.APP_URL === approved.origin &&
    process.env.SUPPORTERS_ENABLED === 'true' && process.env.PAYMENTS_ENABLED === 'false' && process.env.FUNDS_ENABLED === 'false' &&
    process.env.STRIPE_LIVE_APPROVED === 'false' && process.env.STRIPE_PLATFORM_ACCOUNT_ID === approved.platformAccountId &&
    /^[sr]k_test_/.test(process.env.STRIPE_SECRET_KEY ?? ''));
-  const original = inspectOriginalCheckoutBudget(join(root, 'tmp/stripe-test-acceptance-manual', approved.runId));
+  const original = inspectOriginalCheckoutBudget(join(root, 'tmp/stripe-test-acceptance-manual', approved.runId), phase);
   const { default: postgres } = await import('postgres');
   sql = postgres(configuration.directUrl, { max: 1, connect_timeout: 15, idle_timeout: 5, onnotice() {} });
   const snapshot = await sql.begin('read only', async tx => {
@@ -44,14 +45,19 @@ export async function inspectLocalCheckoutPrerequisites() {
     accounts.push({ actorId: member.id, customerAccountId: mappings[0].stripe_account_id, clockId: bindings[0].entity_id });
    }
    guard(new Set(accounts.map(account => account.clockId)).size === 1 && new Set(accounts.map(account => account.customerAccountId)).size === 3);
-   const payments = await tx.unsafe('SELECT id,actor_id,status,livemode,gross_amount,paid_at,recurring,currency,kind,tier FROM givetogive_payment WHERE actor_id=ANY($1::text[])', [members.map(member => member.id)]);
-   guard(payments.length === 2 && payments.every(payment => payment.actor_id === members[0].id && payment.status === 'expired' && payment.livemode === false &&
+   const payments = await tx.unsafe('SELECT id,actor_id,status,livemode,gross_amount,paid_at,recurring,currency,kind,tier,checkout_id FROM givetogive_payment WHERE actor_id=ANY($1::text[])', [members.map(member => member.id)]);
+   const expired = payments.filter(payment => payment.id !== approved.operationId);
+   guard(payments.length === (phase === 'unused' ? 2 : 3) && expired.length === 2 && expired.every(payment => payment.actor_id === members[0].id && payment.status === 'expired' && payment.livemode === false &&
     payment.gross_amount === 500 && payment.paid_at === null && payment.recurring === true && payment.currency === 'usd' && payment.kind === 'supporter' && payment.tier === 'supporter') &&
-    new Set(payments.map(payment => payment.id)).size === 2 && payments.some(payment => payment.id === 'f827ab6e-ae5e-477c-935e-4e5c66b91636') &&
-    payments.some(payment => payment.id === '51033cb7-0087-4b98-9a56-62e2cd35d477'));
+    new Set(expired.map(payment => payment.id)).size === 2 && expired.some(payment => payment.id === 'f827ab6e-ae5e-477c-935e-4e5c66b91636') &&
+    expired.some(payment => payment.id === '51033cb7-0087-4b98-9a56-62e2cd35d477'));
+   const candidate = payments.find(payment => payment.id === approved.operationId);
+   if (phase === 'prepared') guard(candidate?.actor_id === approved.actorId && candidate.status === 'checkout_open' &&
+    candidate.livemode === false && candidate.gross_amount === 1500 && candidate.paid_at === null && candidate.recurring === true &&
+    candidate.currency === 'usd' && candidate.kind === 'supporter' && candidate.tier === 'sustainer' && /^cs_test_[A-Za-z0-9]+$/.test(candidate.checkout_id));
    const [counts] = await tx.unsafe('SELECT (SELECT count(*)::int FROM givetogive_payment_subscription WHERE actor_id=ANY($1::text[])) AS subscriptions,(SELECT count(*)::int FROM givetogive_supporter_paid_coverage c JOIN givetogive_payment_subscription s ON s.id=c.subscription_id WHERE s.actor_id=ANY($1::text[])) AS coverage,(SELECT count(*)::int FROM givetogive_payment_ledger l JOIN givetogive_payment p ON p.id=l.payment_id WHERE p.actor_id=ANY($1::text[])) AS ledger', [members.map(member => member.id)]);
    guard(counts.subscriptions === 0 && counts.coverage === 0 && counts.ledger === 0); active();
-   return { accounts, expiredPayments: payments.length };
+   return { accounts, expiredPayments: expired.length, sessionId: candidate?.checkout_id };
   });
   const { stripeClient } = await import('../src/server/payments/stripe.ts');
   const { stripeCheckoutReads } = await import('../tools/simulation/src/checkout-provider-proof.ts');
@@ -70,13 +76,15 @@ export async function inspectLocalCheckoutPrerequisites() {
    guard(Array.isArray(invoices.data) && invoices.data.length === 0 && invoices.has_more === false &&
     Array.isArray(subscriptions.data) && subscriptions.data.length === 0 && subscriptions.has_more === false);
   }
-  return { original, target: snapshot.accounts.find(account => account.actorId === approved.actorId),
+  return { original, target: { ...snapshot.accounts.find(account => account.actorId === approved.actorId),
+    frozenTime: clock.frozen_time, ...(phase === 'prepared' ? { sessionId: snapshot.sessionId } : {}) },
    summary: { observedAt: new Date(start).toISOString(), environment: 'staging', readOnly: true,
-    originalBudgetVerified: true, priorExpiredReservedCents: 1000, candidateReservedCents: 1500, candidateUnused: true,
+    originalBudgetVerified: true, priorExpiredReservedCents: 1000, candidateReservedCents: 1500, candidateUnused: phase === 'unused',
+    candidatePrepared: phase === 'prepared', preparationReplayAllowed: false,
     activeSyntheticMembers: 3, restrictedDatabaseRoleVerified: true, providerIdentityVerified: true, providerTestMode: true,
     allThreeCanonicalClockBindingsVerified: true, clockReady: true, providerInvoicesAbsent: true, providerSubscriptionsAbsent: true,
     appSubscriptions: 0, paidCoverage: 0, ledgerEntries: 0, memberActions: 0, databaseWrites: 0,
-    checkoutCreated: false, submitAttempted: false, paymentAccepted: false, releaseVerificationStillRequired: true } };
+    checkoutCreated: phase === 'prepared', submitAttempted: false, paymentAccepted: false, releaseVerificationStillRequired: true } };
  } catch { throw Error('Checkout operator prerequisites rejected; private details withheld.'); }
  finally { await sql?.end({ timeout: 5 }); }
 }

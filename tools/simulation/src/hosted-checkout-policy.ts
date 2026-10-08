@@ -16,6 +16,17 @@ export const approved = Object.freeze({
 	panelDigest: '9300ee649b0775cf7b371c7de686e3d3129d8bc9cd7d1d3f59e43c3314d22235',
 	controlName: 'I am an AI agent and have followed the instructions above',
 });
+/** Whole reviewed tuples only. Historical receipts keep their original binding;
+ * source, lock and runner approvals may never be mixed across revisions. */
+export const approvedSourceTuples = Object.freeze([
+ Object.freeze({ sourceDigest: approved.sourceDigest, canonicalSourceDigest: approved.canonicalSourceDigest,
+  rootLockDigest: approved.rootLockDigest, runnerDigest: approved.runnerDigest }),
+]);
+export function approvedSourceTuple(value: { canonicalSourceDigest: string; rootLockDigest: string; runnerDigest: string; sourceDigest?: string }) {
+ return approvedSourceTuples.find(tuple => tuple.canonicalSourceDigest === value.canonicalSourceDigest &&
+  tuple.rootLockDigest === value.rootLockDigest && tuple.runnerDigest === value.runnerDigest &&
+  (value.sourceDigest === undefined || tuple.sourceDigest === value.sourceDigest));
+}
 export const limits = Object.freeze({ inputBytes: 1024 * 1024, checkpointBytes: 8 * 1024 * 1024, surfaceAgeMs: 5000,
 	proofAgeMs: 30000, futureSkewMs: 5000, expiryHeadroomMs: 15000, maxAssets: 6,
 	startupFreeBytes: 2.5 * 1024 ** 3, floorFreeBytes: 1.5 * 1024 ** 3 });
@@ -35,15 +46,15 @@ const bindings = { runId: z.literal(approved.runId), actorId: z.literal(approved
 export const manifestSchema = z.object({ protocol: z.literal(1), purpose: z.literal('one-member-test-checkout-policy'),
 	job: jobSchema, releaseId: z.number().int().positive(), createdAt: timestamp, ...bindings,
 	origin: z.literal(approved.origin), databaseIdentity: z.literal(approved.databaseIdentity),
-	sourceDigest: z.literal(approved.sourceDigest), canonicalSourceDigest: z.literal(approved.canonicalSourceDigest),
-	rootLockDigest: z.literal(approved.rootLockDigest), runnerDigest: z.literal(approved.runnerDigest),
+	sourceDigest: sha, canonicalSourceDigest: sha,
+	rootLockDigest: sha, runnerDigest: sha,
 	currency: z.literal('usd'), maximumAmountCents: z.literal(1500), expectedTier: z.literal('sustainer'), scenario: z.literal('success'),
 	budget: z.object({ runBudgetCents: z.literal(2500), actorBudgetCents: z.literal(1500),
 		priorExpiredReservedCents: z.literal(1000), candidateReservedCents: z.literal(1500),
 		originalAdmissionDigest: sha, expiredHistoryDigests: z.tuple([sha, sha]), noReset: z.literal(true) }).strict(),
 	rootProof: z.object({ observedAt: timestamp, localIsolationVerified: z.literal(true), normalMemberOnly: z.literal(true),
 		noMemberTokens: z.literal(true), noCheckoutSubmitAdmission: z.literal(true), canonicalCustomerClockVerified: z.literal(true),
-		releaseVerified: z.literal(true), supportsTestSubscriptionsOnly: z.literal(true) }).strict() }).strict();
+		releaseVerified: z.literal(true), supportsTestSubscriptionsOnly: z.literal(true) }).strict() }).strict().refine(value => Boolean(approvedSourceTuple(value)));
 export type Manifest = z.infer<typeof manifestSchema>;
 export function validateManifest(raw: unknown, expectedHead: string, now: number): Manifest {
 	const value = parse(manifestSchema, raw);
