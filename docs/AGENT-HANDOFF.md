@@ -2,6 +2,20 @@
 
 ## October 8 latest override: lifecycle hour failed and was safely retired
 
+Root input preparation continuation: `checkout-root-preparation.ts` connects
+fresh exact readiness and manifest/actor/step/budget checks to the existing
+ordinary-cookie `UiCheckoutPreparation`, owned local provider opening read and
+encrypted input upload. Original lease/manifest/readiness/preparation/upload
+intent and result files are exclusively fsynced; member credentials appear only
+inside the encrypted bundle. Uncertain preparation remains consumed in the
+original SQLite budget; later provider/transfer failure cannot prepare again.
+Upload readback is exact and fresh; no acceptance is inferred from handoff.
+Full Windows simulator suite:359 passed/1 Linux-only skip; types and explicit
+zero-warning lint pass. These use injected member/provider/remote IO, not actual
+payment acceptance. Actual operator discovery/current release+DB+budget verifier,
+current source tuple approval, workflow dispatch and settlement remain next.
+Prior exact-head hosted verification `37846499875` succeeded for `e5c1b36`.
+
 Local readiness continuation: `checkout-readiness-observer.ts` checks a fresh
 exact GitHub Actions marker, source digests, workflow/main/head/actor/attempt and
 sole live Linux job. It reads the marker between two independent job observations

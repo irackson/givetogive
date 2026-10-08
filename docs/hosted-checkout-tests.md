@@ -121,6 +121,15 @@ Renewal, tier changes, cancellation, failed/3DS payments, refunds/disputes, mone
 References: [Stripe test cards](https://docs.stripe.com/testing), [webhook-based fulfillment](https://docs.stripe.com/checkout/fulfillment), [API-key safety](https://docs.stripe.com/keys-best-practices).
 # Local readiness observation
 
+`checkout-root-preparation.ts` connects initial fresh readiness to a one-shot
+ordinary-member preparation, local owned opening proof and encrypted input
+handoff. It requires the original budget store and mandatory current operator
+checks before preparation and transfer. Original evidence files are fsynced;
+member secrets are only encrypted. Ambiguous preparation and later handoff
+failure cannot automatically create another Checkout. Real operator discovery,
+current release/DB/budget observations and signed settlement acceptance are still
+required; injected adapters do not prove those external actions occurred.
+
 `checkout-readiness-observer.ts` supplies the read-only operator half of the
 native readiness handshake. Initial marker freshness and exact reviewed source
 digests are required. Two live workflow/job observations surround an unchanged
