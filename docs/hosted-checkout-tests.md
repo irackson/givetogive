@@ -68,6 +68,49 @@ original $15 Checkout open/unpaid, no invoice/subscription and zero paid coverag
 ledger. Local full regression: 382 passed, one Linux-only skip, zero failures;
 application/simulator types and focused lint passed. No live gate changes.
 
+## Fresh financial cohort, October 8
+
+Fresh run `01d34cf1-7880-4978-aec3-e3c3ccc94b67` was created once through the
+normal staging admin UI API, with its actual returned UUID and single creation
+audit read back. Three independent synthetic member identities and scoped
+credentials were provisioned, with no Asks or paid grants. The run remains
+`created`; no community controller or financial browser was launched.
+
+Its canonical test clock and all three Accounts-v2 customer bindings are now
+verified by independent database/provider reads, including immutable binding
+audits, ready clock at its initial frozen time, test mode and empty invoice/
+subscription lists. The first standalone customer-setup helper stopped at the
+`server-only` import boundary before reaching the service. That exact import
+failure was reproduced; zero customer mapping/binding events were read back.
+The original intent was preserved and reconciled as not invoked. A distinct
+reviewed attempt using the repository's existing server-test context completed
+that binding; the other two bindings completed normally. The corrected helper
+loads the service before mutation admission. Never replay these setup commands.
+
+Read-only cohort readiness confirms zero payments, subscriptions, paid coverage
+and ledger. An exclusive private plan exists for recurring $5 Supporter success,
+recurring $15 Sustainer success and recurring $5 Supporter decline, on distinct
+members. Initial sandbox budget is 2,500 cents total / 1,500 per member. No step
+has been financially admitted; expected tier labels are not entitlements. This
+does not reset or replace any consumed attempt in the original cohort.
+
+Private state: `tools/simulation/.state/runs/01d34cf1-7880-4978-aec3-e3c3ccc94b67/`
+(`credentials.json`, `financial-plan.json`, `clock-setup/`). Ignored root helpers:
+`tmp/fresh-financial-clock-setup.mjs`, `tmp/reconcile-fresh-customer-preinvoke.mjs`,
+`tmp/fresh-financial-readiness.mjs`. Only the last helper's `inspect` command is
+read-only and safe for current readiness checks. `plan` is exclusive/already
+consumed. Creation admission is `tmp/stripe-test-acceptance-create-cohort-20261008.json`.
+The final setup inspection hit the admin sign-in limit after repeated helper
+logins; the subsequent independent readiness check needed no authentication POST
+and passed. Avoid repeated admin authentication; reuse an owned session within a
+bounded operator run. Latest local RAM was 2.46 GiB, below browser admission.
+
+Next: use this SAME fresh plan/cohort for real ordinary-member UI Checkout tests,
+with unchanged budgets and one-shot per-operation admission. Do not launch the
+historical hardcoded native operator against it or manufacture source approvals.
+Retain any new failure, reconcile it, and require signed webhook + ledger + paid
+coverage + member-tier evidence before claiming success or starting clock renewals.
+
 The readiness transport is implemented in `checkout-readiness.ts`: it verifies
 the exact manual run, sole still-live `checkout-parent` job, actor, head, attempt
 and Linux runner label before publishing strictly public check-run metadata.
