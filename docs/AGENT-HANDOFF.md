@@ -1,5 +1,32 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 pre-financial browser resource admission
+
+Docs-head `5ed42f3` passed exact-head hosted verification **37856821653**.
+Background Slack processes (all with no visible window) were stopped under Ian's
+earlier authorization to free unrelated app memory. ChatGPT, Codex, VS Code,
+Chrome, task terminals and system/audio processes were preserved. Observed RAM
+remained marginal (~2.48 GiB); no financial attempt was admitted this turn.
+
+Generic `StripeCheckoutDriver.prepareBrowser()` now acquires the actual
+secret-free Chromium resource BEFORE a private operator creates its ordinary UI
+Checkout. Startup still requires 2.5 GiB; after successful startup the existing
+browser uses the unchanged 1.5 GiB runtime floor. `open` binds it to one verified
+Checkout once; no browser sharing/rebinding or lower startup threshold. Closing
+clears owned handles. Added actual-Chromium acquire/reuse/close regression to the
+credential-free hosted lane; no Stripe or staging access occurs in that test.
+Runtime types/lint and the existing simulator suite pass locally; the new native
+resource regression awaits hosted execution.
+
+The ignored fresh root harness uses that pre-financial acquisition, closes it in
+its outer finally even if member preparation fails, and optionally reclaims dead
+preflight allocations via ordinary Node GC (not a memory guard override). No
+fresh Checkout, provider payment, script intent or ledger reservation has been
+created. Use `--expose-gc` on a qualified local run; avoid repeated low-memory
+preflights. The old hosted native lane remains pinned to the consumed old
+operation and must not be reused for this fresh plan; adapting its immutable
+bindings remains the fallback if local qualification cannot be sustained.
+
 ## October 8 verified generic Checkout checkpoint (not paid acceptance)
 
 Signed `2eff401dce0463dd3725aad856f1fa1b762dc8fc` passed exact-head hosted

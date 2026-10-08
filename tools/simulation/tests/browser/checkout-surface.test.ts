@@ -4,9 +4,26 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { chromium } from 'playwright';
 import { observeSurface, validateNativeSurface, validateAcknowledgmentSurface, type Counters } from '../../src/hosted-checkout-worker.ts';
+import { StripeCheckoutDriver } from '../../src/stripe-checkout-driver.ts';
 
 const base = '<p>Test mode</p><input name="cardNumber"><input name="cardExpiry"><input name="cardCvc">';
 const counters = (): Counters => ({ consoleErrors: 0, pageErrors: 0, httpErrors: 0, blockedRequests: 0, failedRequests: 0, unexpectedPages: 0 });
+
+test('real secret-free Chromium can be acquired and closed before any Checkout or member mutation', async () => {
+  const driver = new StripeCheckoutDriver('public-fixture-bypass'.repeat(2), 'resource-fixture@givetogive.invalid');
+  try {
+    await driver.prepareBrowser();
+    const owned = (driver as unknown as { browser: import('playwright').Browser }).browser;
+    assert.equal(owned.isConnected(), true);
+    await driver.prepareBrowser();
+    assert.equal((driver as unknown as { browser: unknown }).browser, owned);
+    assert.equal(driver.blockedHosts.size, 0);
+    assert.equal(driver.failedStatuses.length, 0);
+    await driver.close();
+    assert.equal(owned.isConnected(), false);
+    assert.equal((driver as unknown as { browser?: unknown }).browser, undefined);
+  } finally { await driver.close(); }
+});
 async function fixture(html: string, inspect: (page: import('playwright').Page) => Promise<void>) {
   const browser = await chromium.launch({ headless: true });
   try {

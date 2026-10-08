@@ -40,10 +40,17 @@ export class StripeCheckoutDriver implements CheckoutDriver {
     if (process.env.DEBUG || process.env.PWDEBUG) throw new Error('Disable Playwright/debug tracing before sandbox payment execution.');
     this.bypass = bypass; this.syntheticEmail = syntheticEmail; this.admitNotice = admitNotice;
   }
-  async open(checkout: VerifiedCheckout) {
+  /** Acquire the real, secret-free browser before a caller admits a financial UI mutation. */
+  async prepareBrowser() {
+    if (this.browser) { this.memoryFloor(); return; }
     if (freemem() < 2.5 * 1024 ** 3) throw new Error('Insufficient memory for sandbox Checkout browser startup.');
-    this.checkout = checkout;
     this.browser = await chromium.launch({ headless: true, env: checkoutBrowserEnvironment() });
+    this.memoryFloor();
+  }
+  async open(checkout: VerifiedCheckout) {
+    await this.prepareBrowser();
+    if (!this.browser || this.context || this.checkout) throw new Error('Checkout browser is unavailable or already bound.');
+    this.checkout = checkout;
     this.context = await this.browser.newContext({ acceptDownloads: false, serviceWorkers: 'block', locale: 'en-US', viewport: { width: 1280, height: 900 } });
     this.context.on('response', response => { if (response.status() >= 400) { this.failedStatuses.push(response.status()); this.counters.httpErrors++; } });
     this.context.on('requestfailed', () => { this.counters.failedRequests++; });
@@ -160,5 +167,5 @@ export class StripeCheckoutDriver implements CheckoutDriver {
     // Closing an unpaid browser is a valid abandoned Checkout; it must NOT expire/refund a provider session implicitly.
     await this.page.close();
   }
-  async close() { await this.context?.close().catch(() => undefined); await this.browser?.close().catch(() => undefined); }
+  async close() { await this.context?.close().catch(() => undefined); await this.browser?.close().catch(() => undefined); this.page = undefined; this.context = undefined; this.browser = undefined; }
 }
