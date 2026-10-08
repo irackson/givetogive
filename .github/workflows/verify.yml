@@ -62,3 +62,8 @@ jobs:
               run: npx --no-install playwright install --with-deps chromium
             - name: Published public browser smoke (no credentials or writes)
               run: node scripts/verify-published.mjs
+            - name: Synthetic Checkout DOM guards (intercepted HTML; no provider contact)
+              working-directory: tools/simulation
+              run: |
+                  npx --no-install playwright install chromium
+                  node --test --test-concurrency=1 tests/browser/*.test.ts

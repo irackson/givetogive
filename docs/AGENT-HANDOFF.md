@@ -1,5 +1,33 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 fresh UI acceptance inspection and hosted DOM test lane
+
+Exact-head read-only verification `37855691298` succeeded for signed `598b4f2`,
+including root tests/types, simulator tests/types and published public Chromium
+smoke. New private operator `tmp/fresh-ui-financial-acceptance.mjs` uses the
+retained fresh run/plan only; `inspect 0` actually verified normal member sign-in,
+Neighbor tier, zero existing operation, exact signed/deployed application bytes,
+runtime test gates, canonical account/clock and immutable binding audit. Plan
+digest: `e36e25e6e4e49e662a2343b15230c0d3dd1717637ca5eabfc4c342f8da8d1e1a`.
+No Checkout or financial mutation was admitted. Free RAM was 2.04 GiB.
+
+Operator commands use `node --env-file=.env.staging.local --import tsx` plus
+the private file, mode and index (0..2). `purchase` admits the normal UI creation
+and single browser attempt together, only after memory qualification and an
+exclusive intent; `reconcile` is read-only. Never run `purchase` again for a
+consumed intent, even after uncertain preparation or browser failure. It has not
+yet been executed. Provider-only success does not satisfy the outcome checks.
+
+Added credential-free real-Chromium surface tests under
+`tools/simulation/tests/browser/checkout-surface.test.ts` to the hosted verify
+workflow. All HTML requests are intercepted synthetic fixtures; these are NOT
+real Stripe notice/payment acceptance. The lane exercises native DOM observation,
+duplicate controls, unknown notice/alert, human/wallet requirements and error
+counters. It installs the simulator's own locked Chromium (root Playwright is
+1.58.2, simulator is 1.63.0; do not assume their browser revisions match).
+Hosted execution is pending at this checkpoint. Laptop remained below the 2.5
+GiB browser startup floor; do not weaken that floor or replay older operations.
+
 ## October 8 generic Checkout acceptance driver continuation
 
 The generic sandbox executor now refreshes the independently owned provider
