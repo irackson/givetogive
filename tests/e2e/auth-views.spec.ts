@@ -2,6 +2,14 @@ import { expect, test } from '@playwright/test';
 import { cleanMembers, login, makeMembers, rpc } from './fixtures';
 
 test.describe('branded account recovery and sign-out', () => {
+	test('a tokenless verification page explains missing links; invalid links do not request a second email', async ({ page }) => {
+		await page.goto('/verify-email');
+		await expect(page.getByText('No verification token was included', { exact: false })).toBeVisible();
+		await page.goto('/verify-email?token=invalid_probe_token_not_a_real_secret');
+		await expect(page.getByRole('heading', { name: 'Confirm your email.' })).toBeVisible();
+		await expect(page.getByRole('alert').filter({ hasText: 'This verification link is invalid or has expired.' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Send verification link' })).toHaveCount(0);
+	});
 	let members: Awaited<ReturnType<typeof makeMembers>>;
 	test.beforeAll(async () => {
 		members = await makeMembers();

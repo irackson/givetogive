@@ -1,5 +1,31 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 AgentMail verification follow-up
+
+Ian reported opening the delivered message reached the tokenless resend screen.
+The exact iPhone/Vercel-protection transition has not been reproduced: a hosted
+mobile Chromium request with a token keeps it and renders the verification view;
+an invalid token gets the expected invalid/expired error, not another email.
+The tokenless view now explains that a complete email link is required and that
+verification needs only one link. A browser regression covers both states.
+
+Reused two existing AgentMail inboxes; no new inboxes, paid plans, or provider
+configuration changes. Registered isolated staging fixtures using the real UI.
+Read encrypted capture links locally and relayed them through the existing Gmail
+OAuth sender. AgentMail confirmed receipt of registration and replacement-link
+messages; SHA-256 comparisons confirmed the received URLs exactly matched the
+captured URLs without printing tokens. Following those links through mobile
+Chromium verified both fixtures; normal password authentication reached `/asks`
+with genuine sessions. Verification never bypassed the normal API or directly
+changed account verification in SQL. Registration initially hit test-harness
+label/hydration waits, corrected before the successful runs. Temporary helpers
+and credential/link state are ignored under `tmp/`, not committed.
+
+Important: this is controlled operator email relay, NOT evidence of automatic
+hosted staging email delivery. Staging still captures all emails by default.
+Owner dashboard access still needs Ian to complete verification himself; don't
+claim an authenticated owner dashboard test from synthetic fixture success.
+
 ## October 8 owner staging email repair
 
 Ian registered `inasusr@gmail.com` in staging and reported no verification email,

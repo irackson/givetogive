@@ -63,9 +63,9 @@ export function VerifyEmail({ token }: { token: string }) {
 	return (
 		<AuthFrame
 			variant='verify'
-			eyebrow='A link, one more time'
+			eyebrow='Need a new link?'
 			title='Resend verification.'
-			description='Request a fresh link for an account waiting to be confirmed. Test sites may capture links instead of sending email.'>
+			description='No verification token was included in this address. Open the complete link from your latest email; verification only needs one link. If you need a replacement, request it below. Test sites may capture links instead of sending email.'>
 			<Box
 				component='form'
 				className='auth-form'
