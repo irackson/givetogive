@@ -6,6 +6,8 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { checkoutResponseBytes } from './checkout-input-mailbox.ts';
+import { openSurfaceInspection } from './checkout-surface-inspection.ts';
+import type { StripeCheckoutDriver } from './stripe-checkout-driver.ts';
 const repository='irackson/givetogive';
 const retained=Object.freeze({releaseId:407301835,assetId:623141370,head:'b976c74e2899d4c5ed49f3afb84848b959930041',
  name:'checkout-284c4f9d-6aec-4910-bbb2-ef7b1a9d2ff7-113565326479-1-ffebd4a021eb1f1918471d7e9fe4c5eb-input.g2genc',
@@ -52,6 +54,7 @@ export async function inspectCheckoutDiagnosticMetadata(token:string,signal:Abor
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
  let key:Buffer|undefined,phase='context';
+ let driver: StripeCheckoutDriver | undefined;
  try {
   guard(process.argv.length===3&&process.argv[2]==='--execute-readonly');
   const config=validateCheckoutDiagnosticContext(process.env,process.platform,Number(process.versions.node.split('.')[0]));
@@ -59,8 +62,21 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   key=Buffer.from(config.key,'hex');delete process.env.CHECKOUT_BUNDLE_KEY;delete process.env.CHECKOUT_GITHUB_TOKEN;
   phase='transfer-key-match';guard(checkoutTransferChallengeMatches(key,config.head,config.nonce,config.proof));
   console.log(JSON.stringify({transferKeyMatchesLocal:true,secretValueWithheld:true,financialAuthority:false}));
+  const encryptedSurface = process.env.CHECKOUT_SURFACE_PAYLOAD; delete process.env.CHECKOUT_SURFACE_PAYLOAD;
+  if(encryptedSurface) {
+   phase='read-only-input';const input=openSurfaceInspection(key,encryptedSurface,{head:config.head,nonce:config.nonce});
+   phase='read-only-browser';const { StripeCheckoutDriver }=await import('./stripe-checkout-driver.ts');
+   // No deployment bypass, normal member token, provider key or durable notice
+   // admission enters this browser. Never call fill, submit, challenge or cancel.
+   driver=new StripeCheckoutDriver('',input.email);
+   await driver.open(input.checkout);
+   const diagnostic=await driver.inspectSurface(30000);
+   console.log(JSON.stringify({nativeLinuxSurfaceInspection:true,headSha:config.head,financialAuthority:false,
+    financialActions:0,paymentAccepted:false,driver:diagnostic}));
+  } else {
   phase='private-metadata';const metadata=await inspectCheckoutDiagnosticMetadata(config.token,AbortSignal.timeout(60000));
   console.log(JSON.stringify({nativeLinuxDiagnostic:true,headSha:config.head,...metadata}));
- }catch{console.error(JSON.stringify({diagnosticFailed:true,phase,privateDetailsWithheld:true,financialReplay:false,paymentAccepted:false}));process.exitCode=1;}
- finally{key?.fill(0);}
+  }
+ }catch{console.error(JSON.stringify({diagnosticFailed:true,phase,...(driver?{driver:driver.diagnostics()}:{}),privateDetailsWithheld:true,financialReplay:false,paymentAccepted:false}));process.exitCode=1;}
+ finally{await driver?.close();key?.fill(0);}
 }

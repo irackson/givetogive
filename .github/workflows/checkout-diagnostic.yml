@@ -14,6 +14,10 @@ on:
         description: Nonsecret domain-separated HMAC response from the local transfer key
         required: true
         type: string
+      surface_payload:
+        description: Optional authenticated ciphertext for one read-only owned test Checkout inspection
+        required: false
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -27,7 +31,7 @@ jobs:
       github.triggering_actor == 'irackson' && github.run_attempt == 1 &&
       inputs.expected_sha == github.sha
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
@@ -43,11 +47,29 @@ jobs:
         working-directory: tools/simulation
         run: npm ci --ignore-scripts
       - name: Transfer key comparison and retained private metadata reads only
+        # Browser installation receives no secrets. Only ciphertext is public;
+        # decrypted Checkout URLs and native browser data are never artifacts.
+        if: inputs.surface_payload == ''
         working-directory: tools/simulation
         env:
           CHECKOUT_EXPECTED_SHA: ${{ inputs.expected_sha }}
           CHECKOUT_DIAGNOSTIC_NONCE: ${{ inputs.challenge_nonce }}
           CHECKOUT_DIAGNOSTIC_PROOF: ${{ inputs.challenge_proof }}
+          CHECKOUT_BUNDLE_KEY: ${{ secrets.CHECKOUT_STAGING_BUNDLE_KEY }}
+          CHECKOUT_GITHUB_TOKEN: ${{ github.token }}
+        run: node --experimental-strip-types src/checkout-transport-diagnostic.ts --execute-readonly
+      - name: Install locked read-only Chromium without credentials
+        if: inputs.surface_payload != ''
+        working-directory: tools/simulation
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Encrypted read-only owned Checkout surface inspection
+        if: inputs.surface_payload != ''
+        working-directory: tools/simulation
+        env:
+          CHECKOUT_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          CHECKOUT_DIAGNOSTIC_NONCE: ${{ inputs.challenge_nonce }}
+          CHECKOUT_DIAGNOSTIC_PROOF: ${{ inputs.challenge_proof }}
+          CHECKOUT_SURFACE_PAYLOAD: ${{ inputs.surface_payload }}
           CHECKOUT_BUNDLE_KEY: ${{ secrets.CHECKOUT_STAGING_BUNDLE_KEY }}
           CHECKOUT_GITHUB_TOKEN: ${{ github.token }}
         run: node --experimental-strip-types src/checkout-transport-diagnostic.ts --execute-readonly
