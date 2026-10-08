@@ -121,6 +121,19 @@ Renewal, tier changes, cancellation, failed/3DS payments, refunds/disputes, mone
 References: [Stripe test cards](https://docs.stripe.com/testing), [webhook-based fulfillment](https://docs.stripe.com/checkout/fulfillment), [API-key safety](https://docs.stripe.com/keys-best-practices).
 # Local readiness observation
 
+Local executable prerequisite check (Windows Node 24, existing local test env):
+
+```powershell
+node scripts/checkout-operator-inspect.mjs
+node --env-file=.env.staging.local --import tsx scripts/checkout-operator-inspect.mjs --inspect-readonly
+```
+
+The first command is inert. The second performs only original-file/SQLite,
+restricted-role staging SELECT and provider GET reads. It prints a fixed summary,
+never credentials/URLs/private targets. It does not approve the deployed release,
+dispatch a workflow, authenticate a member, prepare or submit a payment. The
+actual financial entrypoint still requires release/source/live-job wiring.
+
 Original financial admission is at
 `tmp/stripe-test-acceptance-manual/1aa24b5b-c467-4063-a62a-cd6df957b393/admission.sqlite`.
 Use `inspectOriginalCheckoutBudget` to verify its plan/anchors/consumed expired

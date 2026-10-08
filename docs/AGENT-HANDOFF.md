@@ -2,6 +2,19 @@
 
 ## October 8 latest override: lifecycle hour failed and was safely retired
 
+Executable local prerequisites: `scripts/checkout-operator-inspect.mjs` is inert
+by default. Explicit `--inspect-readonly` connects to the actual isolated
+restricted-role staging database and existing local Stripe SDK configuration;
+verifies original budget, exact active three-member cohort, all three canonical
+clock mappings, only the two expired $5 records, zero app subscriptions/coverage/
+ledger and empty customer-scoped provider invoice/subscription lists. No member
+sign-in, preparation, provider mutation, new store or grant. Actual execution at
+21:33:33 UTC passed, candidate remained unused and all three clocks were ready.
+Returned private target stays in the local caller; CLI prints only fixed summary.
+Three credential-free CLI regressions pass (inert default/import and rejected
+environment/arguments). Release/source/live-job verification and paid operation
+execution remain unwired. Do not interpret inspection success as payment admission.
+
 Original-budget continuation: actual retained plan inspection found the recurring
 flag is TRUE, not the FALSE offline fixture used in the new wrapper. Corrected
 the wrapper and added a regression rejecting the changed flag before preparation.
