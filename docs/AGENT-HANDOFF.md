@@ -26,6 +26,13 @@ hosted staging email delivery. Staging still captures all emails by default.
 Owner dashboard access still needs Ian to complete verification himself; don't
 claim an authenticated owner dashboard test from synthetic fixture success.
 
+At 16:17:35 UTC, relayed Ian's replacement captured link (sink entry 35) once,
+using an HTML verification button like the successfully tested AgentMail mail.
+Gmail accepted it with HTTP 200; inbox receipt/click by Ian is not yet confirmed.
+Expiry: October 9 16:02:54 UTC. This supersedes the earlier entry-33 message below
+because Ian requested a replacement after that send. No database writes or
+credential copies. The exact token's durable intent prevents duplicate sends.
+
 ## October 8 owner staging email repair
 
 Ian registered `inasusr@gmail.com` in staging and reported no verification email,
