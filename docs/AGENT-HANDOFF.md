@@ -1,5 +1,43 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 clean published navigation diagnostic and checkpoint binding repair
+
+Signed commit `8888877182d76c18de40a747fd573b3d04643006` passed root hosted
+verification `37820677718` and credential-free browser smoke `37820695064`.
+Exact protected staging deployment `dpl_4ZF8gk4Rv3NYoZcgFQeSnfBmNUg5` is READY/
+canonical. Release receipt `tmp/freshness-staging-release-inspection-1791482549758.json`
+verifies compiled build/routes, Node24, protection all, unchanged hosted environment
+and production root link, sandbox-only Supporter gates, Ask/fund gates off, and
+failed cohort paused/unowned/idle with zero active workers. Authored Windows digest:
+`4965f8838ce2c870c9fb8542878fab94fbb65d3beef43d9533ea1aec8dcc976a`.
+
+Real diagnostic `tmp/observer-abort-category-inspection-1791482623017.json` PASSED:
+six confirmed paused intervals, resume starts polling, three native member-history
+navigations, 74 decoded responses, zero unqualified/body/capture/capacity/non-success/
+console/page/HTTP errors or blocked requests. Raw sums retained: 149 = 69 validated
+query aborts + 80 explicitly suppressed-prefetch aborts. Minimum free RAM 1.9946GiB
+remained above the 1.5GiB runtime floor. This is paused-cohort navigation/polling
+evidence, NOT a running-population freshness measurement or full-hour/paid acceptance.
+Ignored diagnostic now emits strict `acceptancePassed` and nonzero exit on failure.
+
+Found a distinct CLI wiring bug: `assertCommunityCheckpoint` supported independently
+validated acknowledged-release receipts, but its CLI caller omitted the retained
+controller journal/program binding. The caller now supplies `store.journalId` and
+the already-computed two-journal `controllerDigest`, never trusting the external
+review for either. Existing stale/foreign/pending/union rejection tests remain;
+architectural regression verifies this binding is passed in the control-only branch.
+All 273 simulator tests and strict TypeScript pass. No actual Stop has occurred yet.
+
+NEXT: sign/push/check the checkpoint repair; retire the preserved paused failed run
+via normal admin Stop plus reviewed CONTROL-ONLY checkpoint against retained working
+journals (preserve original recovery snapshots). Then create/provision/program a
+NEW 253-member cohort and journals, append reviewed exact provenance approval, run
+new five-member smoke before full hour. Do not reuse old approvals or reset outcomes.
+Prepared plan-only helper `tmp/community-hour253-oct8-native-setup.mjs` binds the new
+deployment/digest and separate file/state names; nothing created/provisioned/launched.
+It dynamically binds current runner-file hashes. Four original Checkout WIP hashes
+still match, and production financial gates remain dark.
+
 ## October 8 published pause-control evidence and native history navigation
 
 Exact signed commit `b8cac9bdd2211c3fa6e1180c8f57989b3574a0bf` passed root

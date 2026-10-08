@@ -529,6 +529,7 @@ try {
 		const review = assertCommunityCheckpoint(
 			await control.transport.manifest(), credentials, settings.browserUsers, rawReview,
 			telemetry.meta('controllerId'), store.pendingCount(), telemetry.pendingEvents().length,
+			Date.now(), { controllerJournalId: store.journalId, programDigest: controllerDigest },
 		);
 		store.reviewAbandonedClaims(new Set(credentials.agents.map(account => account.userId)));
 		state.paused = true;

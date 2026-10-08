@@ -103,5 +103,7 @@ test('checkpoint CLI branch contains no member authentication, execution or brow
 	assert.ok(!/UiSession|executeActivity|userLoop|controllerLoop|browsers\.(?:action|opening)/.test(branch));
 	assert.ok(branch.includes('reviewedCheckpointStop'));
 	assert.ok(branch.includes('reviewAbandonedClaims'));
+	// The review is external evidence; compare it against the runner's own retained journals.
+	assert.ok(branch.includes('Date.now(), { controllerJournalId: store.journalId, programDigest: controllerDigest }'));
 	assert.ok(source.includes("['run', 'checkpoint'].includes(command) && runStarted"));
 });
