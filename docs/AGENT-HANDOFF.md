@@ -1,5 +1,39 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 owner staging email repair
+
+Ian registered `inasusr@gmail.com` in staging and reported no verification email,
+including after resend. Root cause is intentional isolation: `sendAuthEmail`
+stores an encrypted link in `givetogive_email_sink` for staging/test and makes
+no provider call. It incorrectly returned `delivered: true`; the signup/resend
+messages therefore implied inbox delivery. Staging has no Gmail/Resend provider
+credentials, while the pre-existing local Gmail sender is configured.
+
+At 16:00:28 UTC the reviewed fixed-recipient local operator sent **one** ordinary
+verification message to Ian using the existing local Gmail OAuth connection.
+OAuth and Gmail send both returned 200, with a provider message ID. This is
+provider acceptance, **not confirmed inbox delivery**. The encrypted latest sink
+entry 33 matched the current unexpired auth-token hash for Ian's exact active,
+non-synthetic/unverified staging identity. Link expiry: October 9 15:54:50 UTC.
+No link/token/credential was printed or committed, no credentials were copied
+to Vercel/staging, and zero database writes/verification bypasses occurred.
+Ian still must click the delivered link. Do not rerun the exclusive send for
+this token: its durable intent and result are retained privately in
+`tmp/owner-staging-email-delivery/`. Default operator is read-only.
+
+The source fix distinguishes encrypted capture from actual email delivery,
+shows explicit test-inbox guidance at signup and resend, and makes public reset/
+resend wording environment-only so nonexistent/verified accounts aren't exposed.
+Test capture still performs zero provider requests and exposes no preview links.
+142 unit tests passed; new isolated SQL capture/encryption/no-network integration
+test passed. All existing 123 integration checks passed separately with zero
+skips/failures, and focused lint passed. Publish only after the source
+checkpoint, hosted type checks/build and staging browser verification pass.
+Ordinary automatic real email delivery on staging is **not** enabled by this
+one-time local repair. Future owner sends need explicit, restricted operator
+delivery or separately reviewed staging mail configuration; never bulk-email
+simulated users or transfer production credentials to test runners.
+
 ## October 8 current staging release and mobile dashboard checkpoint
 
 The exact remote Git deployment `dpl_EgBQ5axXnPxCJTEvzrkfr774yZqF` is READY,

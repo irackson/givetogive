@@ -2,6 +2,7 @@
 
 import { AuthFrame } from '@/app/_components/AuthFrame';
 import { api } from '@/trpc/react';
+import { registrationEmailMessage } from '@/lib/auth-email-status';
 import { Alert, Box, Button, Link, Stack, TextField } from '@mui/material';
 import { useState, type FormEvent } from 'react';
 
@@ -54,11 +55,9 @@ export default function SignupPage() {
 						<Alert severity='error'>{register.error.message}</Alert>
 					)}
 					{register.data && (
-						<Alert severity='success'>
+						<Alert severity={register.data.emailCaptured ? 'info' : 'success'}>
 							Account created.{' '}
-							{register.data.emailDelivered ?
-								'Check your email for a verification link.'
-							:	'We could not send the verification email. Please try again.'}
+							{registrationEmailMessage(register.data.emailDelivered, register.data.emailCaptured)}
 							{register.data.verificationUrl && (
 								<>
 									<br />

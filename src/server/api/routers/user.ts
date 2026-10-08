@@ -1,5 +1,6 @@
 import { env } from '@/env';
 import { applicationEnvironment } from '@/lib/environment';
+import { authEmailCaptured, authEmailRequestMessage } from '@/lib/auth-email-status';
 import {
 	createTRPCRouter,
 	protectedProcedure,
@@ -56,6 +57,7 @@ async function deliverToken(
 		);
 		return {
 			delivered: false,
+			captured: false,
 			previewUrl:
 				(
 					env.NODE_ENV === 'development' &&
@@ -287,6 +289,7 @@ export const userRouter = createTRPCRouter({
 			return {
 				success: true,
 				emailDelivered: delivery.delivered,
+				emailCaptured: delivery.captured,
 				verificationUrl: delivery.previewUrl,
 			};
 		}),
@@ -326,8 +329,7 @@ export const userRouter = createTRPCRouter({
 
 			return {
 				success: true,
-				message:
-					'If an account exists for that email, a reset link has been sent.',
+				message: authEmailRequestMessage('password_reset', applicationEnvironment()),
 				previewUrl,
 			};
 		}),
@@ -368,8 +370,8 @@ export const userRouter = createTRPCRouter({
 
 			return {
 				success: true,
-				message:
-					'If that account still needs verification, a new link has been sent.',
+				message: authEmailRequestMessage('email_verification', applicationEnvironment()),
+				emailCaptured: authEmailCaptured(applicationEnvironment()),
 				previewUrl,
 			};
 		}),

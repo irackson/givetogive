@@ -65,7 +65,7 @@ export function VerifyEmail({ token }: { token: string }) {
 			variant='verify'
 			eyebrow='A link, one more time'
 			title='Resend verification.'
-			description='Enter your email and we will send a fresh link if there is an account waiting to be confirmed.'>
+			description='Request a fresh link for an account waiting to be confirmed. Test sites may capture links instead of sending email.'>
 			<Box
 				component='form'
 				className='auth-form'
@@ -85,7 +85,7 @@ export function VerifyEmail({ token }: { token: string }) {
 						<Alert severity='error'>{resend.error.message}</Alert>
 					)}
 					{resend.data && (
-						<Alert severity='success'>
+						<Alert severity={resend.data.emailCaptured ? 'info' : 'success'}>
 							{resend.data.message}
 							{resend.data.previewUrl && (
 								<>

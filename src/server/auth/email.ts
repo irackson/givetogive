@@ -3,6 +3,7 @@ import 'server-only';
 import { env } from '@/env';
 import type { AuthTokenPurpose } from '@/server/auth/tokens';
 import { applicationEnvironment } from '@/lib/environment';
+import { authEmailCaptured } from '@/lib/auth-email-status';
 import { db } from '@/server/db';
 import { emailSink } from '@/server/db/operations-schema';
 import { sealSecret } from '@/server/security/crypto';
@@ -140,7 +141,7 @@ async function sendWithResend({ to, url, purpose }: AuthEmailInput) {
 }
 
 export async function sendAuthEmail({ to, url, purpose }: AuthEmailInput) {
-	if (['staging', 'test'].includes(applicationEnvironment())) {
+	if (authEmailCaptured(applicationEnvironment())) {
 		await db
 			.insert(emailSink)
 			.values({
@@ -148,7 +149,7 @@ export async function sendAuthEmail({ to, url, purpose }: AuthEmailInput) {
 				purpose,
 				urlCiphertext: sealSecret(url, 'staging-email'),
 			});
-		return { delivered: true, previewUrl: undefined };
+		return { delivered: false, captured: true, previewUrl: undefined };
 	}
 	const provider = getEmailProvider();
 
@@ -160,6 +161,7 @@ export async function sendAuthEmail({ to, url, purpose }: AuthEmailInput) {
 
 	return {
 		delivered: Boolean(provider),
+		captured: false,
 		previewUrl:
 			(
 				env.NODE_ENV === 'development' &&
