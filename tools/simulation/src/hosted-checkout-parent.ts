@@ -26,6 +26,7 @@ export const checkoutRunnerFiles = [
 	'hosted-community-attention.ts', 'hosted-community-bundle.ts', 'hosted-community-policy.ts',
 	'checkout-final-retention.ts',
 	'checkout-readiness.ts',
+	'checkout-bootstrap.ts', 'checkout-input-mailbox.ts',
 ] as const;
 const base = fileURLToPath(new URL('../', import.meta.url));
 const repositoryRoot = resolve(base, '../..');
@@ -34,20 +35,26 @@ function guard(value: unknown): asserts value { if (!value) fail(); }
 
 /** Policy approval is excluded from its own hash to avoid a circular digest;
  * the exact reviewed Git head independently binds that policy and all code. */
-export function verifyCheckoutParentSources(manifest: Manifest) {
+export function checkoutParentSourceSnapshot(expectedHead: string) {
 	guard(process.platform === 'linux' && process.versions.node.split('.')[0] === '24');
-	guard(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repositoryRoot, encoding: 'utf8' }).trim() === manifest.job.headSha);
+	guard(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repositoryRoot, encoding: 'utf8' }).trim() === expectedHead);
 	// The self-excluded approval policy must still be the reviewed HEAD's bytes.
 	execFileSync('git', ['diff', '--exit-code', 'HEAD', '--', 'tools/simulation/src/hosted-checkout-policy.ts'], { cwd: repositoryRoot, stdio: 'ignore' });
-	guard(releaseSourceDigest(repositoryRoot) === manifest.canonicalSourceDigest);
-	guard(createHash('sha256').update(readFileSync(join(repositoryRoot, 'package-lock.json'))).digest('hex') === manifest.rootLockDigest);
+	const canonicalSourceDigest = releaseSourceDigest(repositoryRoot);
+	const rootLockDigest = createHash('sha256').update(readFileSync(join(repositoryRoot, 'package-lock.json'))).digest('hex');
 	const hash = createHash('sha256');
 	for (const name of checkoutRunnerFiles) {
 		const path = join(base, 'src', name); guard(!lstatSync(path).isSymbolicLink());
 		hash.update(name).update('\0').update(readFileSync(path)).update('\0');
 	}
 	hash.update('package-lock.json').update('\0').update(readFileSync(join(base, 'package-lock.json'))).update('\0');
-	guard(hash.digest('hex') === manifest.runnerDigest);
+	const workflowName = '.github/workflows/checkout-staging.yml';
+	hash.update(workflowName).update('\0').update(readFileSync(join(repositoryRoot, workflowName))).update('\0');
+	return { canonicalSourceDigest, rootLockDigest, runnerDigest: hash.digest('hex') };
+}
+export function verifyCheckoutParentSources(manifest: Manifest) {
+	const actual = checkoutParentSourceSnapshot(manifest.job.headSha);
+	guard(actual.canonicalSourceDigest === manifest.canonicalSourceDigest && actual.rootLockDigest === manifest.rootLockDigest && actual.runnerDigest === manifest.runnerDigest);
 }
 
 const count = z.number().int().min(0).max(1000000);

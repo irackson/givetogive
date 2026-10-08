@@ -1,0 +1,57 @@
+name: Guarded staging Checkout
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact reviewed main commit; never rerun financial admission
+        required: true
+        type: string
+      release_id:
+        description: Exact empty unpublished private draft; input follows native readiness
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: givetogive-staging-community
+  cancel-in-progress: false
+jobs:
+  checkout-parent:
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      github.repository == 'irackson/givetogive' && github.actor == 'irackson' &&
+      github.triggering_actor == 'irackson' && github.run_attempt == 1 &&
+      inputs.expected_sha == github.sha
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      actions: read
+      checks: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # reviewed v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # reviewed v6
+        with:
+          node-version: 24.x
+          package-manager-cache: false
+      - name: Locked tools install without credentials
+        working-directory: tools/simulation
+        run: npm ci --ignore-scripts
+      - name: Install locked Chromium and Linux dependencies without credentials
+        working-directory: tools/simulation
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Credential-free exact child environment and browser closure smoke
+        working-directory: tools/simulation
+        run: node --experimental-strip-types src/hosted-community.ts browser-smoke
+      - name: Native readiness, encrypted input and one ordinary-member Checkout
+        working-directory: tools/simulation
+        env:
+          CHECKOUT_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          CHECKOUT_RELEASE_ID: ${{ inputs.release_id }}
+          CHECKOUT_BUNDLE_KEY: ${{ secrets.CHECKOUT_STAGING_BUNDLE_KEY }}
+          CHECKOUT_GITHUB_TOKEN: ${{ github.token }}
+        run: node --experimental-strip-types src/checkout-bootstrap.ts --execute-native-bootstrap
+      # No caches, public artifacts, traces/HAR or secrets in inputs/command arguments.

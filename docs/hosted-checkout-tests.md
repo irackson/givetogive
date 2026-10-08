@@ -5,8 +5,9 @@ Tracked modules include the private-draft transport, ordinary-cookie Playwright
 member, guarded Linux member entrypoint, durable parent filesystem adapter,
 bounded ordered IPC, encrypted fresh-proof exchange, local-only provider GET
 reader and the Linux parent integration. They have no automatic execution.
-The dedicated job bootstrap/workflow, locally operated fresh-proof responder,
-current approved source tuple and actual hosted paid acceptance remain unfinished.
+The dedicated native bootstrap/manual workflow is now wired, but has not been
+dispatched. The local fresh-proof responder, current approved source tuple,
+dedicated transfer-key configuration and actual hosted paid acceptance remain unfinished.
 Do not dispatch the historical policy/source tuple against the new adapter code.
 Offline tests are not payment acceptance.
 
@@ -18,7 +19,27 @@ check-run readback are rechecked. It uses no encrypted asset slot and transfers
 no member/provider credential. Injected HTTP is permanently labeled offline.
 The native waiting bootstrap and source approval are NOT proved by this marker;
 root must independently recheck both and the still-live job before preparation.
-The dedicated workflow has not yet been wired or dispatched.
+The dedicated workflow is wired but not dispatched. It installs locked tools and
+Chromium before exposing a narrowly scoped GitHub token and a dedicated encrypted
+transfer key. It shares staging concurrency with the community workflow and
+rejects wrong actor/ref/head/attempt. The native bootstrap checks actual Linux,
+Node 24, Git head and reviewed source fingerprints before publishing readiness;
+creates/fsyncs exclusive admission; and waits only for the exact job-nonce input
+on the exact unpublished draft. Selected input downloads are consumed durably
+before the asset GET. Anonymous access, foreign assets/redirects, changed hashes
+or stale proofs fail without another member launch or purchase. CDN downloads
+receive no GitHub authorization. Child HOME/TMPDIR are private and its environment
+still contains only four allowlisted non-secret variables.
+
+`checkout-bootstrap.ts --execute-native-bootstrap` is the only native entrypoint.
+It has no injected runtime route. Policy/HTTP tests are offline only. The current
+historical source tuple intentionally prevents native readiness on the new code;
+append a separately reviewed current tuple before dispatch. Configure a dedicated
+`CHECKOUT_STAGING_BUNDLE_KEY`, not a Stripe/database/admin credential. Before
+actual execution, finish the root readiness observer/fresh-proof responder and
+review pre-parent failure evidence recovery; local bootstrap files alone are not
+proof of retention after an ephemeral runner disappears. No financial acceptance
+or complete hosted bootstrap recovery is established by offline tests.
 
 The parent creates/fsyncs an exclusive lease before launching, rejects inherited
 credentials, independently checks kernel process identity during broker calls,

@@ -2,16 +2,36 @@
 
 ## October 8 latest override: lifecycle hour failed and was safely retired
 
+Native bootstrap continuation: `checkout-bootstrap.ts`, initial encrypted
+`checkout-input-mailbox.ts` and guarded `.github/workflows/checkout-staging.yml`
+are wired. Linux/Node/Git/source checks precede readiness. Exclusive/fsynced
+bootstrap and input-selection admissions precede download/member launch; fixed
+private-draft identity, nonce, hash, anonymous 404 and exact stable inventory are
+required. Bounded canceled streams fail without retries, CDN receives no token,
+and native parent receives only the four-variable child environment. Source
+fingerprints now include the bootstrap/mailbox and dedicated workflow. The old
+approval therefore correctly rejects new native readiness; append a separately
+reviewed current tuple, never rewrite old receipts. The workflow is manual only,
+exact actor/main/head/attempt 1, shares staging concurrency and installs locked
+dependencies/browser before narrowly scoped broker credentials are available.
+Local full suite 344 passed, one Linux-only skip; types and explicit lint passed.
+No native dispatch, member sign-in or Checkout preparation/submission occurred.
+Next: current source approval, dedicated key configuration, root live-readiness
+observer/fresh-proof responder and pre-parent failure evidence recovery review.
+Bootstrap originals remain local until reviewed remote recovery is implemented;
+ephemeral local files alone are not durable remote acceptance. Actual payment,
+webhook/coverage/ledger/ordinary-tier acceptance remains required.
+
 Readiness continuation: `checkout-readiness.ts` implements bounded exact GitHub
 manual-run/job validation and one-shot check-run publication/readback, retaining
 an exclusive/fsynced local intent before POST. It transfers only strict public
 metadata and consumes none of the six private asset slots. Unknown/terminal jobs,
 wrong actor/head, stale/under-memory metadata, changed readback and interrupted
 publication fail without a repeated POST. Injected HTTP stays labeled offline;
-native parent/source approval is explicitly still required. No native bootstrap
-or dedicated workflow is wired yet; publication alone does not authorize normal
-member Checkout preparation. Implement the waiting native bootstrap next, then
-current source approval, root fresh-proof responder and actual paid acceptance.
+native parent/source approval is explicitly still required. The native bootstrap
+and workflow above supersede the previous unwired status; publication alone does
+not authorize normal member Checkout preparation. Finish current source approval,
+root fresh-proof responder and actual paid acceptance next.
 
 Signed final-retention commit `5b2ad14502fe60bc2822230e55cf865f88a6ac68` passed
 exact-head GitHub verification `37841300269`, including published public browser
