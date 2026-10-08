@@ -3,7 +3,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { allowedCheckoutRequest, sandboxOrigin, stripeOwnedOrigin, type CheckoutScenario, type VerifiedCheckout } from './sandbox-policy.ts';
 import { protectionHeaders } from './protection.ts';
 import { freemem } from 'node:os';
-import { observeSurface, validateAcknowledgmentSurface, validateNativeSurface, OneNativeClick, type Counters } from './hosted-checkout-worker.ts';
+import { observeSurface, validateAcknowledgmentSurface, validateNativeSurface, OneNativeClick, type Counters, type CheckoutSurface } from './hosted-checkout-worker.ts';
 import { approved } from './hosted-checkout-policy.ts';
 
 export interface CheckoutDriver {
@@ -34,6 +34,7 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   pageErrors = 0;
   private readonly counters: Counters = { consoleErrors: 0, pageErrors: 0, httpErrors: 0, blockedRequests: 0, failedRequests: 0, unexpectedPages: 0 };
   private readonly noticeClick = new OneNativeClick();
+  private lastSurface?: CheckoutSurface;
   private readonly admitNotice?: () => Promise<void>;
   constructor(bypass: string, syntheticEmail: string, admitNotice?: () => Promise<void>) {
     if (!syntheticEmail.endsWith('@givetogive.invalid')) throw new Error('Only a synthetic fixture email is allowed.');
@@ -118,18 +119,48 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   private memoryFloor() {
     if (freemem() < 1.5 * 1024 ** 3) throw new Error('Sandbox Checkout memory floor reached.');
   }
+  private async readSurface() {
+    this.memoryFloor();
+    if (!this.page) throw new Error('Checkout is not open.');
+    this.lastSurface = await observeSurface(this.page, this.counters, Date.now());
+    return this.lastSurface;
+  }
+  /** Fixed booleans/counters only. No DOM text, control label, URL, PAN or response body. */
+  diagnostics() {
+    const surface = this.lastSurface;
+    return { ...this.counters, noticeClickAttempts: this.noticeClick.attempts,
+      surfaceObserved: !!surface, ...(surface ? {
+        testModeLabel: surface.testModeLabel, visibleCard: surface.visibleCard,
+        panelCount: surface.panelCount, reviewedPanelMatches: surface.panelDigest === approved.panelDigest,
+        reviewedControlMatches: surface.controlName === approved.controlName,
+        controlCount: surface.controlCount, visible: surface.visible, enabled: surface.enabled, unchecked: surface.unchecked,
+        requiresCaptchaOrWalletOrAttestation: surface.requiresCaptchaOrWalletOrAttestation,
+        unknownInstructions: surface.unknownInstructions,
+      } : {}) };
+  }
+  /** Read-only inspection of an existing owned session; never fills or clicks a control. */
+  async inspectSurface(timeoutMs = 15000) {
+    if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30000) throw new Error('Invalid bounded surface observation.');
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      const surface = await this.readSurface();
+      if (surface.panelCount || surface.visibleCard || surface.unknownInstructions || surface.requiresCaptchaOrWalletOrAttestation) break;
+      await sleep(200);
+    }
+    return this.diagnostics();
+  }
   private async prepareReviewedSurface() {
     this.memoryFloor();
     if (!this.page) throw new Error('Checkout is not open.');
     const deadline = Date.now() + 15000;
     while (Date.now() < deadline) {
       this.memoryFloor();
-      const surface = await observeSurface(this.page, this.counters, Date.now());
+      const surface = await this.readSurface();
       if (surface.panelCount) {
         validateAcknowledgmentSurface(surface, Date.now());
         if (!this.admitNotice) throw new Error('Agent notice requires durable member-owned permission.');
         await this.admitNotice();
-        validateAcknowledgmentSurface(await observeSurface(this.page, this.counters, Date.now()), Date.now());
+        validateAcknowledgmentSurface(await this.readSurface(), Date.now());
         const control = this.page.getByRole('checkbox', { name: approved.controlName, exact: true });
         if (await control.count() !== 1 || !await control.isVisible() || !await control.isEnabled() || await control.isChecked()) throw new Error('Agent notice control changed.');
         await this.noticeClick.perform(true, new AbortController().signal, async () => { await control.click({ timeout: 5000 }); });

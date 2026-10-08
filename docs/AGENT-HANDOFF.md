@@ -1,5 +1,32 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 real fresh Supporter Checkout admitted, unpaid, no replay
+
+`59397258ecddc6c10ab99a8b5db84a37ff949e86` passed exact-head hosted verification
+**37857560291**, including eight real-Chromium synthetic DOM/resource tests.
+The private lightweight `tmp/fresh-ui-browser-first.mjs` acquired actual Chromium
+at 2.58 GiB BEFORE importing the Stripe/database observer. Same process/driver,
+unchanged startup/runtime thresholds, no additional hosted payment pipeline.
+
+Actual process **91965** created fresh operation
+`c89fc875-d2d2-41a9-81bd-a1cb246ad53c` through normal UI member authentication and
+`billing.createCheckout`; its retained plan reserved 500 test cents. It then
+stopped during `filling` (exit 1). **Do not run purchase-0 again, reset its budget,
+regenerate its operation or use the earlier zero-operation readiness script.**
+Read-only reconciliation process **53643** is terminal/successful: owned provider
+Checkout unpaid, app `checkout_open`, tier Neighbor, no verified webhook payment.
+This is genuine unpaid Checkout setup, NOT paid acceptance. Original intent,
+SQLite reservations and fixed error output are retained. Steps 1 and 2 have not
+been admitted.
+
+Added fixed boolean/counter-only driver diagnostics and a bounded read-only
+surface inspection method; no DOM labels/text/digests/URLs/PAN/response bodies
+are exposed. Existing failure did not retain those diagnostics, so its exact
+original DOM cause is still unproven. Next use the private lightweight entry's
+`inspect-surface 0` mode to observe the existing session without filling or
+clicking anything, then fix the observed cause before admitting other steps.
+This does not authorize another financial submission for operation 0.
+
 ## October 8 pre-financial browser resource admission
 
 Docs-head `5ed42f3` passed exact-head hosted verification **37856821653**.

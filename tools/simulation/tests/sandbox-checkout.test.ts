@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { allowedCheckoutRequest, sandboxOrigin, validateCheckoutContext, type SandboxBoundary, type CheckoutScenario } from '../src/sandbox-policy.ts';
 import { SandboxLedger } from '../src/sandbox-ledger.ts';
 import { SandboxCheckoutExecutor } from '../src/sandbox-checkout.ts';
-import { checkoutBrowserEnvironment, type CheckoutDriver } from '../src/stripe-checkout-driver.ts';
+import { StripeCheckoutDriver, checkoutBrowserEnvironment, type CheckoutDriver } from '../src/stripe-checkout-driver.ts';
 
 function fixture() {
   const operationId = randomUUID(); const actorId = 'synthetic-person-one';
@@ -28,6 +28,21 @@ test('payment Chromium receives only platform OS variables, never root observer 
   assert.deepEqual(checkoutBrowserEnvironment(env, 'linux'), { PATH: env.PATH, HOME: env.HOME, LANG: env.LANG });
   assert.deepEqual(checkoutBrowserEnvironment(env, 'darwin'), { PATH: env.PATH, HOME: env.HOME, LANG: env.LANG });
   assert.deepEqual(checkoutBrowserEnvironment(env, 'win32'), { PATH: env.PATH, HOME: env.HOME, LANG: env.LANG, PROGRAMDATA: env.PROGRAMDATA, SYSTEMROOT: env.SYSTEMROOT });
+});
+
+test('driver diagnostics expose fixed booleans/counters, never an unknown provider label or digest', () => {
+  const observed = new StripeCheckoutDriver('public-fixture-bypass'.repeat(2), 'diagnostic@givetogive.invalid');
+  // Deliberately synthetic adapter data, not actual provider/browser evidence.
+  Object.assign(observed, { lastSurface: { testModeLabel: true, visibleCard: false, panelCount: 1,
+    panelDigest: 'private-digest-sentinel', controlName: 'private-label-sentinel', controlCount: 1,
+    visible: true, enabled: false, unchecked: true, requiresCaptchaOrWalletOrAttestation: true, unknownInstructions: true } });
+  const diagnostic = observed.diagnostics();
+  assert.equal(diagnostic.reviewedPanelMatches, false);
+  assert.equal(diagnostic.reviewedControlMatches, false);
+  assert.equal(diagnostic.requiresCaptchaOrWalletOrAttestation, true);
+  assert.equal(JSON.stringify(diagnostic).includes('private-'), false);
+  assert.equal('controlName' in diagnostic, false);
+  assert.equal('panelDigest' in diagnostic, false);
 });
 test('sandbox verification rejects live, wrong actor/origin/run, stale, expired and over-budget sessions before opening a browser', () => {
   const { boundary, context } = fixture();
