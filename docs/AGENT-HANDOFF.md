@@ -2,6 +2,20 @@
 
 ## October 8 latest override: lifecycle hour failed and was safely retired
 
+Final retention continuation: `checkout-final-retention.ts` is integrated into
+the parent. It keeps original lease/member/proof/intent/parent files immutable,
+accepts only fixed names and regular unlinked files, encrypts the original bundle,
+and fsyncs a one-shot upload intent before using the reviewed draft transport's
+reserved final slot. It rechecks original file hashes/ciphertext and exact private
+readback bindings before storing a separate immutable upload result. Failures
+retain evidence and do not retry uploads or member work. Original failed process
+closure stays failed. Tests use real filesystem/crypto with injected transport;
+actual hosted private final transfer still requires the dedicated workflow.
+Returned transport metadata rejects additional fields before persistence. Local
+verification: 333 simulator tests passed, one Linux-only test skipped; simulator
+types and explicit zero-warning lint passed. These are offline tests, not actual
+remote retention or paid acceptance.
+
 Latest adapter continuation: reviewed ignored preparation modules are migrated
 into `tools/simulation/src/checkout-*` with their tests, preserving originals.
 The four original private-draft/member adapter files are now deliberately included;
@@ -21,7 +35,7 @@ lint pass. The new parent integration tests use real filesystem/crypto/IPC but
 injected member/process/provider transports. Native source verification rejects
 the old source approval against current code; append a separately reviewed current
 tuple, not a rewrite of historical evidence. Next implement the dedicated guarded
-bootstrap/workflow, root fresh-proof responder and original private final retention,
+bootstrap/workflow and root fresh-proof responder,
 then actual bounded Checkout and independent financial acceptance. These remain
 required; the goal is active and production payments stay dark.
 

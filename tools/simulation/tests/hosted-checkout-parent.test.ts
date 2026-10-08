@@ -3,16 +3,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
-import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import type { ChildProcess } from 'node:child_process';
 import { approved, digest, assetName, type Manifest, type Proof } from '../src/hosted-checkout-policy.ts';
 import { runHostedCheckoutParent, checkoutWorkerReceiptSchema, type CheckoutParentRuntime } from '../src/hosted-checkout-parent.ts';
 import { createCheckoutBrokerClient, type CheckoutIpcPeer } from '../src/checkout-broker-ipc.ts';
 import { decodeProofRequest, createProofResponse } from '../src/checkout-proof-exchange.ts';
 import { unseal } from '../src/hosted-community-bundle.ts';
+import { retainCheckoutParentFinal } from '../src/checkout-final-retention.ts';
 import type { CheckoutPrivateDraft, RetainedCheckoutAsset } from '../src/hosted-checkout-github.ts';
 const NOW = Date.parse('2026-10-08T21:00:00Z'), HEAD = 'b'.repeat(40);
 function fixture(mode = 'normal') {
@@ -61,6 +62,13 @@ function fixture(mode = 'normal') {
 				}
 				if (mode === 'output') child.stdout.emit('data', Buffer.from('PRIVATE-FIXTURE-OUTPUT'));
 				member.send({ protocol: 1, kind: 'checkout-member-receipt', ...start.binding, receipt: mode === 'bad-receipt' ? { ...worker, privateToken: 'PRIVATE-FIXTURE-TOKEN' } : worker }, () => {
+					if (mode === 'foreign-file') writeFileSync(join(root, readdirSync(root)[0]!, 'unexpected-trace.har'), 'PUBLIC-OFFLINE-UNSUPPORTED-FIXTURE');
+					if (mode === 'large-evidence') {
+						const parentDirectory = join(root, readdirSync(root)[0]!);
+						const durableDirectory = join(parentDirectory, `checkout-${manifest.operationId}-${manifest.job.id}-${manifest.job.nonce}`);
+						writeFileSync(join(durableDirectory, `${assetName(manifest, 'ack-intent')}.intent.json`),
+							randomBytes(1024 * 1024), { flag: 'wx', mode: 0o600 });
+					}
 					client.close(); live = mode === 'orphan'; child.emit('exit', 0);
 				});
 			} catch { client.close(); child.kill(); }
@@ -76,12 +84,25 @@ function fixture(mode = 'normal') {
 		},
 		verifySources: () => { calls.push('source'); }, now: () => now, freeBytes: () => 8 * 1024 ** 3,
 		pause: async milliseconds => { now += milliseconds; await new Promise(accept => setImmediate(accept)); } };
-	const retained = (phase: 'open-proof' | 'submit-intent', bytes: Buffer): RetainedCheckoutAsset => ({ phase, assetId: phase === 'open-proof' ? 1 : 2,
+	const retained = (phase: 'open-proof' | 'submit-intent' | 'final', bytes: Buffer): RetainedCheckoutAsset => ({ phase, assetId: phase === 'open-proof' ? 1 : phase === 'submit-intent' ? 2 : 3,
 		name: assetName(manifest, phase), size: bytes.length, ciphertextDigest: createHash('sha256').update(bytes).digest('hex'), releaseId: manifest.releaseId,
 		jobId: manifest.job.id, jobNonce: manifest.job.nonce, headSha: HEAD, operationId: approved.operationId, anonymousDraft404: true, anonymousAsset404: true,
 		observedAt: new Date(now).toISOString(), exactRetainedAssetVerified: true, readbackVerified: true, retryAllowed: false, paymentAccepted: false });
 	const draft = { inspect: async () => ({ releaseId: 123, assets: [], privateDraftVerified: true as const }),
-		upload: async (phase: 'open-proof' | 'submit-intent', bytes: Buffer) => { calls.push(phase); if (phase === 'open-proof') proofRequest = Buffer.from(bytes); return retained(phase, bytes); },
+		upload: async (phase: 'open-proof' | 'submit-intent' | 'final', bytes: Buffer) => {
+			calls.push(phase); if (phase === 'open-proof') proofRequest = Buffer.from(bytes);
+			if (phase === 'final') {
+				if (mode === 'final-transfer-error') throw Error('PRIVATE-FIXTURE-TRANSFER-ERROR');
+				if (mode === 'final-ciphertext-change') bytes[40] ^= 1;
+				if (mode === 'final-original-change') {
+					const parentDirectory = join(root, readdirSync(root)[0]!);
+					writeFileSync(join(parentDirectory, 'member-receipt.json'), JSON.stringify({ ...worker, changed: true }));
+				}
+				if (mode === 'final-bad-receipt') return { ...retained(phase, bytes), readbackVerified: false };
+				if (mode === 'final-extra-field') return { ...retained(phase, bytes), privateDetail: 'PUBLIC-OFFLINE-UNREVIEWED-FIELD' };
+			}
+			return retained(phase, bytes);
+		},
 		download: async () => { assert.ok(proofRequest); const request = decodeProofRequest(proofRequest, key, manifest, proof, now);
 			return createProofResponse(request, manifest, proof, { ...proof, phase: 'pre-submit', proofNonce: 'd'.repeat(32), verifiedAt: new Date(now).toISOString() }, key, now); },
 	} as unknown as Pick<CheckoutPrivateDraft, 'upload' | 'download' | 'inspect'>;
@@ -92,13 +113,40 @@ function fixture(mode = 'normal') {
 test('parent integration retains real originals through sole ordered encrypted proof and submit exchanges', async () => {
 	const f = fixture(); const receipt = await runHostedCheckoutParent(f.input, HEAD, f.options);
 	assert.equal(receipt.failed, false); assert.equal(receipt.executionEvidence, 'injected-offline-runtime');
-	assert.equal(receipt.paymentAccepted, false); assert.equal(receipt.privateFinalRetentionStillRequired, true);
-	assert.deepEqual(f.calls, ['source','open-proof','submit-intent']);
+	assert.equal(receipt.paymentAccepted, false); assert.equal(receipt.privateFinalRetentionStillRequired, false);
+	assert.deepEqual(f.calls, ['source','open-proof','submit-intent','final']);
 	const directory = join(f.root, readdirSync(f.root)[0]!);
 	assert.equal(JSON.parse(readFileSync(join(directory, 'parent-receipt.json'), 'utf8')).paymentAccepted, false);
 	const message = JSON.parse(readFileSync(join(directory, 'member-message.json'), 'utf8')) as { ciphertext: string };
 	assert.equal((unseal(Buffer.from(message.ciphertext, 'base64'), f.options.key) as { kind: string }).kind, 'checkout-member-receipt');
+	const final = unseal(readFileSync(join(directory, assetName(f.input.manifest, 'final'))), f.options.key) as { files: Array<{name: string; bytes: string}>; paymentAccepted: boolean };
+	assert.equal(final.paymentAccepted, false);
+	assert.ok(final.files.some(file => file.name.endsWith('-submit-intent.g2genc.intent.json')));
+	assert.ok(final.files.some(file => file.name === 'member-message.json'));
 	await assert.rejects(runHostedCheckoutParent(f.input, HEAD, f.options)); assert.equal(f.launches(), 1);
+});
+
+test('bounded original files may produce an encrypted final bundle larger than one original file', async () => {
+	const f = fixture('large-evidence'); const receipt = await runHostedCheckoutParent(f.input, HEAD, f.options);
+	assert.equal(receipt.failed, false); assert.equal(receipt.paymentAccepted, false);
+	const directory = join(f.root, readdirSync(f.root)[0]!);
+	assert.ok(readFileSync(join(directory, assetName(f.input.manifest, 'final'))).length > 1024 * 1024);
+	assert.equal(f.calls.filter(phase => phase === 'final').length, 1);
+});
+
+test('uncertain final upload, changed originals/ciphertext or false private readback retain evidence and cannot repeat transport', async () => {
+	for (const mode of ['final-transfer-error','final-ciphertext-change','final-original-change','final-bad-receipt','final-extra-field']) {
+		const f = fixture(mode);
+		await assert.rejects(runHostedCheckoutParent(f.input, HEAD, f.options), error => String(error) === 'Error: Private Checkout final retention failed; originals retained; no automatic retry.');
+		assert.equal(f.calls.filter(phase => phase === 'final').length, 1);
+		const directory = join(f.root, readdirSync(f.root)[0]!);
+		assert.ok(readdirSync(directory).includes('final-upload.intent.json'));
+		assert.ok(readdirSync(directory).includes(assetName(f.input.manifest, 'final')));
+		assert.equal(readdirSync(directory).includes('final-upload.result.json'), false);
+		await assert.rejects(retainCheckoutParentFinal(f.input.manifest, HEAD, f.root, f.options.key,
+			async () => { assert.fail('Repeated final upload must not execute'); }, new AbortController().signal, () => NOW));
+		assert.equal(f.calls.filter(phase => phase === 'final').length, 1);
+	}
 });
 
 test('unearned, malformed, noisy or surviving-process receipts never satisfy parent closure', async () => {
@@ -114,6 +162,15 @@ test('unearned, malformed, noisy or surviving-process receipts never satisfy par
 			assert.equal((unseal(Buffer.from(original.ciphertext, 'base64'), f.options.key) as { receipt: { privateToken: string } }).receipt.privateToken, 'PRIVATE-FIXTURE-TOKEN');
 		}
 	}
+});
+
+test('unexpected capture files cannot enter the encrypted final bundle or invoke transport', async () => {
+	const f = fixture('foreign-file');
+	await assert.rejects(runHostedCheckoutParent(f.input, HEAD, f.options));
+	assert.equal(f.calls.includes('final'), false);
+	const directory = join(f.root, readdirSync(f.root)[0]!);
+	assert.ok(readdirSync(directory).includes('parent-receipt.json'));
+	assert.equal(readdirSync(directory).includes(assetName(f.input.manifest, 'final')), false);
 });
 
 test('source, environment, memory and pre-abort failures happen before member launch or lease admission', async () => {

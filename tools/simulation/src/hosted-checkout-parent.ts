@@ -17,12 +17,14 @@ import { CheckoutDurableParent } from './checkout-durable-parent.ts';
 import { attachCheckoutBrokerParent, type CheckoutIpcPeer } from './checkout-broker-ipc.ts';
 import { CheckoutProcessObservation, readCheckoutProcessTable, type CheckoutProcessIdentity } from './checkout-process-observation.ts';
 import { seal } from './hosted-community-bundle.ts';
+import { retainCheckoutParentFinal } from './checkout-final-retention.ts';
 
 export const checkoutRunnerFiles = [
 	'hosted-checkout-parent.ts', 'checkout-hosted-member.mjs', 'hosted-checkout-worker.ts',
 	'checkout-broker-ipc.ts', 'checkout-durable-parent.ts', 'checkout-proof-exchange.ts',
 	'checkout-process-observation.ts', 'hosted-checkout-github.ts', 'hosted-checkout-protocol.ts',
 	'hosted-community-attention.ts', 'hosted-community-bundle.ts', 'hosted-community-policy.ts',
+	'checkout-final-retention.ts',
 ] as const;
 const base = fileURLToPath(new URL('../', import.meta.url));
 const repositoryRoot = resolve(base, '../..');
@@ -214,5 +216,9 @@ export async function runHostedCheckoutParent(raw: unknown, expectedHead: string
 		processClosure: closure ?? null, parentObservedProtocolClosure: !failed && !!receipt?.apiDisposed && !!receipt?.browserContextClosed && !!receipt?.browserDisconnected && closure?.ownedGroupClosed === true,
 		privateFinalRetentionStillRequired: true, signedWebhookCoverageLedgerReviewRequired: true, paymentAccepted: false, retryAllowed: false } as const;
 	original(directory, 'parent-receipt.json', result);
-	return result;
+	// Cleanup cancellation cannot discard failed-run evidence. Separate bounded
+	// evidence-only transport; it performs no financial action or member replay.
+	const finalRetention = await retainCheckoutParentFinal(input.manifest, expectedHead, options.root, options.key,
+		(phase, bytes, retainedSignal) => options.draft.upload(phase, bytes, retainedSignal), AbortSignal.timeout(180000), runtime.now);
+	return { ...result, privateFinalRetentionStillRequired: false as const, finalRetention };
 }

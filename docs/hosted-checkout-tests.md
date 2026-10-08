@@ -15,7 +15,16 @@ credentials, independently checks kernel process identity during broker calls,
 and signals only its still-matching owned child. It retains the original worker
 receipt encrypted before parsing, including rejected malformed evidence, and
 separately checks worker browser/context/API closure and surviving process groups.
-Returned originals still require private final remote retention. Runtime-injected
+The parent now snapshots only its fixed original files, encrypts them, and fsyncs
+an exclusive final-upload intent before its sole private-draft upload. Original
+file hashes, retained ciphertext and the exact private readback receipt must agree
+before reporting final retention. Unknown files, changed originals/ciphertext,
+uncertain transfers and false readback fail without another upload or purchase.
+Malformed worker receipts remain encrypted original evidence. Failed process
+closure can be retained as failure evidence, never converted into accepted closure.
+Original parent receipts are not rewritten; a separate immutable upload result
+records subsequent retention. This is implemented, not yet actual hosted remote
+acceptance. Runtime-injected
 tests are permanently labeled `injected-offline-runtime`; they cannot establish
 actual Chromium, remote retention, normal authentication or settlement.
 
