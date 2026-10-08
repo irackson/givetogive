@@ -2,6 +2,26 @@
 
 ## October 8 latest override: lifecycle hour failed and was safely retired
 
+Executable release continuation: `scripts/checkout-release-inspect.mjs` defaults
+to inert and explicitly verifies signed clean main, deployed Git app SHA versus
+current authored application bytes, recursive canonical Git-object fingerprint,
+root lock, exact staging project/alias/READY/Node24/protection-all and protected
+runtime billing gates/test publishable-key equality. Uses existing Vercel CLI
+authentication, no project relink, deployment or environment mutation. Preserves
+original source observation time and reobserves alias after runtime read.
+Actual corrected execution at21:41:08 UTC passed on runner `756473f`, deployed
+app `8888877` / `dpl_4ZF8gk4Rv3NYoZcgFQeSnfBmNUg5`. Canonical app digest
+`253f82bf1e6b403a917d45a3836218642b26fd3ab1550eadf493b67554b59ae8`,
+Windows authored digest `4965f8838ce2c870c9fb8542878fab94fbb65d3beef43d9533ea1aec8dcc976a`.
+Git deployment has no custom source-digest metadata; do not fabricate one.
+CLI59.5 forwards --non-interactive to native curl even before its separator;
+wrapper omits that flag only for curl, retains detected agent mode/exact target,
+and never uses --yes/relink/protection changes. Regression covers this failure.
+Full Windows simulator suite367 passed/1 Linux-only skip; types/explicit lint pass.
+Exact-head hosted verification `37847824835` passed for `756473f`. Source approval,
+fast live release rechecks, readiness discovery/native dispatch and financial
+acceptance remain unfinished. No Checkout was created or submitted.
+
 Executable local prerequisites: `scripts/checkout-operator-inspect.mjs` is inert
 by default. Explicit `--inspect-readonly` connects to the actual isolated
 restricted-role staging database and existing local Stripe SDK configuration;

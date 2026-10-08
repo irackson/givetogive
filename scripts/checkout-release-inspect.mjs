@@ -1,0 +1,91 @@
+// Local read-only release verification. Import/default is inert; no relink,
+// deploy, environment change, secret dump, member login or payment action.
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+import { createHash } from 'node:crypto';
+import { releaseSourceDigest } from './release-rehearsal-fingerprint.mjs';
+const root = fileURLToPath(new URL('../', import.meta.url));
+const cli = 'C:/Users/Ian/AppData/Local/pnpm/global/v11/9538-1a03bddf05f-5e68638a8374958f/node_modules/vercel/dist/vc.js';
+const team = 'team_TXid48wU77cfhEg28L3EyLpn', projectId = 'prj_HvlFV1kKHVsML73nlsJAFQNA7grP';
+const deploymentId = 'dpl_4ZF8gk4Rv3NYoZcgFQeSnfBmNUg5', appSha = '8888877182d76c18de40a747fd573b3d04643006';
+const origin = 'https://givetogive-staging.vercel.app';
+const names = ['src','public','package.json','package-lock.json','next.config.ts','tsconfig.json','postcss.config.js','postcss.config.cjs','tailwind.config.ts'];
+const guard = value => { if (!value) throw Error('Checkout staging release unconfirmed; private details withheld.'); };
+const git = args => execFileSync('git', args, { cwd: root, windowsHide: true, stdio: ['ignore','pipe','pipe'], timeout: 15000, maxBuffer: 64 * 1024 * 1024 });
+export function releaseCliArguments(args) {
+ // CLI 59.5.0 forwards --non-interactive to native curl even before the
+ // separator. Curl uses the CLI's detected agent mode and exact --deployment;
+ // do not add --yes, relink, or approve new protection access as a workaround.
+ return args[0] === 'curl' ? [cli, ...args] : [cli, '--non-interactive', ...args];
+}
+function vc(args) { return execFileSync(process.execPath, releaseCliArguments(args), {
+ cwd: root, windowsHide: true, stdio: ['ignore','pipe','pipe'], timeout: 30000, maxBuffer: 2 * 1024 * 1024 }); }
+function api(path) {
+ const bytes = vc(['api', `${path}?teamId=${team}`, '--raw']);
+ try { return JSON.parse(bytes.toString('utf8')); } finally { bytes.fill(0); }
+}
+export async function inspectLocalCheckoutRelease() {
+ let phase = 'local-source';
+ try {
+  const observedAt = new Date().toISOString();
+  guard(process.platform === 'win32' && Number(process.versions.node.split('.')[0]) === 24);
+  const head = git(['rev-parse','HEAD']).toString().trim(); guard(/^[a-f0-9]{40}$/.test(head));
+  guard(git(['branch','--show-current']).toString().trim() === 'main' &&
+   git(['status','--porcelain','--untracked-files=no']).toString().trim() === '');
+  git(['verify-commit', head]);
+  // Different tooling commits may use the SAME authored application. Verify the
+  // actual app bytes, not equality between the runner and deployed Git SHAs.
+  guard(git(['diff','--name-only', appSha, head, '--', ...names]).toString().trim() === '');
+  const hash = createHash('sha256');
+  function visit(path) {
+   if (path === 'src/app/.well-known/workflow' || path.startsWith('src/app/.well-known/workflow/')) return;
+   const type = git(['cat-file','-t',`${head}:${path}`]).toString().trim();
+   if (type === 'tree') {
+    const rows = git(['ls-tree','-z',`${head}:${path}`]).toString().split('\0').filter(Boolean).map(row => {
+     const [metadata, name] = row.split('\t'); guard(!metadata.startsWith('120000 ')); return name; });
+    for (const name of rows.sort()) visit(`${path}/${name}`);
+   } else { guard(type === 'blob'); hash.update(path).update('\0').update(git(['show',`${head}:${path}`])).update('\0'); }
+  }
+  for (const name of names) if (git(['ls-tree','--name-only',head,'--',name]).toString().trim()) visit(name);
+  const canonicalSourceDigest = hash.digest('hex');
+  const rootLockDigest = createHash('sha256').update(git(['show',`${head}:package-lock.json`])).digest('hex');
+  // Explicit context inspection; never rewrite the checkout's production link.
+  phase = 'hosting-metadata';
+  vc(['project','inspect','givetogive-staging','--scope',team]);
+  const project = api(`/v9/projects/${projectId}`), deployment = api(`/v13/deployments/${deploymentId}`);
+  const alias = api('/v4/aliases/givetogive-staging.vercel.app');
+  guard(project.id === projectId && project.name === 'givetogive-staging' && project.accountId === team && project.nodeVersion === '24.x' &&
+   project.ssoProtection?.deploymentType === 'all' && deployment.id === deploymentId && deployment.projectId === projectId &&
+   deployment.readyState === 'READY' && deployment.nodeVersion === '24.x' && deployment.meta?.githubCommitSha === appSha &&
+   deployment.meta?.githubOrg === 'irackson' && deployment.meta?.githubRepo === 'givetogive' &&
+   alias.projectId === projectId && alias.deployment?.id === deploymentId);
+  phase = 'protected-runtime-read';
+  const bytes = vc(['curl','/api/trpc/billing.availability','--deployment',origin,'--scope',team,'--','--silent','--show-error','--fail','--max-time','20']);
+  let availability;
+  try { const value = JSON.parse(bytes.toString('utf8')); availability = value.result?.data?.json; } finally { bytes.fill(0); }
+  phase = 'runtime-gates';
+  guard(availability?.environment === 'staging' && availability.livemode === false && availability.subscriptions === true &&
+   availability.askPayments === false && availability.funds === false && availability.billingManagement === true &&
+   typeof process.env.STRIPE_PUBLISHABLE_KEY === 'string' && /^pk_test_/.test(process.env.STRIPE_PUBLISHABLE_KEY) &&
+   availability.publishableKey === process.env.STRIPE_PUBLISHABLE_KEY);
+  // Reobserve the alias after runtime observation; no stale promotion assumption.
+  phase = 'final-binding';
+  const after = api('/v4/aliases/givetogive-staging.vercel.app');
+  guard(after.projectId === projectId && after.deployment?.id === deploymentId &&
+   git(['rev-parse','HEAD']).toString().trim() === head && git(['status','--porcelain','--untracked-files=no']).toString().trim() === '');
+  return { observedAt, headSha: head, deploymentId, deployedAppSha: appSha, canonicalSourceDigest, rootLockDigest,
+   sourceDigest: releaseSourceDigest(root), ready: true, protected: true, nodeVersion: '24.x',
+   runtimeGatesVerified: true, publishableKeyMatchesLocal: true, deployedCanonicalAppMatchesHead: true,
+   sourceApprovalStillRequired: true, financialAdmission: false, databaseWrites: 0, memberActions: 0, paymentAccepted: false };
+ } catch { throw Error(`Checkout staging release unconfirmed; private details withheld; stage=${phase}.`); }
+}
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+ try {
+  if (process.argv.length === 3 && process.argv[2] === '--inspect-readonly') console.log(JSON.stringify(await inspectLocalCheckoutRelease()));
+  else { guard(process.argv.length === 2); console.log(JSON.stringify({ execute: false, externalRequests: 0, financialAdmission: false })); }
+ } catch (error) {
+  const match = /stage=(local-source|hosting-metadata|protected-runtime-read|runtime-gates|final-binding)\./.exec(error.message ?? '');
+  console.error(`Checkout staging release unconfirmed; private details withheld${match ? `; stage=${match[1]}` : ''}.`); process.exitCode = 1;
+ }
+}

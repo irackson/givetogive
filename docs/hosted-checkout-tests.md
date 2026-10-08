@@ -121,6 +121,22 @@ Renewal, tier changes, cancellation, failed/3DS payments, refunds/disputes, mone
 References: [Stripe test cards](https://docs.stripe.com/testing), [webhook-based fulfillment](https://docs.stripe.com/checkout/fulfillment), [API-key safety](https://docs.stripe.com/keys-best-practices).
 # Local readiness observation
 
+The local release command is also inert by default:
+
+```powershell
+node scripts/checkout-release-inspect.mjs
+node --env-file=.env.staging.local scripts/checkout-release-inspect.mjs --inspect-readonly
+```
+
+Its explicit check verifies the exact staging Git deployment, current canonical
+authored app bytes, signed clean runner main, protected runtime gates and unchanged
+alias. No custom deployment digest exists; the app fingerprint is derived from
+actual Git objects, not assumed metadata. Vercel CLI59.5 erroneously forwards
+--non-interactive to native curl; only curl omits it, relying on detected agent
+mode and exact deployment. No --yes, relink or protection change is a fallback.
+This check is not financial admission/source approval. Its full fingerprint read
+is a pre-dispatch check; a fast current-binding recheck still needs operator wiring.
+
 Local executable prerequisite check (Windows Node 24, existing local test env):
 
 ```powershell
