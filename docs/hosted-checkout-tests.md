@@ -4,6 +4,17 @@ Status: the pure policy/protocol is reviewed and its 24/24 offline tests pass. I
 
 The community runner is already hosted separately. Checkout needs its own narrowly scoped manual job, sharing staging concurrency, rather than a new community capability or an administrative purchase shortcut.
 
+Independent Linux process-observation groundwork is now tracked in
+`checkout-process-observation.ts`. It reuses the existing kernel PID/start-tick
+parser, samples only bounded `/proc/*/stat` metadata, binds a detached direct
+child, and retains descendants/group orphans across root exit. Surviving owned
+processes prevent group-closure acceptance; observed cross-session escape
+permanently invalidates group-based evidence. It reads no command lines or
+environments, sends no signals, and is not a same-UID sandbox or proof of browser
+protocol closure/payment acceptance. Six deterministic cases pass locally; a
+separate actual Linux detached-child/orphan test runs only on Linux. This
+observer is not yet wired into the unfinished executable Checkout parent.
+
 ## First bounded scenario
 
 Use the existing unused Sustainer operation `284c4f9d-6aec-4910-bbb2-ef7b1a9d2ff7` for synthetic member `synthetic-6658c4939d672ff5-002`, only after independently rechecking its actual unused state. The original USD 25 test admission remains unchanged: two expired USD 5 reservations plus the USD 15 candidate. Do not reset budgets, replay expired sessions, grant entitlements directly, or substitute a provider-only purchase.

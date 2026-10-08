@@ -46,6 +46,14 @@ provider/webhook/coverage/ledger/member-tier proof, then the wider lifecycle,
 Connect/fund scenarios and a fresh full-population hour. No goal completion or
 production financial enablement is claimed.
 
+Follow-up Checkout process observation is tracked, not yet wired into a launcher.
+It reuses kernel start-tick parsing, performs bounded read-only process sampling,
+and refuses group closure while descendants/orphans survive or an observed child
+escapes its session. Six deterministic tests pass locally; the actual Linux
+detached child/orphan test is deliberately skipped on Windows and requires the
+credential-free hosted verifier. Never substitute group closure for the worker's
+actual browser/context/API protocol closure or genuine paid acceptance.
+
 ## October 8 fresh lifecycle-fixed cohort prepared, not launched
 
 `ae10848c1e3c3c6fcc5fad709cdbe2a88b14f514` passed hosted read-only verification
