@@ -18,6 +18,31 @@ export interface CheckoutDriver {
 // Official public Stripe test fixtures. Never configurable by personas, model output, or CLI PAN input.
 const fixtureCards = { success: '4242424242424242', decline: '4000000000000002', three_ds_success: '4000000000003220', three_ds_failure: '4000000000003220' } as const;
 
+/** Diagnostic classification only; never grants request admission or retains URL bytes. */
+export function checkoutRequestCategory(rawUrl: string, resourceType: string, topNavigation: boolean) {
+  let destination: 'stripe-owned' | 'stripe-network' | 'hcaptcha' | 'staging' | 'google-fonts' | 'other-https' | 'unsafe-or-non-https' = 'unsafe-or-non-https';
+  try {
+    const url = new URL(rawUrl);
+    if (url.protocol === 'https:' && !url.username && !url.password && (!url.port || url.port === '443')) {
+      if (stripeOwnedOrigin(url)) destination = 'stripe-owned';
+      else if (url.hostname === 'm.stripe.network') destination = 'stripe-network';
+      else if (url.hostname === 'hcaptcha.com' || url.hostname.endsWith('.hcaptcha.com')) destination = 'hcaptcha';
+      else if (url.origin === sandboxOrigin) destination = 'staging';
+      else if (['fonts.googleapis.com', 'fonts.gstatic.com'].includes(url.hostname)) destination = 'google-fonts';
+      else destination = 'other-https';
+    }
+  } catch { /* Only the fixed invalid category survives. */ }
+  const resource = ['document', 'script', 'stylesheet', 'image', 'font', 'xhr', 'fetch', 'websocket'].includes(resourceType) ? resourceType : 'other';
+  return { destination, resource, topNavigation };
+}
+export function checkoutFailureCategory(errorText: string | undefined) {
+  if (errorText === 'net::ERR_ABORTED') return 'aborted';
+  if (errorText === 'net::ERR_BLOCKED_BY_CLIENT') return 'blocked';
+  if (errorText === 'net::ERR_TIMED_OUT') return 'timeout';
+  if (['net::ERR_CONNECTION_RESET', 'net::ERR_CONNECTION_CLOSED', 'net::ERR_CONNECTION_REFUSED', 'net::ERR_NAME_NOT_RESOLVED'].includes(errorText ?? '')) return 'connection';
+  return 'other';
+}
+
 /** Chromium must never inherit the root observer's provider/database/auth secrets. */
 export function checkoutBrowserEnvironment(environment: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform): Record<string, string> {
   const names = new Set(['path', 'home', 'tmpdir', 'lang', 'lc_all', 'tz', 'display', 'xdg_runtime_dir']);
@@ -38,6 +63,8 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   private observedFreeBytes?: number;
   private surfaceReadFailure?: 'policy_rejected' | 'dom_read_unavailable';
   private surfaceReadPhase?: SurfaceReadPhase;
+  private readonly blockedRequestCategories = new Map<string, { category: ReturnType<typeof checkoutRequestCategory>; reason: 'destination-policy' | 'staging-write'; count: number }>();
+  private readonly failedRequestCategories = new Map<string, { category: ReturnType<typeof checkoutRequestCategory>; failure: ReturnType<typeof checkoutFailureCategory>; count: number }>();
   private readonly admitNotice?: () => Promise<void>;
   constructor(bypass: string, syntheticEmail: string, admitNotice?: () => Promise<void>) {
     if (!syntheticEmail.endsWith('@givetogive.invalid')) throw new Error('Only a synthetic fixture email is allowed.');
@@ -58,11 +85,25 @@ export class StripeCheckoutDriver implements CheckoutDriver {
     this.checkout = checkout;
     this.context = await this.browser.newContext({ acceptDownloads: false, serviceWorkers: 'block', locale: 'en-US', viewport: { width: 1280, height: 900 } });
     this.context.on('response', response => { if (response.status() >= 400) { this.failedStatuses.push(response.status()); this.counters.httpErrors++; } });
-    this.context.on('requestfailed', () => { this.counters.failedRequests++; });
+    this.context.on('requestfailed', request => {
+      this.counters.failedRequests++;
+      const category = checkoutRequestCategory(request.url(), request.resourceType(), request.isNavigationRequest() && request.frame().parentFrame() === null);
+      const failure = checkoutFailureCategory(request.failure()?.errorText), key = JSON.stringify({ category, failure });
+      const previous = this.failedRequestCategories.get(key);
+      this.failedRequestCategories.set(key, { category, failure, count: (previous?.count ?? 0) + 1 });
+    });
     await this.context.route('**/*', async route => {
       const request = route.request(); const url = new URL(request.url());
       const top = request.isNavigationRequest() && request.frame().parentFrame() === null;
-      if (!allowedCheckoutRequest(request.url(), top, checkout) || (url.origin === sandboxOrigin && !['GET', 'HEAD'].includes(request.method()))) { this.blockedHosts.add(url.hostname); this.counters.blockedRequests++; await route.abort(); return; }
+      const destinationRejected = !allowedCheckoutRequest(request.url(), top, checkout);
+      if (destinationRejected || (url.origin === sandboxOrigin && !['GET', 'HEAD'].includes(request.method()))) {
+        this.blockedHosts.add(url.hostname); this.counters.blockedRequests++;
+        const category = checkoutRequestCategory(request.url(), request.resourceType(), top);
+        const reason = destinationRejected ? 'destination-policy' : 'staging-write', key = JSON.stringify({ category, reason });
+        const previous = this.blockedRequestCategories.get(key);
+        this.blockedRequestCategories.set(key, { category, reason, count: (previous?.count ?? 0) + 1 });
+        await route.abort(); return;
+      }
       // The deployment bypass never travels to Stripe or any other external host.
       await route.continue({ headers: { ...request.headers(), ...(url.origin === sandboxOrigin ? protectionHeaders(this.bypass) : {}) } });
     });
@@ -134,6 +175,7 @@ export class StripeCheckoutDriver implements CheckoutDriver {
     } catch (error) {
       this.surfaceReadFailure = error instanceof Error && error.message === 'Hosted Checkout policy rejected; private details withheld.' ? 'policy_rejected' : 'dom_read_unavailable';
       this.surfaceReadPhase = error instanceof SurfaceReadUnavailable ? error.phase : undefined;
+      if (error instanceof SurfaceReadUnavailable) throw error;
       throw new Error('Checkout surface observation failed; private details withheld.');
     }
     return this.lastSurface;
@@ -142,6 +184,7 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   diagnostics() {
     const surface = this.lastSurface;
     return { ...this.counters, noticeClickAttempts: this.noticeClick.attempts,
+      blockedRequestCategories: [...this.blockedRequestCategories.values()], failedRequestCategories: [...this.failedRequestCategories.values()],
       ...(this.observedFreeBytes === undefined ? {} : { observedFreeMiB: Math.floor(this.observedFreeBytes / 1024 ** 2), runtimeMemoryFloorSatisfied: this.observedFreeBytes >= 1.5 * 1024 ** 3 }),
       ...(this.surfaceReadFailure ? { surfaceReadFailure: this.surfaceReadFailure } : {}),
       ...(this.surfaceReadPhase ? { surfaceReadPhase: this.surfaceReadPhase } : {}),
@@ -158,11 +201,20 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   async inspectSurface(timeoutMs = 15000) {
     if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30000) throw new Error('Invalid bounded surface observation.');
     const deadline = Date.now() + timeoutMs;
+    let frameReadUnavailable = false;
     while (Date.now() < deadline) {
-      const surface = await this.readSurface();
+      let surface: CheckoutSurface;
+      try { surface = await this.readSurface(); frameReadUnavailable = false; }
+      catch (error) {
+        // Read-only mode can reread a changing frame tree. Financial/notice
+        // action paths still stop on the first failure; no guard is weakened.
+        if (!(error instanceof SurfaceReadUnavailable) || error.phase !== 'frame-discovery') throw error;
+        frameReadUnavailable = true; await sleep(200); continue;
+      }
       if (surface.panelCount || surface.visibleCard || surface.unknownInstructions || surface.requiresCaptchaOrWalletOrAttestation) break;
       await sleep(200);
     }
+    if (frameReadUnavailable) throw new SurfaceReadUnavailable('frame-discovery');
     return this.diagnostics();
   }
   private async prepareReviewedSurface() {

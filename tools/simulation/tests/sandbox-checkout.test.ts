@@ -7,7 +7,8 @@ import { join } from 'node:path';
 import { allowedCheckoutRequest, sandboxOrigin, validateCheckoutContext, type SandboxBoundary, type CheckoutScenario } from '../src/sandbox-policy.ts';
 import { SandboxLedger } from '../src/sandbox-ledger.ts';
 import { SandboxCheckoutExecutor } from '../src/sandbox-checkout.ts';
-import { StripeCheckoutDriver, checkoutBrowserEnvironment, type CheckoutDriver } from '../src/stripe-checkout-driver.ts';
+import { StripeCheckoutDriver, checkoutBrowserEnvironment, checkoutRequestCategory, checkoutFailureCategory, type CheckoutDriver } from '../src/stripe-checkout-driver.ts';
+import { SurfaceReadUnavailable } from '../src/hosted-checkout-worker.ts';
 
 function fixture() {
   const operationId = randomUUID(); const actorId = 'synthetic-person-one';
@@ -43,6 +44,63 @@ test('driver diagnostics expose fixed booleans/counters, never an unknown provid
   assert.equal(JSON.stringify(diagnostic).includes('private-'), false);
   assert.equal('controlName' in diagnostic, false);
   assert.equal('panelDigest' in diagnostic, false);
+});
+test('network diagnostics discard private URLs, resource names and unknown failure messages without granting admission', () => {
+  const samples = [
+    ['https://checkout.stripe.com/private-sentinel?secret=private-sentinel', 'stripe-owned'],
+    ['https://fonts.googleapis.com/private-sentinel', 'google-fonts'],
+    ['https://m.stripe.network/private-sentinel', 'stripe-network'],
+    ['https://newassets.hcaptcha.com/private-sentinel', 'hcaptcha'],
+    [`${sandboxOrigin}/private-sentinel`, 'staging'],
+    ['https://private-sentinel.example.invalid/private-sentinel', 'other-https'],
+    ['https://checkout.stripe.com.evil.invalid/private-sentinel', 'other-https'],
+    ['https://private-sentinel@checkout.stripe.com/private-sentinel', 'unsafe-or-non-https'],
+    ['private-sentinel', 'unsafe-or-non-https'],
+  ] as const;
+  for (const [url, destination] of samples) {
+    const category = checkoutRequestCategory(url, 'private-resource-sentinel', true);
+    assert.deepEqual(category, { destination, resource: 'other', topNavigation: true });
+    assert.equal(JSON.stringify(category).includes('private-'), false);
+  }
+  assert.equal(checkoutRequestCategory('https://fonts.gstatic.com/private-sentinel', 'font', false).resource, 'font');
+  assert.equal(checkoutFailureCategory('net::ERR_ABORTED'), 'aborted');
+  assert.equal(checkoutFailureCategory('net::ERR_BLOCKED_BY_CLIENT'), 'blocked');
+  assert.equal(checkoutFailureCategory('net::ERR_TIMED_OUT'), 'timeout');
+  assert.equal(checkoutFailureCategory('net::ERR_CONNECTION_RESET'), 'connection');
+  assert.equal(checkoutFailureCategory('private-sentinel https://private-sentinel.invalid'), 'other');
+  const { boundary, context } = fixture();
+  assert.equal(allowedCheckoutRequest('https://fonts.googleapis.com/private-sentinel', false, validateCheckoutContext(context, boundary)), false);
+});
+test('read-only frame observation may reread a transient tree without performing a control action', async () => {
+  const observed = new StripeCheckoutDriver('public-fixture-bypass'.repeat(2), 'readonly@givetogive.invalid');
+  let reads = 0;
+  Object.assign(observed, {
+    async readSurface() {
+      reads++;
+      if (reads === 1) throw new SurfaceReadUnavailable('frame-discovery');
+      return { visibleCard: true };
+    },
+    async fillFixture() { assert.fail('Read-only inspection cannot enter values.'); },
+    async submit() { assert.fail('Read-only inspection cannot submit.'); },
+    async cancel() { assert.fail('Read-only inspection cannot cancel.'); },
+  });
+  await observed.inspectSurface(1000);
+  assert.equal(reads, 2);
+  assert.equal(observed.diagnostics().noticeClickAttempts, 0);
+});
+test('read-only observation refuses persistent frame failure and does not retry policy, memory or panel failures', async () => {
+  for (const error of [new SurfaceReadUnavailable('panel-dom'), new Error('Hosted Checkout policy rejected; private details withheld.'), new Error('Sandbox Checkout memory floor reached.')]) {
+    const observed = new StripeCheckoutDriver('public-fixture-bypass'.repeat(2), 'readonly@givetogive.invalid');
+    let reads = 0;
+    Object.assign(observed, { async readSurface() { reads++; throw error; } });
+    await assert.rejects(observed.inspectSurface(1000));
+    assert.equal(reads, 1);
+  }
+  const observed = new StripeCheckoutDriver('public-fixture-bypass'.repeat(2), 'readonly@givetogive.invalid');
+  let reads = 0;
+  Object.assign(observed, { async readSurface() { reads++; throw new SurfaceReadUnavailable('frame-discovery'); } });
+  await assert.rejects(observed.inspectSurface(1), SurfaceReadUnavailable);
+  assert.equal(reads, 1);
 });
 test('sandbox verification rejects live, wrong actor/origin/run, stale, expired and over-budget sessions before opening a browser', () => {
   const { boundary, context } = fixture();
