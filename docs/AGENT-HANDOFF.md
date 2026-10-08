@@ -1441,3 +1441,44 @@ prepare a separately identified five-member rehearsal (do not replay the failed
 dispatch), and verify original recovered journals plus independent server records
 before full-hour admission. The original full cohort remains unstarted. Actual
 Stripe paid lifecycle acceptance, full-hour acceptance and final PDF remain open.
+## October 8 full-run original evidence recovered, NOT accepted
+
+Signed `c342e1e` root CI `37811647020` and credential-free browser smoke
+`37811665404` succeeded. Separately identified five-member run
+`1cda4709-85d5-457e-842d-f54c772e2481`, GitHub `37811963248`, passed original
+recovery plus independent SQL/normal-admin review: 95 successes, 12 waits,
+10 Asks, 23 contributions, eight API-to-browser and ten browser-to-API; minimum
+17 successes/nine actual mutation intents per member, completed/offline/unowned,
+zero pending work/workers/financial records. This is nonfinancial acceptance only.
+
+The fresh full cohort `8b4d85f5-e07e-42f5-9402-3ffa866ff761` was dispatched ONCE
+as GitHub `37813048863`, private draft `407069352`; member input `622444640`
+and observer input `622446166` were privately encrypted/uploaded. It failed
+after observer attention, not the source fingerprint. Preserve all originals.
+At 17:03:50 UTC SQL confirms paused, unowned, all 253 idle and all workers zero;
+55 Asks and 401 contributions remain. No reset/reseed/replay/auto-resume.
+
+Exact original recovery:
+`tmp/hosted-community-recovered/8b4d85f5-e07e-42f5-9402-3ffa866ff761-20261008T170448Z-469538973bbb`.
+The read-only helper `tmp/hosted-community-full-recovery-oct8.mjs` preserves
+failed job conclusion, original digests, complete journals and observer bytes.
+24 recovery regression tests passed after adding the current required passive
+network diagnostic fields to the synthetic fixture; original historical tests
+remain untouched. Recovery is NOT an independent successful full-run review.
+
+Actual observer receipt: freshness passed (709/709 rendered, maximum 4969 ms),
+history passed (11 rendered/owned events), cleanup confirmed, no console/page/
+HTTP-status errors. Overall observer FAILED: 225 raw ERR_ABORTED requests,
+121 proved successful query aborts, 104 unqualified failures, two body capture
+unavailable failures. Do not suppress counts or infer these are harmless.
+Run had 2051 successful actions, 776 waits, 13 rejected, zero ambiguous/backoff;
+only 74 measured post-warmup seconds, so required continuous hour NOT achieved.
+
+Next: reproduce/classify observer request failures and the CDP body-capture
+race without raw URLs/headers/tokens; repair only proven causes with tests.
+The untouched historical failure and this new failure are distinct evidence.
+Do not reuse/reset/relaunch either cohort blindly. Current ignored operational
+helpers/checkpoint: `tmp/community-stage/oct8-full-hour-active.md` (its RUNNING
+observation is historical now), `tmp/inspect-oct8-community-progress.mjs`,
+`tmp/hosted-community-operator-oct8b.mjs`. Paid Stripe lifecycle acceptance and
+fresh final PDF remain open; goal is active, no production-money gates enabled.
