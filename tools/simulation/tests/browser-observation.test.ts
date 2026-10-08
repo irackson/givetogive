@@ -5,12 +5,44 @@ import { ApiRejection } from '../src/ui-session.ts';
 import { observationRetryDelay } from '../src/observation-retry.ts';
 import {
 	BrowserObservationUnavailable, BrowserWorkflowFailure, browserDiagnostic,
-	observeContributionControl, type BrowserObservationState,
+	observeContributionControl, observeContributionStatusDialog, type BrowserObservationState,
 } from '../src/browser-observation.ts';
 
 function state(): BrowserObservationState {
 	return { phase: 'contribution_view', mutationAdmitted: false, mutationSent: false, pageErrors: 0, consoleErrors: 0 };
 }
+
+test('lifecycle dialog failures retain their exact fixed substep without retrying or swallowing errors', async () => {
+	for (const failedStep of ['row', 'control', 'dialog'] as const) {
+		const observation: BrowserObservationState = { ...state(), phase: 'contribution_history' };
+		const error = new Error('private URL cookie and DOM fixture');
+		const calls: string[] = [];
+		const observe = (step: typeof failedStep) => async () => { calls.push(step); if (step === failedStep) throw error; };
+		await assert.rejects(observeContributionStatusDialog(observation, observe('row'), observe('control'), observe('dialog')), candidate => candidate === error);
+		assert.deepEqual(calls, ['row', 'control', 'dialog'].slice(0, ['row', 'control', 'dialog'].indexOf(failedStep) + 1));
+		const diagnostic = browserDiagnostic(new BrowserWorkflowFailure(observation));
+		assert.equal(diagnostic.browserContributionHistoryStep, failedStep);
+		assert.doesNotMatch(JSON.stringify(diagnostic), /private|cookie|fixture/);
+	}
+});
+
+test('lifecycle dialog observation refuses admission and error boundaries before the next control', async () => {
+	for (const boundary of ['mutationAdmitted', 'mutationSent', 'pageErrors', 'consoleErrors'] as const) {
+		const observation: BrowserObservationState = { ...state(), phase: 'contribution_history' };
+		let controls = 0;
+		await assert.rejects(observeContributionStatusDialog(observation,
+			async () => { if (boundary === 'pageErrors' || boundary === 'consoleErrors') observation[boundary]++; else observation[boundary] = true; },
+			async () => { controls++; }, async () => { controls++; }), BrowserWorkflowFailure);
+		assert.equal(controls, 0);
+	}
+});
+
+test('lifecycle substeps reject arbitrary strings and are absent from unrelated phases', () => {
+	const observation = { ...state(), phase: 'contribution_history', contributionHistoryStep: 'secret-cookie-fixture' } as unknown as BrowserObservationState;
+	assert.equal(browserDiagnostic(new BrowserWorkflowFailure(observation)).browserContributionHistoryStep, 'unknown');
+	observation.phase = 'mutation_request';
+	assert.equal(browserDiagnostic(new BrowserWorkflowFailure(observation)).browserContributionHistoryStep, undefined);
+});
 test('a missing freshly eligible contribution control permits only two read-only reloads', async () => {
 	const observation = state();
 	let reads = 0, reloads = 0;

@@ -1,5 +1,51 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 latest override: lifecycle hour failed and was safely retired
+
+This section supersedes historical prepared/running statements below. Full run
+`8cefab70-ee51-410c-88db-005c4412d8cf`, GitHub `37828856578` / job
+`113488660411`, completed **failure** on signed runner head `d57228d` at
+19:43:17 UTC. It is not running and must never be replayed, reset or resumed.
+Original encrypted checkpoint/final recovery is retained under
+`tmp/hosted-community-recovered/8cefab70-ee51-410c-88db-005c4412d8cf-20261008T194547Z-49e97ede3f96`.
+Final evidence: 25,150 successes, 9,524 selection waits, 172 rejections and one
+ambiguous browser workflow; all 253 members had at least 78 successes, but only
+2,278 seconds after warmup, **not** the required 3,600. Pending intents, claims and
+outbox were zero. The earlier independent 567-action dashboard/history sample
+passed; that is not whole-run/hour acceptance.
+
+The original ambiguous event was `deliver-152` for browser user
+`bot_24fde5f818e0cd45_153`, phase `contribution_history`, before mutation admission
+or sending, with zero page/console errors. Original diagnostics do not identify
+the precise failed UI substep. Do not invent a timeout, stale target or capacity
+cause. Normal synthetic-admin Stop and a control-only checkpoint safely retired
+the run at 19:49 UTC, preserving original snapshots and all 25,322 step outcomes.
+Receipt: `tmp/community-retirement-oct8-lifecycle/receipt-1791488994782.json`.
+No member activity was resumed. The old source binding is now historical.
+
+Follow-up ordinary-user Chromium inspection selected a **current** eligible
+pledge and opened its exact confirmation dialog three times. All three checks
+passed with zero writes, page errors or console errors; all non-GET/HEAD browser
+requests were blocked and final confirmation was never clicked. This is not a
+reproduction or replay of the unknown original target. Runner diagnostics now
+retain fixed navigation/row/control/dialog substeps, without private error text,
+URLs, credentials or DOM bodies. They do not weaken lifecycle checks or retry
+mutations. Simulator suite: 292 passed; types and explicit zero-warning lint pass.
+
+Staging owner `inasusr@gmail.com` is verified/unfrozen, confirmed by read-only
+database inspection. Existing AgentMail mailbox receipt and ordinary mobile-size
+password login were checked. Staging still deliberately captures auth mail;
+controlled relay delivery does not prove automatic staging email delivery.
+
+Checkout candidates remain ignored under `tmp/checkout-*`; four original
+untracked adapter/test files are preserved. Native candidate/adapter suites last
+passed 53 tests, not real paid acceptance. Remaining work includes actual parent
+launcher/process closure, dedicated guarded hosted workflow and local fresh-proof
+responder, original-budget/source revalidation, real test-card Checkout and
+provider/webhook/coverage/ledger/member-tier proof, then the wider lifecycle,
+Connect/fund scenarios and a fresh full-population hour. No goal completion or
+production financial enablement is claimed.
+
 ## October 8 fresh lifecycle-fixed cohort prepared, not launched
 
 `ae10848c1e3c3c6fcc5fad709cdbe2a88b14f514` passed hosted read-only verification

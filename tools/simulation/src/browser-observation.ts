@@ -8,8 +8,11 @@ export const browserPhases = [
 	'ui_transition', 'entity_verification', 'context_close',
 ] as const;
 export type BrowserPhase = typeof browserPhases[number];
+const contributionHistorySteps = ['navigation', 'row', 'control', 'dialog'] as const;
+type ContributionHistoryStep = typeof contributionHistorySteps[number];
 export type BrowserObservationState = {
 	phase: BrowserPhase;
+	contributionHistoryStep?: ContributionHistoryStep;
 	mutationAdmitted: boolean;
 	mutationSent: boolean;
 	pageErrors: number;
@@ -23,11 +26,32 @@ export function isBeforeMutationObservation(state: BrowserObservationState) {
 function snapshot(state: BrowserObservationState) {
 	return {
 		browserPhase: browserPhases.includes(state.phase) ? state.phase : 'unknown',
+		...(state.phase === 'contribution_history' && state.contributionHistoryStep !== undefined ? {
+			browserContributionHistoryStep: contributionHistorySteps.includes(state.contributionHistoryStep) ? state.contributionHistoryStep : 'unknown',
+		} : {}),
 		browserMutationAdmitted: state.mutationAdmitted === true,
 		browserMutationSent: state.mutationSent === true,
 		browserPageErrors: Number.isSafeInteger(state.pageErrors) && state.pageErrors >= 0 ? Math.min(state.pageErrors, 1000000) : 1000000,
 		browserConsoleErrors: Number.isSafeInteger(state.consoleErrors) && state.consoleErrors >= 0 ? Math.min(state.consoleErrors, 1000000) : 1000000,
 	};
+}
+/** Observe an exact pledge's non-mutating dialog; retain only fixed failure stages. */
+export async function observeContributionStatusDialog(
+	state: BrowserObservationState,
+	rowVisible: () => Promise<unknown>,
+	openControl: () => Promise<unknown>,
+	dialogVisible: () => Promise<unknown>,
+) {
+	for (const [step, observe] of [
+		['row', rowVisible], ['control', openControl], ['dialog', dialogVisible],
+	] as const) {
+		if (state.phase !== 'contribution_history' || !isBeforeMutationObservation(state))
+			throw new BrowserWorkflowFailure(state);
+		state.contributionHistoryStep = step;
+		await observe();
+	}
+	if (state.phase !== 'contribution_history' || !isBeforeMutationObservation(state))
+		throw new BrowserWorkflowFailure(state);
 }
 export class BrowserWorkflowFailure extends Error {
 	readonly diagnostic: ReturnType<typeof snapshot>;

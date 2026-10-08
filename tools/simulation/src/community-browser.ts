@@ -12,7 +12,7 @@ import {
 import { protectionHeaders } from './protection.ts';
 import { ApiRejection, UiObservationUnavailable, type UiSession } from './ui-session.ts';
 import {
-	BrowserWorkflowFailure, BrowserObservationUnavailable, BrowserApiRejection, observeContributionControl, observeContributionStatusControl, isBeforeMutationObservation,
+	BrowserWorkflowFailure, BrowserObservationUnavailable, BrowserApiRejection, observeContributionControl, observeContributionStatusControl, observeContributionStatusDialog, isBeforeMutationObservation,
 	type BrowserObservationState,
 } from './browser-observation.ts';
 import { Semaphore } from './semaphore.ts';
@@ -313,6 +313,7 @@ export class CommunityBrowser {
 				}
 				if (line.action === 'set_contribution_status') {
 					observation.phase = 'contribution_history';
+					observation.contributionHistoryStep = 'navigation';
 					if (!entity?.askId || entity.kind !== 'contribution')
 						throw new Error(
 							'Browser contribution history needs its exact parent Ask reference.',
@@ -324,14 +325,13 @@ export class CommunityBrowser {
 					const dialog = page.getByRole('dialog');
 					await observeContributionStatusControl(observation,
 						() => freshContributionStatusTarget(api, entity, line.status),
-						async () => {
-							await row.waitFor();
-							await row.getByRole('button', {
+						() => observeContributionStatusDialog(observation,
+							() => row.waitFor(),
+							() => row.getByRole('button', {
 								name: line.status === 'completed' ? 'Mark complete' : 'Cancel',
 								exact: true,
-							}).click();
-							await dialog.waitFor();
-						}, admit);
+							}).click(),
+							() => dialog.waitFor()), admit);
 					await confirmMutation(() =>
 						dialog
 							.getByRole('button', {
