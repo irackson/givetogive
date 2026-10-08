@@ -67,3 +67,6 @@ jobs:
               run: |
                   npx --no-install playwright install chromium
                   node --test --test-concurrency=1 tests/browser/*.test.ts
+                  # The private acceptance operator uses tsx; verify its actual
+                  # callback serialization too, without any credentials/provider contact.
+                  node --import tsx --test --test-concurrency=1 tests/browser/*.test.ts

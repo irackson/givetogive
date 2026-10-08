@@ -164,11 +164,13 @@ async function observeSurfaceBody(page: Page, counters: Counters, now: number, o
 	for (const frame of frames) {
 		observation.phase = 'panel-dom';
 		const read = await frame.evaluate(async () => {
-			const isVisible = (element: Element) => {
+			// An object method remains self-contained under tsx's keep-names transform.
+			// A named arrow here injects an external __name helper into browser code.
+			const visibility = { isVisible(element: Element) {
 				const box = element.getBoundingClientRect(), style = getComputedStyle(element);
 				return box.width > 0 && box.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
-			};
-			const panels = [...document.querySelectorAll<HTMLElement>('.AiAgentPaymentSteering')].filter(isVisible);
+			} };
+			const panels = [...document.querySelectorAll<HTMLElement>('.AiAgentPaymentSteering')].filter(visibility.isVisible);
 			let hash: string | null = null, label = '', controls = 0, enabledControl = false, uncheckedControl = false;
 			if (panels.length === 1) {
 				const text = panels[0]!.innerText.replace(/https?:\/\/\S+/g, '[url]')
@@ -179,7 +181,7 @@ async function observeSurfaceBody(page: Page, counters: Counters, now: number, o
 					const bytes = new TextEncoder().encode(text);
 					hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('');
 				}
-				const inputs = [...panels[0]!.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].filter(isVisible);
+				const inputs = [...panels[0]!.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].filter(visibility.isVisible);
 				controls = inputs.length;
 				if (controls === 1) {
 					const input = inputs[0]!, labels = [...(input.labels ?? [])];
@@ -191,10 +193,10 @@ async function observeSurfaceBody(page: Page, counters: Counters, now: number, o
 			if (body.length > 1024 * 1024) throw new Error('Surface bound exceeded.');
 			const remaining = body.replace(panels[0]?.innerText ?? '\u0000', '');
 			const unknown = [...document.querySelectorAll<HTMLElement>('[role="dialog"],[role="alert"]')]
-				.some(element => isVisible(element) && !element.closest('.AiAgentPaymentSteering'))
+				.some(element => visibility.isVisible(element) && !element.closest('.AiAgentPaymentSteering'))
 				|| /(?:instructions for (?:ai|automated) agents|agent instructions|confirm your attestation)/i.test(remaining);
 			const needsChallenge = /(?:verify (?:that )?you(?:'re| are) human|enter (?:the )?(?:one.time|verification) code|approve (?:in|with) your wallet)/i.test(remaining)
-				|| [...document.querySelectorAll('[data-hcaptcha-response],iframe[src*="hcaptcha"],iframe[src*="recaptcha"]')].some(isVisible);
+				|| [...document.querySelectorAll('[data-hcaptcha-response],iframe[src*="hcaptcha"],iframe[src*="recaptcha"]')].some(visibility.isVisible);
 			return { panels: panels.length, hash, controls, label, enabledControl, uncheckedControl,
 				testMode: /test[\s-]*mode/i.test(body), unknown, needsChallenge };
 		});
