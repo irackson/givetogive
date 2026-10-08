@@ -49,3 +49,13 @@ test('foreign files or any parent directory prevent fallback final retention',as
   await assert.rejects(retainCheckoutBootstrapFailure(f.binding,f.directory,f.key,'input-transfer',f.draft,new AbortController().signal));assert.equal(f.uploads(),0);
  }
 });
+
+test('explicit parent preflight rejection retains invocation truthfully but forbids launched-parent fallback',async()=>{
+ const f=fixture(),preflight={parentInvoked:true,memberLaunchAdmitted:false,phase:'source'} as const;
+ const result=await retainCheckoutBootstrapFailure(f.binding,f.directory,f.key,'member-environment',f.draft,new AbortController().signal,preflight);
+ const clear=unseal(readFileSync(join(f.directory,result.name)),f.key) as {parentInvoked:boolean;memberLaunchAdmitted:boolean;parentPreflight:unknown};
+ assert.equal(clear.parentInvoked,true);assert.equal(clear.memberLaunchAdmitted,false);assert.deepEqual(clear.parentPreflight,preflight);
+ const launched=fixture();mkdirSync(join(launched.directory,`checkout-parent-${approved.operationId}-${launched.binding.jobId}-${launched.binding.jobNonce}`));
+ await assert.rejects(retainCheckoutBootstrapFailure(launched.binding,launched.directory,launched.key,'member-environment',launched.draft,new AbortController().signal,preflight));
+ assert.equal(launched.uploads(),0);
+});

@@ -5,11 +5,22 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync,writeFileSync,readdirSync,readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkoutBootstrapConfiguration,checkoutBrowserCacheRoot } from '../src/checkout-bootstrap.ts';
+import { checkoutBootstrapConfiguration,checkoutBrowserCacheRoot,checkoutBootstrapFailureDiagnostic } from '../src/checkout-bootstrap.ts';
 import { downloadBootstrapInput,initialCheckoutAssetName,checkoutResponseBytes } from '../src/checkout-input-mailbox.ts';
 import { approved } from '../src/hosted-checkout-policy.ts';
 import { seal } from '../src/hosted-community-bundle.ts';
 const HEAD='a'.repeat(40);
+test('native failure diagnostics distinguish bootstrap retention from parent ownership without private details or acceptance',()=>{
+ const result=checkoutBootstrapFailureDiagnostic('input-validation',false,'unconfirmed');
+ assert.equal(result.bootstrapFailureRetention,'unconfirmed');assert.equal(result.parentInvoked,false);
+ assert.equal(result.paymentAccepted,false);assert.equal(result.independentClosureAndSettlementRequired,true);
+ assert.equal(checkoutBootstrapFailureDiagnostic('member-environment',true,'parent-owned').parentInvoked,true);
+ assert.equal(checkoutBootstrapFailureDiagnostic('member-environment',true,'retained',true).parentPreflightRejected,true);
+ assert.throws(()=>checkoutBootstrapFailureDiagnostic('PRIVATE-FIXTURE',false,'retained'));
+ assert.throws(()=>checkoutBootstrapFailureDiagnostic('readiness',true,'retained'));
+ assert.throws(()=>checkoutBootstrapFailureDiagnostic('readiness',false,'parent-owned'));
+ assert.equal(JSON.stringify(result).includes('PRIVATE-FIXTURE'),false);
+});
 test('child browser cache points above the Chromium revision to include the locked headless-shell sibling',()=>{
  const cache=join(tmpdir(),'offline-cache-fixture');
  for(const platform of ['chrome-linux64','chrome-win64'])assert.equal(checkoutBrowserCacheRoot(join(cache,'chromium-1243',platform,'chrome')),cache);

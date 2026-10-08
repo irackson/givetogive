@@ -1,5 +1,6 @@
 /** Original pre-parent failure evidence only. No financial manifest, member,
- * provider, environment loading or replay. Never use after invoking the parent. */
+ * provider, environment loading or replay. Parent invocation is allowed only for
+ * its explicit preflight rejection, before any parent namespace or child launch. */
 import { createHash } from 'node:crypto';
 import { constants,lstatSync,realpathSync,readdirSync,openSync,readFileSync,writeFileSync,fsyncSync,closeSync } from 'node:fs';
 import { dirname,join,resolve } from 'node:path';
@@ -26,12 +27,15 @@ export function writeBootstrapOriginal(directory:string,name:string,bytes:Buffer
 }
 export async function retainCheckoutBootstrapFailure(rawBinding:unknown,directory:string,key:Buffer,
  phase:'readiness'|'input-transfer'|'input-validation'|'member-environment',
- draft:Pick<CheckoutBootstrapFailureDraft,'upload'>,signal:AbortSignal){
+ draft:Pick<CheckoutBootstrapFailureDraft,'upload'>,signal:AbortSignal,
+ parentPreflight?:{parentInvoked:true;memberLaunchAdmitted:false;phase:'input'|'environment'|'key'|'source'|'memory'|'abort'}){
  let encrypted:Buffer|undefined,ownedKey:Buffer|undefined;
  try{
   const binding=inputMailboxBinding.parse(rawBinding);directory=resolve(directory);contained(directory);
   guard(Buffer.isBuffer(key)&&key.length===32);signal.throwIfAborted();ownedKey=Buffer.from(key);
   z.enum(['readiness','input-transfer','input-validation','member-environment']).parse(phase);
+  const preflight=parentPreflight===undefined?undefined:z.object({parentInvoked:z.literal(true),memberLaunchAdmitted:z.literal(false),
+   phase:z.enum(['input','environment','key','source','memory','abort'])}).strict().parse(parentPreflight);
   const name=assetName({releaseId:binding.releaseId,operationId:approved.operationId,job:{id:binding.jobId,nonce:binding.jobNonce,headSha:binding.headSha}},'final');
   const originals=new Set(['bootstrap-lease.json','readiness-publication.intent.json','readiness-publication.result.json',
    'input-selection.intent.json','original-input.g2genc','bootstrap-failure.json']);
@@ -54,12 +58,14 @@ export async function retainCheckoutBootstrapFailure(rawBinding:unknown,director
   guard(leaseValue.headSha===binding.headSha&&leaseValue.jobNonce===binding.jobNonce&&leaseValue.maximumMemberLaunches===1&&
    leaseValue.retryAllowed===false&&leaseValue.paymentAccepted===false);
   const failure=Buffer.from(JSON.stringify({protocol:1,purpose:'pre-parent-bootstrap-failure',binding,phase,
-   parentInvoked:false,failed:true,paymentAccepted:false,retryAllowed:false,privateDetailsWithheld:true}));
+   parentInvoked:preflight?.parentInvoked??false,parentPreflight:preflight??null,memberLaunchAdmitted:false,
+   failed:true,paymentAccepted:false,retryAllowed:false,privateDetailsWithheld:true}));
   try{writeBootstrapOriginal(directory,'bootstrap-failure.json',failure);}finally{failure.fill(0);}
   const before=snapshot(),filesDigest=digest(before.map(({name,digest})=>({name,digest})));
   const intent=Buffer.from(JSON.stringify({protocol:1,binding,phase:'final',originalFilesDigest:filesDigest,maximumUploads:1,paymentAccepted:false,retryAllowed:false}));
   try{writeBootstrapOriginal(directory,'bootstrap-final-upload.intent.json',intent);}finally{intent.fill(0);}
-  encrypted=seal({protocol:1,kind:'original-checkout-bootstrap-failure',binding,files:before,parentInvoked:false,
+  encrypted=seal({protocol:1,kind:'original-checkout-bootstrap-failure',binding,files:before,parentInvoked:preflight?.parentInvoked??false,
+   parentPreflight:preflight??null,memberLaunchAdmitted:false,
    failed:true,paymentAccepted:false,retryAllowed:false},ownedKey);
   guard(encrypted.length<=limits.checkpointBytes);
   const decoded=unseal(encrypted,ownedKey) as {binding:unknown;files:PrivateFile[]};

@@ -9,7 +9,7 @@ import { freemem } from 'node:os';
 import { z } from 'zod';
 import { chromium } from 'playwright';
 import { approved,approvedSourceTuple,checkMemory,validateChildEnvironment } from './hosted-checkout-policy.ts';
-import { checkoutParentSourceSnapshot,runHostedCheckoutParent } from './hosted-checkout-parent.ts';
+import { checkoutParentSourceSnapshot,runHostedCheckoutParent,CheckoutParentPreflightFailure } from './hosted-checkout-parent.ts';
 import { publishCheckoutReadiness } from './checkout-readiness.ts';
 import { downloadBootstrapInput,checkoutResponseBytes } from './checkout-input-mailbox.ts';
 import { decryptInput } from './hosted-checkout-protocol.ts';
@@ -18,6 +18,15 @@ import { retainCheckoutBootstrapFailure } from './checkout-bootstrap-retention.t
 const base=fileURLToPath(new URL('../',import.meta.url));
 const fail=():never=>{throw Error('Native Checkout bootstrap stopped; originals retained; no financial retry.');};
 function guard(value:unknown):asserts value {if(!value)fail();}
+export function checkoutBootstrapFailureDiagnostic(phase: unknown, parentInvoked: unknown, retention: unknown, parentPreflightRejected = false) {
+ const stage=z.enum(['readiness','input-transfer','input-validation','member-environment']).parse(phase);
+ const parent=z.boolean().parse(parentInvoked);
+ const retained=z.enum(['not-admitted','parent-owned','retained','unconfirmed']).parse(retention);
+ guard(parent ? (parentPreflightRejected ? retained==='retained'||retained==='unconfirmed' : retained==='parent-owned') : retained!=='parent-owned');
+ return {nativeBootstrapFailed:true,phase:stage,parentInvoked:parent,bootstrapFailureRetention:retained,
+  parentPreflightRejected,
+  independentClosureAndSettlementRequired:true,paymentAccepted:false,retryAllowed:false,privateDetailsWithheld:true};
+}
 export function checkoutBrowserCacheRoot(executable:string) {
  // The executable lives inside <cache>/chromium-<revision>/<platform>/chrome.
  // Child Playwright needs the shared cache, including the headless-shell sibling.
@@ -102,11 +111,19 @@ export async function executeCheckoutBootstrap() {
   original(directory,'bootstrap-result.json',{protocol:1,parentFailed:result.failed,finalRetentionVerified:!result.privateFinalRetentionStillRequired,
    nativeBootstrap:true,jobId,jobNonce:nonce,headSha:config.headSha,paymentAccepted:false,retryAllowed:false});
   guard(!result.failed);return {nativeBootstrap:true,privateFinalRetentionVerified:true,paymentAccepted:false,retryAllowed:false};
- }catch{
-  if(!parentInvoked&&recovery&&directory&&key){
-   const draft=new CheckoutBootstrapFailureDraft(recovery.binding,recovery.binding.headSha,recovery.token);
-   await retainCheckoutBootstrapFailure(recovery.binding,directory,key,phase,draft,AbortSignal.timeout(180000));
+ }catch(error){
+  const preflight=parentInvoked&&error instanceof CheckoutParentPreflightFailure?error:undefined;
+  let retention:'not-admitted'|'parent-owned'|'retained'|'unconfirmed'=parentInvoked?'parent-owned':'not-admitted';
+  if((!parentInvoked||preflight)&&recovery&&directory&&key){
+   try {
+    const draft=new CheckoutBootstrapFailureDraft(recovery.binding,recovery.binding.headSha,recovery.token);
+    await retainCheckoutBootstrapFailure(recovery.binding,directory,key,phase,draft,AbortSignal.timeout(180000),
+     preflight?{parentInvoked:true,memberLaunchAdmitted:false,phase:preflight.phase}:undefined);
+    retention='retained';
+   }catch{retention='unconfirmed';}
   }
+  console.error(JSON.stringify({...checkoutBootstrapFailureDiagnostic(phase,parentInvoked,retention,Boolean(preflight)),
+   ...(preflight?{parentPreflightPhase:preflight.phase}: {})}));
   return fail();
  }finally{key?.fill(0);inputBytes?.fill(0);process.off('SIGTERM',stop);process.off('SIGINT',stop);}
 }

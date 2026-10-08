@@ -23,6 +23,28 @@ field. The response now validates that exact returned ID and both canonical URLs
 After its readiness expired with no input, the waiting run was deliberately
 cancelled and verified terminal. Its draft remained empty; no remote final was
 uploaded. Original local evidence and financial admission remain unchanged.
+Run `37851527525` (head `b976c74`) reached real native readiness and ordinary
+member preparation of operation `284c4f9d-6aec-4910-bbb2-ef7b1a9d2ff7`. The root
+retained and read back its exact encrypted input. The remote run then failed
+before the root could provide a fresh pre-submit proof. Only the input asset is
+present; no final receipt is available. The exact bootstrap/member cause is not
+established by the fixed error log. At 22:13 UTC, independent Stripe/app reads
+confirmed open/unpaid, no invoice/subscription and zero coverage/ledger entries.
+The original candidate is consumed; never prepare it again or infer paid success.
+Its draft/input and local records must be preserved. New fixed phase/retention
+diagnostics distinguish future failures without exposing exceptions or secrets.
+The original root final-download wait is now terminal with recovery unconfirmed;
+it was not restarted. Offline decryption/policy validation of the preserved input
+at both its retention timestamp and the native failure timestamp passes. This
+does not prove the hosted key matched, a member launched, or any payment occurred.
+Parent preflight now reports a fixed failing check while preserving its invariant
+of zero namespace/lease/member admission on rejection. The bootstrap can retain
+that exact preflight failure truthfully (`parentInvoked: true`, no member launch),
+but still refuses fallback if any parent directory exists. Durable initialization
+after parent lease admission now shares the parent failure/receipt path instead
+of escaping before it. Regression tests use offline injected failures; native
+failure retention remains unverified. The missing native-operator declaration
+also fixes the observed hosted TypeScript failure without changing runtime code.
 Do not dispatch the historical policy/source tuple against the new adapter code.
 Offline tests are not payment acceptance.
 

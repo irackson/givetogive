@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { createHash, randomBytes } from 'node:crypto';
 import type { ChildProcess } from 'node:child_process';
 import { approved, digest, assetName, type Manifest, type Proof } from '../src/hosted-checkout-policy.ts';
-import { runHostedCheckoutParent, checkoutWorkerReceiptSchema, type CheckoutParentRuntime } from '../src/hosted-checkout-parent.ts';
+import { runHostedCheckoutParent, checkoutWorkerReceiptSchema, CheckoutParentPreflightFailure, type CheckoutParentRuntime } from '../src/hosted-checkout-parent.ts';
 import { createCheckoutBrokerClient, type CheckoutIpcPeer } from '../src/checkout-broker-ipc.ts';
 import { decodeProofRequest, createProofResponse } from '../src/checkout-proof-exchange.ts';
 import { unseal } from '../src/hosted-community-bundle.ts';
@@ -107,7 +107,7 @@ function fixture(mode = 'normal') {
 			return createProofResponse(request, manifest, proof, { ...proof, phase: 'pre-submit', proofNonce: 'd'.repeat(32), verifiedAt: new Date(now).toISOString() }, key, now); },
 	} as unknown as Pick<CheckoutPrivateDraft, 'upload' | 'download' | 'inspect'>;
 	const options = { root, key, draft, runtime, memberEnvironment: { PATH: '/usr/bin', HOME: '/tmp/public-fixture', TMPDIR: '/tmp/public-fixture', PLAYWRIGHT_BROWSERS_PATH: '/tmp/public-browsers' } };
-	return { input, options, root, calls, launches: () => launches };
+	return { input, options, root, calls, launches: () => launches, advanceNow: (value:number) => { assert.ok(value>=now);now=value; } };
 }
 
 test('parent integration retains real originals through sole ordered encrypted proof and submit exchanges', async () => {
@@ -180,7 +180,22 @@ test('source, environment, memory and pre-abort failures happen before member la
 		if (mode === 'environment') Object.assign(f.options.memberEnvironment, { STRIPE_SECRET_KEY: 'PRIVATE-FIXTURE' });
 		if (mode === 'memory') f.options.runtime.freeBytes = () => 1024;
 		if (mode === 'abort') controller.abort();
-		await assert.rejects(runHostedCheckoutParent(f.input, HEAD, { ...f.options, signal: controller.signal }));
+		await assert.rejects(runHostedCheckoutParent(f.input, HEAD, { ...f.options, signal: controller.signal }), error => {
+			assert.ok(error instanceof CheckoutParentPreflightFailure);
+			assert.equal(error.phase,mode); assert.equal(error.memberLaunchAdmitted,false);
+			assert.doesNotMatch(error.message,/private source fixture|PRIVATE-FIXTURE/); return true;
+		});
 		assert.equal(f.launches(), 0); assert.deepEqual(readdirSync(f.root), []);
 	}
+});
+
+test('a durable-parent initialization failure after lease keeps an original failed final without launching or claiming closure',async()=>{
+	const f=fixture();let reads=0;
+	const originalNow=f.options.runtime.now;
+	f.options.runtime.now=()=>{if(reads++===1)f.advanceNow(NOW+300001);return originalNow();};
+	const result=await runHostedCheckoutParent(f.input,HEAD,f.options);
+	assert.equal(f.launches(),0);assert.equal(result.failed,true);assert.equal(result.worker,null);
+	assert.equal(result.processClosure,null);assert.equal(result.parentObservedProtocolClosure,false);
+	assert.equal(result.paymentAccepted,false);assert.equal(result.retryAllowed,false);
+	assert.equal(result.privateFinalRetentionStillRequired,false);assert.deepEqual(f.calls,['source','final']);
 });

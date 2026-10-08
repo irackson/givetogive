@@ -35,6 +35,15 @@ const base = fileURLToPath(new URL('../', import.meta.url));
 const repositoryRoot = resolve(base, '../..');
 const fail = (): never => { throw new Error('Hosted Checkout parent stopped; originals retained; no automatic retry.'); };
 function guard(value: unknown): asserts value { if (!value) fail(); }
+/** Raised only by checks before any parent namespace, lease or child launch. */
+export class CheckoutParentPreflightFailure extends Error {
+	readonly memberLaunchAdmitted = false;
+	readonly phase: 'input' | 'environment' | 'key' | 'source' | 'memory' | 'abort';
+	constructor(phase: CheckoutParentPreflightFailure['phase']) {
+		super('Hosted Checkout parent preflight rejected; no member launch admitted; no retry.');
+		this.phase = phase;
+	}
+}
 
 /** Policy approval is excluded from its own hash to avoid a circular digest;
  * the exact reviewed Git head independently binds that policy and all code. */
@@ -111,10 +120,16 @@ export async function runHostedCheckoutParent(raw: unknown, expectedHead: string
 		}), processes: readCheckoutProcessTable, verifySources: verifyCheckoutParentSources,
 		now: Date.now, freeBytes: freemem, pause: milliseconds => sleep(milliseconds),
 	};
-	const input = validateInput(raw, expectedHead, runtime.now()), environment = validateChildEnvironment(options.memberEnvironment);
-	guard(Buffer.isBuffer(options.key) && options.key.length === 32);
-	runtime.verifySources(input.manifest); checkMemory(runtime.freeBytes(), true);
-	options.signal?.throwIfAborted();
+	let preflightPhase: CheckoutParentPreflightFailure['phase'] = 'input';
+	let input: ReturnType<typeof validateInput>, environment: Record<string,string>;
+	try {
+		input = validateInput(raw, expectedHead, runtime.now());
+		preflightPhase = 'environment'; environment = validateChildEnvironment(options.memberEnvironment);
+		preflightPhase = 'key'; guard(Buffer.isBuffer(options.key) && options.key.length === 32);
+		preflightPhase = 'source'; runtime.verifySources(input.manifest);
+		preflightPhase = 'memory'; checkMemory(runtime.freeBytes(), true);
+		preflightPhase = 'abort'; options.signal?.throwIfAborted();
+	} catch { throw new CheckoutParentPreflightFailure(preflightPhase); }
 	const directory = join(resolve(options.root), `checkout-parent-${input.manifest.operationId}-${input.manifest.job.id}-${input.manifest.job.nonce}`);
 	contained(directory); guard(lstatSync(dirname(directory)).isDirectory()); mkdirSync(directory, { mode: 0o700 });
 	if (process.platform === 'linux') { const fd = openSync(dirname(directory), 'r'); try { fsyncSync(fd); } finally { closeSync(fd); } }
@@ -123,8 +138,7 @@ export async function runHostedCheckoutParent(raw: unknown, expectedHead: string
 	const binding = { manifestDigest: digest(input.manifest), connectionNonce: randomBytes(16).toString('hex') };
 	const cancellation = new AbortController(), deadline = AbortSignal.timeout(210000);
 	const signal = AbortSignal.any([cancellation.signal, deadline, ...(options.signal ? [options.signal] : [])]);
-	const durable = new CheckoutDurableParent(directory, input.manifest, expectedHead, options.key,
-		(phase, bytes, admitted) => options.draft.upload(phase, bytes, admitted), runtime.now);
+	let durable: CheckoutDurableParent | undefined;
 	let child: ChildProcess | undefined, broker: ReturnType<typeof attachCheckoutBrokerParent> | undefined;
 	let processes: CheckoutProcessObservation | undefined, receipt: WorkerReceipt | undefined;
 	let ownedMember: CheckoutProcessIdentity | undefined, memberLive = false;
@@ -171,6 +185,8 @@ export async function runHostedCheckoutParent(raw: unknown, expectedHead: string
 		} catch { failed = true; stop(); }
 	};
 	try {
+		durable = new CheckoutDurableParent(directory, input.manifest, expectedHead, options.key,
+			(phase, bytes, admitted) => options.draft.upload(phase, bytes, admitted), runtime.now);
 		await options.draft.inspect(signal); signal.throwIfAborted();
 		// Revalidate proof after private IO and immediately before member admission.
 		validateInput(input, expectedHead, runtime.now());
@@ -187,9 +203,9 @@ export async function runHostedCheckoutParent(raw: unknown, expectedHead: string
 		}
 		guard(processes); sample();
 		broker = attachCheckoutBrokerParent(child as unknown as CheckoutIpcPeer, binding, {
-			writeIntent: async (intent, admitted) => { active(); return durable.writeIntent(intent, AbortSignal.any([signal, admitted])); },
-			retainSubmitIntent: async (intent, written, admitted) => { active(); return durable.retainSubmitIntent(intent, written, AbortSignal.any([signal, admitted])); },
-			preSubmitProof: async admitted => { active(); return durable.requestPreSubmitProof(input.proof, options.draft, AbortSignal.any([signal, admitted])); },
+			writeIntent: async (intent, admitted) => { active(); return durable!.writeIntent(intent, AbortSignal.any([signal, admitted])); },
+			retainSubmitIntent: async (intent, written, admitted) => { active(); return durable!.retainSubmitIntent(intent, written, AbortSignal.any([signal, admitted])); },
+			preSubmitProof: async admitted => { active(); return durable!.requestPreSubmitProof(input.proof, options.draft, AbortSignal.any([signal, admitted])); },
 		});
 		child.on('message', onMessage); signal.addEventListener('abort', stop, { once: true });
 		interval = setInterval(() => { if (exited) return; try { active(); } catch { failed = true; stop(); } }, 100);
@@ -219,7 +235,7 @@ export async function runHostedCheckoutParent(raw: unknown, expectedHead: string
 			await runtime.pause(25);
 		}
 		if (!exited || !closure?.ownedGroupClosed) failed = true;
-		signal.removeEventListener('abort', stop); child?.removeListener('message', onMessage); durable.close();
+		signal.removeEventListener('abort', stop); child?.removeListener('message', onMessage); durable?.close();
 	}
 	const result = { protocol: 1, purpose: 'hosted-checkout-parent', failed,
 		executionEvidence: injected ? 'injected-offline-runtime' : 'native-linux-parent',
