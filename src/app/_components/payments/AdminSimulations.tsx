@@ -935,11 +935,11 @@ export function AdminSimulation({
 						</p>
 						{filtered.length ?
 							<div className='admin-agent-grid'>
+								{/* Native navigation isolates member history from the live run's router state. */}
 								{filtered.map((agent) => (
-									<Link
+									<a
 										className='admin-agent'
 										key={agent.id}
-										prefetch={false}
 										href={`/admin/simulations/${id}/agents/${agent.id}`}>
 										<strong>{agent.name}</strong>
 										<StatusPill status={agent.state} />
@@ -950,7 +950,7 @@ export function AdminSimulation({
 											{agent.lastAction ??
 												'No action reported'}
 										</small>
-									</Link>
+									</a>
 								))}
 							</div>
 						:	<EmptyState

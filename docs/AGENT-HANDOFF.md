@@ -1,5 +1,38 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 published pause-control evidence and native history navigation
+
+Exact signed commit `b8cac9bdd2211c3fa6e1180c8f57989b3574a0bf` passed root
+hosted verification `37819310659` and credential-free browser smoke `37819466057`.
+Protected staging deployment `dpl_5A776DzBrom1g4w44dULUCeUK9vb` is READY/canonical.
+Read-only release receipt `tmp/freshness-staging-release-inspection-1791482124697.json`
+verified exact Git SHA, Node24, protection all, successful compilation/routes,
+unchanged hosted configuration/root production link, sandbox Supporter gates and
+disabled Ask/fund gates. Failed 253-member cohort remains paused/unowned/idle.
+
+Real published diagnostic `tmp/observer-abort-category-inspection-1791482198060.json`
+proved SIX paused read intervals with zero new scoped requests, polling resumed,
+and THREE history navigations. No console/page/HTTP errors or blocked requests;
+71 responses decoded, zero body/capture/capacity failures. Strict acceptance still
+fails: 131 raw aborts = 67 validated query aborts + 63 explicit suppressed-prefetch
+aborts + ONE unqualified HTTP200 member RSC navigation abort. Original receipt
+is preserved; this is not full freshness/hour acceptance or a clean diagnostic.
+
+After reading the installed Next linking/navigation guide, only simulation
+member-card links now use native anchors, retaining exact href/classes/content.
+This isolates history from the live run's client-router transition and avoids
+speculative prefetch; trade-off is a full document navigation and fresh page-local
+state. Other navigation remains unchanged. Source regression checks exact native
+href and absence of client click/prefetch handlers. Published native-navigation
+acceptance remains to be verified; do not waive genuine canceled requests.
+
+NEXT: verify/sign/push the native-link change, pass exact hosted checks, deploy
+the reviewed commit to protected staging, then repeat the same real pause/resume/
+three-navigation diagnostic. Only after clean diagnosis prepare NEW reviewed
+cohorts, approvals, five-member smoke and full hour. Preserve all failed-run
+evidence and the four original untracked Checkout files. No controller/member/
+payment actions occurred in this diagnostic.
+
 ## October 8 dashboard-only pause and navigation drain implementation
 
 Signed `75a49f558c166205cf12c12d2b42fb433ab9ef90` passed hosted root verification
