@@ -1,5 +1,31 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 notice/card phase-order correction pending provider confirmation
+
+Diagnostics-head `ef61842` passed exact-head hosted verification **37859120092**.
+Read-only existing-Checkout inspection process **55873** is terminal (exit 1):
+no surface returned, zero console/page/HTTP/blocked/failed/unexpected-page counts,
+zero notice clicks. It did NOT repeat preparation, reserve another budget,
+enter card fields or submit. Exact original failure remains unproven.
+
+Source inspection identified a phase-order defect: the shared reader required
+every visible underlying card field to be enabled/editable even while a notice
+could disable those fields. It now observes notice controls first with
+`visibleCard=false` while any notice exists. Exact reviewed notice/hash/control,
+unknown-instruction/challenge/error guards remain unchanged; absent notices
+still require unique enabled/editable card fields. Two real-Chromium synthetic
+regressions cover disabled fields with an unknown notice (never admitted) and
+disabled fields without a notice (still rejected). Provider confirmation is
+pending; do not claim this was proven to be the original provider failure.
+
+Generic diagnostic snapshots now retain the actual last native RAM sample and
+a fixed `policy_rejected`/`dom_read_unavailable` surface-read category, never raw
+framework messages or private DOM. Local tests: 397 pass, one Linux-only skip;
+types/lint pass. Next perform only `inspect-surface 0` on the retained unpaid
+session to determine the real remaining condition. Never execute purchase-0
+again; its prepared/ambiguous 500-cent reservation and zero notice permissions
+were independently read from the SQLite files in read-only mode.
+
 ## October 8 real fresh Supporter Checkout admitted, unpaid, no replay
 
 `59397258ecddc6c10ab99a8b5db84a37ff949e86` passed exact-head hosted verification

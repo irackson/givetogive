@@ -184,8 +184,12 @@ export async function observeSurface(page: Page, counters: Counters, now: number
 		unknownInstructions ||= read.unknown; challenge ||= read.needsChallenge;
 		if (read.panels === 1) { panelDigest = read.hash; controlName = read.label; visible = read.controls === 1; enabled = read.enabledControl; unchecked = read.uncheckedControl; }
 	}
-	const cards = await uniqueVisible(frames, cardFields.number, true);
-	const expiry = await uniqueVisible(frames, cardFields.expiry, true), cvc = await uniqueVisible(frames, cardFields.cvc, true);
+	// A notice can visibly disable the underlying card fields. Observe its own
+	// controls first; editable/unique card controls become mandatory only after
+	// that notice is absent. Unknown or duplicate notices still fail validation.
+	const cards = panelCount ? undefined : await uniqueVisible(frames, cardFields.number, true);
+	const expiry = panelCount ? undefined : await uniqueVisible(frames, cardFields.expiry, true);
+	const cvc = panelCount ? undefined : await uniqueVisible(frames, cardFields.cvc, true);
 	return { observedAt: new Date(now).toISOString(), testModeLabel, visibleCard: !!cards && !!expiry && !!cvc,
 		panelCount, panelDigest, controlName, controlCount, visible, enabled, unchecked, optionalLinkDeferred: true,
 		requiresCaptchaOrWalletOrAttestation: challenge, unknownInstructions,

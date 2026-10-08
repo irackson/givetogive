@@ -60,6 +60,24 @@ test('actual Chromium rejects ambiguous duplicate visible card controls', async 
   });
 });
 
+test('actual Chromium observes an unknown notice before testing its disabled underlying card fields', async () => {
+  const disabled = '<p>Test mode</p><input name="cardNumber" disabled><input name="cardExpiry" disabled><input name="cardCvc" disabled>';
+  const panel = '<div class="AiAgentPaymentSteering">Unreviewed fixture notice<label><input type="checkbox">I am an AI agent and have followed the instructions above</label></div>';
+  await fixture(disabled + panel, async page => {
+    const surface = await observeSurface(page, counters(), Date.now());
+    assert.equal(surface.panelCount, 1);
+    assert.equal(surface.visibleCard, false);
+    assert.throws(() => validateAcknowledgmentSurface(surface, Date.now()));
+    assert.throws(() => validateNativeSurface(surface, Date.now()));
+  });
+});
+
+test('actual Chromium still rejects disabled card fields when no notice is present', async () => {
+  await fixture(base.replace('name="cardNumber"', 'name="cardNumber" disabled'), async page => {
+    await assert.rejects(observeSurface(page, counters(), Date.now()));
+  });
+});
+
 for (const [name, html] of [
   ['unknown agent notice', '<div class="AiAgentPaymentSteering">Unreviewed instructions<label><input type="checkbox">I am an AI agent and have followed the instructions above</label></div>'],
   ['unknown alert', '<div role="alert">Unreviewed provider condition</div>'],

@@ -35,6 +35,8 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   private readonly counters: Counters = { consoleErrors: 0, pageErrors: 0, httpErrors: 0, blockedRequests: 0, failedRequests: 0, unexpectedPages: 0 };
   private readonly noticeClick = new OneNativeClick();
   private lastSurface?: CheckoutSurface;
+  private observedFreeBytes?: number;
+  private surfaceReadFailure?: 'policy_rejected' | 'dom_read_unavailable';
   private readonly admitNotice?: () => Promise<void>;
   constructor(bypass: string, syntheticEmail: string, admitNotice?: () => Promise<void>) {
     if (!syntheticEmail.endsWith('@givetogive.invalid')) throw new Error('Only a synthetic fixture email is allowed.');
@@ -44,7 +46,8 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   /** Acquire the real, secret-free browser before a caller admits a financial UI mutation. */
   async prepareBrowser() {
     if (this.browser) { this.memoryFloor(); return; }
-    if (freemem() < 2.5 * 1024 ** 3) throw new Error('Insufficient memory for sandbox Checkout browser startup.');
+    this.observedFreeBytes = freemem();
+    if (this.observedFreeBytes < 2.5 * 1024 ** 3) throw new Error('Insufficient memory for sandbox Checkout browser startup.');
     this.browser = await chromium.launch({ headless: true, env: checkoutBrowserEnvironment() });
     this.memoryFloor();
   }
@@ -117,18 +120,27 @@ export class StripeCheckoutDriver implements CheckoutDriver {
     await submit.click();
   }
   private memoryFloor() {
-    if (freemem() < 1.5 * 1024 ** 3) throw new Error('Sandbox Checkout memory floor reached.');
+    this.observedFreeBytes = freemem();
+    if (this.observedFreeBytes < 1.5 * 1024 ** 3) throw new Error('Sandbox Checkout memory floor reached.');
   }
   private async readSurface() {
     this.memoryFloor();
     if (!this.page) throw new Error('Checkout is not open.');
-    this.lastSurface = await observeSurface(this.page, this.counters, Date.now());
+    try {
+      this.lastSurface = await observeSurface(this.page, this.counters, Date.now());
+      this.surfaceReadFailure = undefined;
+    } catch (error) {
+      this.surfaceReadFailure = error instanceof Error && error.message === 'Hosted Checkout policy rejected; private details withheld.' ? 'policy_rejected' : 'dom_read_unavailable';
+      throw new Error('Checkout surface observation failed; private details withheld.');
+    }
     return this.lastSurface;
   }
   /** Fixed booleans/counters only. No DOM text, control label, URL, PAN or response body. */
   diagnostics() {
     const surface = this.lastSurface;
     return { ...this.counters, noticeClickAttempts: this.noticeClick.attempts,
+      ...(this.observedFreeBytes === undefined ? {} : { observedFreeMiB: Math.floor(this.observedFreeBytes / 1024 ** 2), runtimeMemoryFloorSatisfied: this.observedFreeBytes >= 1.5 * 1024 ** 3 }),
+      ...(this.surfaceReadFailure ? { surfaceReadFailure: this.surfaceReadFailure } : {}),
       surfaceObserved: !!surface, ...(surface ? {
         testModeLabel: surface.testModeLabel, visibleCard: surface.visibleCard,
         panelCount: surface.panelCount, reviewedPanelMatches: surface.panelDigest === approved.panelDigest,
