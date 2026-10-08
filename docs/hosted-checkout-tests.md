@@ -1,6 +1,23 @@
 # Guarded hosted Checkout testing
 
-Status: the pure policy/protocol is reviewed and its 24/24 offline tests pass. It has no executable adapter, workflow, browser, authentication, filesystem or provider entrypoint. Runtime adapter work is separate and unfinished; offline tests are not payment acceptance.
+Status: the pure policy/protocol and runtime adapter modules are now present.
+Tracked modules include the private-draft transport, ordinary-cookie Playwright
+member, guarded Linux member entrypoint, durable parent filesystem adapter,
+bounded ordered IPC, encrypted fresh-proof exchange, local-only provider GET
+reader and the Linux parent integration. They have no automatic execution.
+The dedicated job bootstrap/workflow, locally operated fresh-proof responder,
+current approved source tuple and actual hosted paid acceptance remain unfinished.
+Do not dispatch the historical policy/source tuple against the new adapter code.
+Offline tests are not payment acceptance.
+
+The parent creates/fsyncs an exclusive lease before launching, rejects inherited
+credentials, independently checks kernel process identity during broker calls,
+and signals only its still-matching owned child. It retains the original worker
+receipt encrypted before parsing, including rejected malformed evidence, and
+separately checks worker browser/context/API closure and surviving process groups.
+Returned originals still require private final remote retention. Runtime-injected
+tests are permanently labeled `injected-offline-runtime`; they cannot establish
+actual Chromium, remote retention, normal authentication or settlement.
 
 The community runner is already hosted separately. Checkout needs its own narrowly scoped manual job, sharing staging concurrency, rather than a new community capability or an administrative purchase shortcut.
 
@@ -13,7 +30,8 @@ permanently invalidates group-based evidence. It reads no command lines or
 environments, sends no signals, and is not a same-UID sandbox or proof of browser
 protocol closure/payment acceptance. Six deterministic cases pass locally; a
 separate actual Linux detached-child/orphan test runs only on Linux. This
-observer is not yet wired into the unfinished executable Checkout parent.
+observer is wired into the callable Checkout parent. No native paid parent job
+has run; the dedicated workflow and actual acceptance are still outstanding.
 
 ## First bounded scenario
 

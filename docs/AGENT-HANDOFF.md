@@ -2,6 +2,29 @@
 
 ## October 8 latest override: lifecycle hour failed and was safely retired
 
+Latest adapter continuation: reviewed ignored preparation modules are migrated
+into `tools/simulation/src/checkout-*` with their tests, preserving originals.
+The four original private-draft/member adapter files are now deliberately included;
+their SHA-256 hashes were rechecked against the preserved checkpoint before edits.
+Three remain unchanged. The worker test has only an unused fixture-parameter
+rename for zero-warning lint; its original is preserved at
+`tmp/hosted-checkout-worker-before-lint-oct8.test.ts`.
+New `hosted-checkout-parent.ts` integrates exclusive/fsynced launcher admission,
+ordered IPC, original encrypted proof request/response and private submit-intent
+retention, ordinary-cookie member launch with four exact environment variables,
+kernel identity checks and independent process/protocol closure. It retains the
+original private receipt encrypted before validating it. An injected runtime can
+never produce native execution evidence or paid acceptance. No actual member
+Checkout, provider mutation or paid grant was executed by this integration.
+Local simulator suite: 330 passed, one Linux-only test skipped; types and explicit
+lint pass. The new parent integration tests use real filesystem/crypto/IPC but
+injected member/process/provider transports. Native source verification rejects
+the old source approval against current code; append a separately reviewed current
+tuple, not a rewrite of historical evidence. Next implement the dedicated guarded
+bootstrap/workflow, root fresh-proof responder and original private final retention,
+then actual bounded Checkout and independent financial acceptance. These remain
+required; the goal is active and production payments stay dark.
+
 This section supersedes historical prepared/running statements below. Full run
 `8cefab70-ee51-410c-88db-005c4412d8cf`, GitHub `37828856578` / job
 `113488660411`, completed **failure** on signed runner head `d57228d` at
