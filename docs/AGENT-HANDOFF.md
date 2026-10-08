@@ -16,8 +16,20 @@ Signed head `6f970e8` adds fixed observation phases (`frame-discovery`, `panel-d
 into the callback sent to Chromium. A synthetic callback inspection confirmed
 the reference before the fix and its absence afterward. An object method keeps
 the callback self-contained. Hosted verification now runs the intercepted HTML
-browser suite under BOTH native TypeScript and tsx. Provider confirmation and
-exact-head hosted test results remain pending at this checkpoint.
+browser suite under BOTH native TypeScript and tsx. Exact-head hosted run
+**37860758718** passed for `739c419`, including all 11 Chromium tests in each
+runtime, application/simulator tests/types and published public smoke.
+
+Read-only process **10212** acquired the actual browser at 2.52 GiB and is terminal
+(exit 1). Unlike the previous attempt, it returned a surface snapshot before a
+later `dom_read_unavailable` in `frame-discovery`. Last native RAM was 2069 MiB,
+above the runtime floor. Diagnostics: two console errors, two blocked requests,
+four failed requests, zero page/HTTP/unexpected-page errors and zero notice
+clicks. Snapshot had no test-mode label, card controls, notice or challenge.
+The callback now executes, but the provider surface is not healthy/admissible.
+Next identify blocked dependency/request categories using fixed safe projections
+and handle only proven transient read-only frame lifecycle races. Do not remove
+network/error/notice/payment guards or infer the private framework cause.
 
 Local simulator types pass; 397 tests pass with one Linux-only skip. Another
 read-only startup stopped before browser acquisition at 2.48 GiB; it did not
