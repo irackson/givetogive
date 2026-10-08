@@ -28,7 +28,7 @@ export const checkoutRunnerFiles = [
 	'checkout-readiness.ts',
 	'checkout-bootstrap.ts', 'checkout-input-mailbox.ts',
 	'checkout-bootstrap-retention.ts',
-	'checkout-root-responder.ts', 'checkout-provider-proof.ts',
+	'checkout-root-responder.ts', 'checkout-provider-proof.ts', 'checkout-readiness-observer.ts',
 ] as const;
 const base = fileURLToPath(new URL('../', import.meta.url));
 const repositoryRoot = resolve(base, '../..');

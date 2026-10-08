@@ -119,3 +119,13 @@ Cloud receipts always report `paymentAccepted:false`. Root must reconcile the ac
 Renewal, tier changes, cancellation, failed/3DS payments, refunds/disputes, monetary Asks, funds and Connect remain separate actual scenarios. This first policy is not evidence that any of those are finished or that live production payments are enabled.
 
 References: [Stripe test cards](https://docs.stripe.com/testing), [webhook-based fulfillment](https://docs.stripe.com/checkout/fulfillment), [API-key safety](https://docs.stripe.com/keys-best-practices).
+# Local readiness observation
+
+`checkout-readiness-observer.ts` supplies the read-only operator half of the
+native readiness handshake. Initial marker freshness and exact reviewed source
+digests are required. Two live workflow/job observations surround an unchanged
+GitHub Actions check-run readback. An original-marker recheck never rewrites its
+memory timestamp or grants payment/preparation authority. Discovery, actual local
+release/database/budget verification, source approval and operator orchestration
+remain required before any financial workflow dispatch. Injected HTTP regression
+success is not native execution or financial acceptance.

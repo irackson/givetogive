@@ -2,6 +2,21 @@
 
 ## October 8 latest override: lifecycle hour failed and was safely retired
 
+Local readiness continuation: `checkout-readiness-observer.ts` checks a fresh
+exact GitHub Actions marker, source digests, workflow/main/head/actor/attempt and
+sole live Linux job. It reads the marker between two independent job observations
+and rejects changed metadata, foreign Apps, offline publication evidence, stale
+initial readiness and a job completing during observation. Subsequent rechecks
+preserve the original memory timestamp; they prove live identity only, never fresh
+RAM or financial admission. Bounded GET-only transport uses the existing canceled
+stream reader. Four offline regressions pass; full Windows simulator suite is
+356 passed, one Linux-only skip; types and explicit zero-warning lint pass.
+Staging alias freshly resolves to READY `dpl_4ZF8gk4Rv3NYoZcgFQeSnfBmNUg5`,
+app SHA `8888877182d76c18de40a747fd573b3d04643006`. This is not payment acceptance.
+Next wire discovery/operator source+DB+budget checks and normal preparation into
+the root pipeline, append reviewed source tuple, then dispatch native Checkout.
+No financial workflow was dispatched and no candidate was consumed by this work.
+
 Recovery/responder continuation: callable `checkout-bootstrap-retention.ts`
 preserves exact original pre-parent failure files with real exclusive/fsynced
 permission and encrypted reserved-final transfer. A manifest-free final-only
