@@ -1,5 +1,32 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 Checkout callback loader mismatch fixed, paid acceptance still pending
+
+Phase-order head `51d18c8` passed hosted verification **37859651573**, including
+ten actual-Chromium synthetic tests. Read-only provider inspection process
+**78403** terminated without any control action: native RAM 2516 MiB satisfied
+the runtime floor, all browser error counters and notice clicks were zero, but
+the surface read failed with `dom_read_unavailable`. This narrows the failure;
+it does not identify the original framework exception or prove a payment.
+
+Signed head `6f970e8` adds fixed observation phases (`frame-discovery`, `panel-dom`,
+`card-controls`) without retaining private exception causes. Signed head
+`31ae1db` fixes a reproduced serialization mismatch: under the private operator's
+`--import tsx`, the named visibility arrow injected an external `__name` helper
+into the callback sent to Chromium. A synthetic callback inspection confirmed
+the reference before the fix and its absence afterward. An object method keeps
+the callback self-contained. Hosted verification now runs the intercepted HTML
+browser suite under BOTH native TypeScript and tsx. Provider confirmation and
+exact-head hosted test results remain pending at this checkpoint.
+
+Local simulator types pass; 397 tests pass with one Linux-only skip. Another
+read-only startup stopped before browser acquisition at 2.48 GiB; it did not
+contact the provider, reserve budget or mutate member state. Active task apps
+are preserved. Next await hosted Chromium results, then use only bounded
+`inspect-surface 0` on the existing owned unpaid session if unexpired and native
+memory qualifies. Never replay purchase-0, reset its 500-cent reservation or
+claim the remaining lifecycle/Connect/fund/full-hour goals are completed.
+
 ## October 8 notice/card phase-order correction pending provider confirmation
 
 Diagnostics-head `ef61842` passed exact-head hosted verification **37859120092**.
