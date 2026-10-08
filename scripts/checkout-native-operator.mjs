@@ -7,6 +7,15 @@ import { readFileSync, mkdirSync, lstatSync, realpathSync, openSync, writeFileSy
 import { createHash } from 'node:crypto';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const guard=value=>{if(!value)throw Error('Native Checkout operator stopped; originals retained; no automatic retry.');};
+/** GitHub API 2026-03-10 returns 200 with the exact created run, not legacy 204. */
+export function checkoutDispatchRunId(value) {
+ guard(value&&Number.isSafeInteger(value.workflow_run_id)&&value.workflow_run_id>0);
+ const id=String(value.workflow_run_id);
+ guard(value.run_url===`https://api.github.com/repos/irackson/givetogive/actions/runs/${id}`&&
+  value.html_url===`https://github.com/irackson/givetogive/actions/runs/${id}`&&
+  Object.keys(value).length===3);
+ return id;
+}
 
 export async function executeNativeCheckoutOperator() {
  guard(process.platform==='win32'&&Number(process.versions.node.split('.')[0])===24);
@@ -87,16 +96,10 @@ export async function executeNativeCheckoutOperator() {
   try{guard(anonymous.status===404);}finally{void anonymous.body?.cancel().catch(()=>undefined);}
   const existing=await gh('actions/workflows/checkout-staging.yml/runs?event=workflow_dispatch&branch=main&per_page=30');
   guard(Array.isArray(existing.workflow_runs)&&!existing.workflow_runs.some(run=>['queued','in_progress','waiting','pending','requested'].includes(run.status)));
-  const seen=new Set(existing.workflow_runs.map(run=>run.id));
   phase='native-dispatch';progress();original('workflow-dispatch.intent.json',{headSha:head,releaseId,maximumPosts:1,retryAllowed:false});
-  await gh('actions/workflows/checkout-staging.yml/dispatches','POST',{ref:'main',inputs:{expected_sha:head,release_id:String(releaseId)}},204);
-  let run;const discoveryEnd=Date.now()+600000;
-  while(!run){
-   guard(Date.now()<discoveryEnd);const runs=await gh('actions/workflows/checkout-staging.yml/runs?event=workflow_dispatch&branch=main&per_page=30');
-   const matches=runs.workflow_runs.filter(value=>!seen.has(value.id)&&value.head_sha===head&&value.actor?.login===approved.actor&&value.event==='workflow_dispatch');
-   guard(matches.length<=1);run=matches[0];if(!run)await new Promise(resolve=>setTimeout(resolve,3000));
-  }
-  const runId=String(run.id);run=await gh(`actions/runs/${runId}`);
+  const dispatched=await gh('actions/workflows/checkout-staging.yml/dispatches','POST',{ref:'main',inputs:{expected_sha:head,release_id:String(releaseId)}},200);
+  const runId=checkoutDispatchRunId(dispatched),discoveryEnd=Date.now()+600000;
+  const run=await gh(`actions/runs/${runId}`);
   guard(String(run.id)===runId&&run.head_sha===head&&run.run_attempt===1&&run.head_branch==='main'&&run.event==='workflow_dispatch'&&
    run.actor?.login===approved.actor&&run.triggering_actor?.login===approved.actor&&run.path==='.github/workflows/checkout-staging.yml');
   original('workflow-dispatch.result.json',{runId,headSha:head,releaseId,retryAllowed:false});

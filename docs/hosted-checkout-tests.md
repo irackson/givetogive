@@ -15,6 +15,14 @@ use the dedicated Checkout workflow identity and exact run-detail branch readbac
 The local fresh-proof responder and dedicated transfer-key configuration are
 complete. Source approvals preserve whole historical tuples and append separately
 reviewed current tuples. Actual hosted paid acceptance remains unfinished.
+The corrected run `37851090858` passed actual Linux Chromium/CDP smoke and
+published native readiness at 22:04:50 UTC on October 8. The local operator
+expected legacy dispatch HTTP 204, but API version 2026-03-10 returns HTTP 200
+with the created run ID. This was the dispatch failure, not a missing branch
+field. The response now validates that exact returned ID and both canonical URLs.
+After its readiness expired with no input, the waiting run was deliberately
+cancelled and verified terminal. Its draft remained empty; no remote final was
+uploaded. Original local evidence and financial admission remain unchanged.
 Do not dispatch the historical policy/source tuple against the new adapter code.
 Offline tests are not payment acceptance.
 
