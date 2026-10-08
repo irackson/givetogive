@@ -21,6 +21,12 @@ export const approved = Object.freeze({
 export const approvedSourceTuples = Object.freeze([
  Object.freeze({ sourceDigest: approved.sourceDigest, canonicalSourceDigest: approved.canonicalSourceDigest,
   rootLockDigest: approved.rootLockDigest, runnerDigest: approved.runnerDigest }),
+ // Reviewed runner ed071fe; canonical Git application bytes remain identical
+ // to the staging deployment. This tuple is not runtime/payment acceptance.
+ Object.freeze({ sourceDigest: '4965f8838ce2c870c9fb8542878fab94fbb65d3beef43d9533ea1aec8dcc976a',
+  canonicalSourceDigest: '253f82bf1e6b403a917d45a3836218642b26fd3ab1550eadf493b67554b59ae8',
+  rootLockDigest: '9ac35921aee67783a92cbef09ed109e5ef6ac073f41cbec85164bbf0e66952fb',
+  runnerDigest: 'ba09fc3ca2b4784e55184a3611e97a40a3a4608553bc1f651b74287445c26b66' }),
 ]);
 export function approvedSourceTuple(value: { canonicalSourceDigest: string; rootLockDigest: string; runnerDigest: string; sourceDigest?: string }) {
  return approvedSourceTuples.find(tuple => tuple.canonicalSourceDigest === value.canonicalSourceDigest &&

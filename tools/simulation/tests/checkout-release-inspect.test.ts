@@ -23,3 +23,8 @@ test('unsupported mutation/retry arguments fail with fixed diagnostics before ex
   assert.match(result.stderr, /release unconfirmed; private details withheld/);
  }
 });
+test('fast release checks reject invented or deserialized snapshots before any native access', async () => {
+ const { recheckLocalCheckoutRelease } = await import('../../../scripts/checkout-release-inspect.mjs');
+ for (const snapshot of [undefined, {}, { ready: true, headSha: 'a'.repeat(40), sourceDigest: 'b'.repeat(64) }])
+  await assert.rejects(recheckLocalCheckoutRelease(snapshot as never), /release unconfirmed/);
+});

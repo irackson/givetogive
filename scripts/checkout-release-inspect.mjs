@@ -25,7 +25,16 @@ function api(path) {
  const bytes = vc(['api', `${path}?teamId=${team}`, '--raw']);
  try { return JSON.parse(bytes.toString('utf8')); } finally { bytes.fill(0); }
 }
-export async function inspectLocalCheckoutRelease() {
+const verifiedSnapshots = new WeakSet();
+export async function inspectLocalCheckoutRelease() { return inspectRelease(); }
+/** Only a full native observation from this process may enable the fast check.
+ * Preserve its source observation time; refreshing hosting gates is not fresh
+ * source approval, provider proof or hosted free-memory evidence. */
+export async function recheckLocalCheckoutRelease(original) {
+ guard(original && verifiedSnapshots.has(original));
+ return inspectRelease(original);
+}
+async function inspectRelease(original) {
  let phase = 'local-source';
  try {
   const observedAt = new Date().toISOString();
@@ -34,6 +43,7 @@ export async function inspectLocalCheckoutRelease() {
   guard(git(['branch','--show-current']).toString().trim() === 'main' &&
    git(['status','--porcelain','--untracked-files=no']).toString().trim() === '');
   git(['verify-commit', head]);
+  if (original) guard(head === original.headSha && releaseSourceDigest(root) === original.sourceDigest);
   // Different tooling commits may use the SAME authored application. Verify the
   // actual app bytes, not equality between the runner and deployed Git SHAs.
   guard(git(['diff','--name-only', appSha, head, '--', ...names]).toString().trim() === '');
@@ -47,8 +57,8 @@ export async function inspectLocalCheckoutRelease() {
     for (const name of rows.sort()) visit(`${path}/${name}`);
    } else { guard(type === 'blob'); hash.update(path).update('\0').update(git(['show',`${head}:${path}`])).update('\0'); }
   }
-  for (const name of names) if (git(['ls-tree','--name-only',head,'--',name]).toString().trim()) visit(name);
-  const canonicalSourceDigest = hash.digest('hex');
+  if (!original) for (const name of names) if (git(['ls-tree','--name-only',head,'--',name]).toString().trim()) visit(name);
+  const canonicalSourceDigest = original ? original.canonicalSourceDigest : hash.digest('hex');
   const rootLockDigest = createHash('sha256').update(git(['show',`${head}:package-lock.json`])).digest('hex');
   // Explicit context inspection; never rewrite the checkout's production link.
   phase = 'hosting-metadata';
@@ -74,10 +84,12 @@ export async function inspectLocalCheckoutRelease() {
   const after = api('/v4/aliases/givetogive-staging.vercel.app');
   guard(after.projectId === projectId && after.deployment?.id === deploymentId &&
    git(['rev-parse','HEAD']).toString().trim() === head && git(['status','--porcelain','--untracked-files=no']).toString().trim() === '');
-  return { observedAt, headSha: head, deploymentId, deployedAppSha: appSha, canonicalSourceDigest, rootLockDigest,
+  const result = Object.freeze({ observedAt, sourceObservedAt: original ? original.sourceObservedAt : observedAt,
+   headSha: head, deploymentId, deployedAppSha: appSha, canonicalSourceDigest, rootLockDigest,
    sourceDigest: releaseSourceDigest(root), ready: true, protected: true, nodeVersion: '24.x',
    runtimeGatesVerified: true, publishableKeyMatchesLocal: true, deployedCanonicalAppMatchesHead: true,
-   sourceApprovalStillRequired: true, financialAdmission: false, databaseWrites: 0, memberActions: 0, paymentAccepted: false };
+   sourceApprovalStillRequired: true, financialAdmission: false, databaseWrites: 0, memberActions: 0, paymentAccepted: false });
+  verifiedSnapshots.add(result); return result;
  } catch { throw Error(`Checkout staging release unconfirmed; private details withheld; stage=${phase}.`); }
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
