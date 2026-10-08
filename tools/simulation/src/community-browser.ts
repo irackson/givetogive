@@ -4,6 +4,7 @@ import { safeBrowsePath } from './browser.ts';
 import {
 	ActivitySelectionChanged,
 	freshContributionTarget,
+	freshContributionStatusTarget,
 	type Activity,
 	type Ask,
 	type EntityRef,
@@ -11,7 +12,7 @@ import {
 import { protectionHeaders } from './protection.ts';
 import { ApiRejection, UiObservationUnavailable, type UiSession } from './ui-session.ts';
 import {
-	BrowserWorkflowFailure, BrowserObservationUnavailable, BrowserApiRejection, observeContributionControl, isBeforeMutationObservation,
+	BrowserWorkflowFailure, BrowserObservationUnavailable, BrowserApiRejection, observeContributionControl, observeContributionStatusControl, isBeforeMutationObservation,
 	type BrowserObservationState,
 } from './browser-observation.ts';
 import { Semaphore } from './semaphore.ts';
@@ -320,18 +321,17 @@ export class CommunityBrowser {
 					const row = page.locator(
 						`[data-contribution-id="${entity.id}"]`,
 					);
-					await row.waitFor();
-					await row
-						.getByRole('button', {
-							name:
-								line.status === 'completed' ?
-									'Mark complete'
-								:	'Cancel',
-							exact: true,
-						})
-						.click();
 					const dialog = page.getByRole('dialog');
-					await dialog.waitFor();
+					await observeContributionStatusControl(observation,
+						() => freshContributionStatusTarget(api, entity, line.status),
+						async () => {
+							await row.waitFor();
+							await row.getByRole('button', {
+								name: line.status === 'completed' ? 'Mark complete' : 'Cancel',
+								exact: true,
+							}).click();
+							await dialog.waitFor();
+						}, admit);
 					await confirmMutation(() =>
 						dialog
 							.getByRole('button', {

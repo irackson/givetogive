@@ -1770,3 +1770,37 @@ helpers/checkpoint: `tmp/community-stage/oct8-full-hour-active.md` (its RUNNING
 observation is historical now), `tmp/inspect-oct8-community-progress.mjs`,
 `tmp/hosted-community-operator-oct8b.mjs`. Paid Stripe lifecycle acceptance and
 fresh final PDF remain open; goal is active, no production-money gates enabled.
+## October 8 native full-cohort lifecycle race and retirement
+
+Full cohort `58568b0d-6eea-42cc-8bb9-faa8c32af1b4`, GitHub run
+`37824068815`, failed rather than completing the hour acceptance gate. All 253
+members acted; 1,243 actions succeeded before a browser halted in
+`contribution_history`, before mutation admission or submission. Nearby journal
+and read-only database evidence is consistent with another member cancelling a
+pledge on the same Ask while the owner opened its completion control. The failed
+browser did not retain the selected contribution ID; the exact race is not proven.
+
+The browser lifecycle branch now rechecks the exact contribution through the
+normal read-only UI API before opening a dialog, after opening it, and after a
+control-opening failure. Only an authoritative ineligible/terminal/missing target
+can become pre-submit waiting. A still-eligible target preserves the UI failure;
+post-admission ambiguity, console errors, and transport errors remain failures.
+There is no API mutation fallback, replacement-target selection, or fake success.
+Eleven new regression tests pass; simulator TypeScript checks and explicit
+zero-warning lint pass, along with all 144 root unit tests. The prior full simulator
+suite passed 284 tests including these additions and the four preserved Checkout
+work-in-progress files. These local checks are not fresh hosted acceptance.
+
+Retirement used one normal authenticated admin Stop and a control-only checkpoint
+on copies of recovered journals. Readback confirms stopped, controller released,
+and zero active/queued workers. Original snapshots, all 1,258 action outcomes,
+and historical member states were preserved; no member activity was replayed.
+Receipt: `tmp/community-retirement-oct8-native/receipt-1791484871460.json`.
+Original recovery:
+`tmp/hosted-community-recovered/58568b0d-6eea-42cc-8bb9-faa8c32af1b4-20261008T182933Z-5795eb98a2d2`.
+
+Next: signed source checkpoint, fresh exact-head hosted rehearsal and independent
+full253 acceptance. Preserve all historical approval entries and failed evidence;
+do not resume or reset this retired cohort. Paid-tier lifecycle acceptance,
+unfinished Checkout work, final artifacts, and production rollout remain open.
+Production financial gates remain dark. The goal is active, not complete.

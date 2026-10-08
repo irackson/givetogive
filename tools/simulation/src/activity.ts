@@ -168,6 +168,31 @@ export async function freshContributionTarget(
 		throw new ActivitySelectionChanged();
 	return ask;
 }
+/** Exact lifecycle target recheck; never substitutes a different pledge or writes. */
+export async function freshContributionStatusTarget(
+	api: UiApi,
+	entity: EntityRef,
+	status: 'completed' | 'cancelled',
+) {
+	if (entity.kind !== 'contribution' || !entity.askId)
+		throw new Error('An exact contribution and parent Ask are required.');
+	const detail = askSchema.extend({
+		contributions: z.array(z.object({
+			id: z.number().int().positive(),
+			contributorId: z.string(),
+			status: z.enum(['pledged', 'completed', 'cancelled']),
+		})),
+	}).parse(await api.query('ask.getAsk', { id: entity.askId }));
+	if (detail.id !== entity.askId)
+		throw new Error('Contribution parent identity mismatch.');
+	const pledge = detail.contributions.find(row => row.id === entity.id);
+	if (detail.type === 'money' || detail.paymentEnabled || !pledge ||
+		pledge.status !== 'pledged' ||
+		(pledge.contributorId !== api.userId &&
+			(status === 'cancelled' || detail.createdById !== api.userId)))
+		throw new ActivitySelectionChanged();
+	return pledge;
+}
 export function parseActivity(source: string) {
 	const rows = source
 		.split(/\r?\n/)

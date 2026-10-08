@@ -58,6 +58,33 @@ export function browserDiagnostic(error: unknown): Partial<ReturnType<typeof sna
 		return { ...error.diagnostic };
 	return {};
 }
+/** A disappearing lifecycle control is waiting ONLY when its exact API target changed. */
+export async function observeContributionStatusControl(
+	state: BrowserObservationState,
+	observeEligibleTarget: () => Promise<unknown>,
+	openControl: () => Promise<unknown>,
+	admit: () => void = () => {},
+) {
+	const assert = () => {
+		if (state.phase !== 'contribution_history' || !isBeforeMutationObservation(state))
+			throw new BrowserWorkflowFailure(state);
+		admit();
+	};
+	assert();
+	await observeEligibleTarget();
+	assert();
+	try { await openControl(); }
+	catch (error) {
+		assert();
+		// An authoritative terminal/missing/unauthorized pledge throws selection changed.
+		// If it is still eligible, preserve the original UI error, not a fabricated wait.
+		await observeEligibleTarget();
+		throw error;
+	}
+	assert();
+	await observeEligibleTarget();
+	assert();
+}
 function assertBeforeMutation(state: BrowserObservationState) {
 	if (!isBeforeMutationObservation(state) || !['contribution_target', 'contribution_view', 'contribution_control'].includes(state.phase))
 		throw new BrowserWorkflowFailure(state);
