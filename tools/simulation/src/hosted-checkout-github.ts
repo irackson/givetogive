@@ -4,7 +4,8 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import { approved, assetName, limits, validateAssetSet, validateManifest, type Manifest } from './hosted-checkout-policy.ts';
+import { approved, assetName, limits, validateAssetSet, validateManifest, type Manifest, type CheckoutAssetBinding } from './hosted-checkout-policy.ts';
+import { inputMailboxBinding } from './checkout-input-mailbox.ts';
 
 export type CheckoutAssetPhase = Parameters<typeof assetName>[1];
 const phases: readonly CheckoutAssetPhase[] = ['input','open-proof','submit-proof','ack-intent','submit-intent','final'];
@@ -23,23 +24,32 @@ const bodySchema = z.object({protocol:z.literal(1),purpose:z.literal('one-member
 export type RetainedCheckoutAsset = {phase:CheckoutAssetPhase;assetId:number;name:string;size:number;ciphertextDigest:string;
  releaseId:number;jobId:string;jobNonce:string;headSha:string;operationId:string;anonymousDraft404:true;anonymousAsset404:true;
  observedAt:string;exactRetainedAssetVerified:true;readbackVerified:true;retryAllowed:false;paymentAccepted:false};
+export function validateRetainedCheckoutAsset(raw:unknown):RetainedCheckoutAsset {
+ try{return z.object({phase:z.enum(phases),assetId:z.number().int().positive(),name:z.string().max(512),size:z.number().int().min(37).max(limits.checkpointBytes),
+  ciphertextDigest:z.string().regex(/^[a-f0-9]{64}$/),releaseId:z.number().int().positive(),jobId:z.string().regex(/^[1-9][0-9]{0,19}$/),
+  jobNonce:z.string().regex(/^[a-f0-9]{32}$/),headSha:z.string().regex(/^[a-f0-9]{40}$/),operationId:z.literal(approved.operationId),
+  anonymousDraft404:z.literal(true),anonymousAsset404:z.literal(true),observedAt:z.iso.datetime(),exactRetainedAssetVerified:z.literal(true),
+  readbackVerified:z.literal(true),retryAllowed:z.literal(false),paymentAccepted:z.literal(false)}).strict().parse(raw);
+ }catch{return fail();}
+}
 type Dependencies = { request?:typeof fetch; now?:()=>number;
  pause?:(milliseconds:number,signal:AbortSignal)=>Promise<unknown> };
 
 /** No release/tag mutation APIs. Token stays in this broker-owned object, never in worker output. */
-export class CheckoutPrivateDraft {
- readonly manifest: Manifest;
+class CheckoutDraftTransport {
+ private binding: CheckoutAssetBinding;
+ private allowed: readonly CheckoutAssetPhase[];
  private token: string;
  private request: typeof fetch;
  private now: ()=>number;
  private pause: (milliseconds:number,signal:AbortSignal)=>Promise<unknown>;
  private downloads = new Set<CheckoutAssetPhase>();
  private uploads = new Set<CheckoutAssetPhase>();
- constructor(rawManifest:unknown,expectedHead:string,token:string,dependencies:Dependencies={}) {
+ constructor(binding:CheckoutAssetBinding,token:string,dependencies:Dependencies,allowed:readonly CheckoutAssetPhase[]) {
   this.now=dependencies.now??Date.now;
-  this.manifest=validateManifest(rawManifest,expectedHead,this.now());
+  this.binding=structuredClone(binding);this.allowed=allowed;
   const freeze=(value:object)=>{for(const child of Object.values(value))if(child&&typeof child==='object')freeze(child);Object.freeze(value);};
-  freeze(this.manifest);
+  freeze(this.binding);
   guard(typeof token==='string'&&token.length>=20&&token.length<=4096&&!/[\r\n]/.test(token));this.token=token;
   this.request=dependencies.request??fetch;
   this.pause=dependencies.pause??((milliseconds,signal)=>sleep(milliseconds,undefined,{signal}));
@@ -71,16 +81,16 @@ export class CheckoutPrivateDraft {
   try{return JSON.parse(bytes.toString('utf8')) as unknown;}finally{bytes.fill(0);}
  }
  private inventory(raw:unknown):Release {
-  const value=releaseSchema.parse(raw),m=this.manifest;
+  const value=releaseSchema.parse(raw),m=this.binding;
   guard(value.id===m.releaseId&&value.target_commitish===m.job.headSha&&value.tag_name===`checkout-acceptance-${m.operationId}`);
   const association=bodySchema.parse(JSON.parse(value.body));guard(association.headSha===m.job.headSha);
-  const names=phases.map(phase=>assetName(m,phase));
+  const names=this.allowed.map(phase=>assetName(m,phase));
   guard(value.assets.every(asset=>names.includes(asset.name))&&new Set(value.assets.map(asset=>asset.name)).size===value.assets.length
    &&new Set(value.assets.map(asset=>asset.id)).size===value.assets.length);
   return value;
  }
  private async inspectInternal(signal:AbortSignal):Promise<Release> {
-  this.active(signal);const response=await this.request(this.api(`releases/${this.manifest.releaseId}`),
+  this.active(signal);const response=await this.request(this.api(`releases/${this.binding.releaseId}`),
    {headers:this.headers(),redirect:'error',signal:this.signal(signal)});
   if(response.status!==200){void response.body?.cancel().catch(()=>undefined);fail();}
   return this.inventory(await this.json(response,signal));
@@ -90,8 +100,8 @@ export class CheckoutPrivateDraft {
   try{this.active(signal);guard(response.status===404);}finally{void response.body?.cancel().catch(()=>undefined);}
  }
  async inspect(signal?:AbortSignal):Promise<{releaseId:number;assets:{id:number;name:string;size:number;digest:string}[];privateDraftVerified:true}> {
-  try{const active=this.signal(signal);await this.private404(`releases/${this.manifest.releaseId}`,active);
-   const value=await this.inspectInternal(active);await this.private404(`releases/${this.manifest.releaseId}`,active);
+  try{const active=this.signal(signal);await this.private404(`releases/${this.binding.releaseId}`,active);
+   const value=await this.inspectInternal(active);await this.private404(`releases/${this.binding.releaseId}`,active);
    return {releaseId:value.id,assets:value.assets.map(({id,name,size,digest})=>({id,name,size,digest})),privateDraftVerified:true};
   }catch{fail();}
  }
@@ -99,7 +109,7 @@ export class CheckoutPrivateDraft {
  private async downloadSelected(file:Asset,signal:AbortSignal):Promise<Buffer> {
   let bytes:Buffer|undefined,response:Response|undefined;
   try{
-   await this.private404(`releases/${this.manifest.releaseId}`,signal);await this.private404(`releases/assets/${file.id}`,signal);
+   await this.private404(`releases/${this.binding.releaseId}`,signal);await this.private404(`releases/assets/${file.id}`,signal);
    this.same((await this.inspectInternal(signal)).assets.find(asset=>asset.name===file.name),file);
    response=await this.request(this.api(`releases/assets/${file.id}`),
     {headers:{...this.headers(),Accept:'application/octet-stream'},redirect:'manual',signal:this.signal(signal)});
@@ -113,7 +123,7 @@ export class CheckoutPrivateDraft {
    bytes=await this.stream(response,limits.checkpointBytes,signal,file.size);
    guard(bytes.subarray(0,8).toString()==='G2GHOST1'&&file.digest===`sha256:${sha256(bytes)}`);
    this.same((await this.inspectInternal(signal)).assets.find(asset=>asset.name===file.name),file);
-   await this.private404(`releases/${this.manifest.releaseId}`,signal);await this.private404(`releases/assets/${file.id}`,signal);
+   await this.private404(`releases/${this.binding.releaseId}`,signal);await this.private404(`releases/assets/${file.id}`,signal);
    this.active(signal);return bytes;
   }catch{bytes?.fill(0);return fail();}finally{void response?.body?.cancel().catch(()=>undefined);}
  }
@@ -121,10 +131,10 @@ export class CheckoutPrivateDraft {
   * Returned owned ciphertext must be wiped by its recipient after validation/decryption. */
  async download(phase:CheckoutAssetPhase,parent?:AbortSignal):Promise<Buffer> {
   try{
-   guard(phases.includes(phase)&&!this.downloads.has(phase));this.downloads.add(phase);
-   const signal=this.signal(parent,600000),deadline=this.now()+600000,name=assetName(this.manifest,phase);
+   guard(this.allowed.includes(phase)&&!this.downloads.has(phase));this.downloads.add(phase);
+   const signal=this.signal(parent,600000),deadline=this.now()+600000,name=assetName(this.binding,phase);
    const active=()=>{this.active(signal);guard(this.now()<deadline);};
-   active();await this.private404(`releases/${this.manifest.releaseId}`,signal);
+   active();await this.private404(`releases/${this.binding.releaseId}`,signal);
    let file:Asset|undefined;
    while(!file){active();file=(await this.inspectInternal(signal)).assets.find(asset=>asset.name===name);active();
     if(!file){await this.pause(Math.min(5000,Math.max(0,deadline-this.now())),signal);active();}}
@@ -136,17 +146,17 @@ export class CheckoutPrivateDraft {
  async upload(phase:CheckoutAssetPhase,ciphertext:Buffer,parent?:AbortSignal):Promise<RetainedCheckoutAsset> {
   let owned:Uint8Array<ArrayBuffer>|undefined,readback:Buffer|undefined;
   try{
-   guard(phases.includes(phase)&&!this.uploads.has(phase)&&!this.downloads.has(phase));this.uploads.add(phase);this.downloads.add(phase);
+   guard(this.allowed.includes(phase)&&!this.uploads.has(phase)&&!this.downloads.has(phase));this.uploads.add(phase);this.downloads.add(phase);
    guard(Buffer.isBuffer(ciphertext)&&ciphertext.length>36&&ciphertext.length<=limits.checkpointBytes&&ciphertext.subarray(0,8).toString()==='G2GHOST1');
    // Snapshot BEFORE the first await so caller mutation cannot alter the admitted ciphertext.
    owned=new Uint8Array(ciphertext);const expectedDigest=sha256(owned),expectedSize=owned.length;
-   const signal=this.signal(parent,180000),name=assetName(this.manifest,phase);
-   await this.private404(`releases/${this.manifest.releaseId}`,signal);
+   const signal=this.signal(parent,180000),name=assetName(this.binding,phase);
+   await this.private404(`releases/${this.binding.releaseId}`,signal);
    const before=await this.inspectInternal(signal);
-   validateAssetSet(before.assets.map(({id,name,size,digest})=>({id,name,size,digest:digest.slice(7)})),this.manifest,phase);
-   await this.private404(`releases/${this.manifest.releaseId}`,signal);
+   validateAssetSet(before.assets.map(({id,name,size,digest})=>({id,name,size,digest:digest.slice(7)})),this.binding,phase);
+   await this.private404(`releases/${this.binding.releaseId}`,signal);
    this.active(signal);
-   const response=await this.request(`https://uploads.github.com/repos/${approved.repository}/releases/${this.manifest.releaseId}/assets?name=${encodeURIComponent(name)}`,
+   const response=await this.request(`https://uploads.github.com/repos/${approved.repository}/releases/${this.binding.releaseId}/assets?name=${encodeURIComponent(name)}`,
     {method:'POST',headers:{...this.headers(),'Content-Type':'application/octet-stream','Content-Length':String(expectedSize)},
      body:owned,redirect:'error',signal:this.signal(signal,120000)});
    if(response.status!==201){void response.body?.cancel().catch(()=>undefined);fail();}
@@ -154,9 +164,31 @@ export class CheckoutPrivateDraft {
    guard(uploaded.name===name&&uploaded.size===expectedSize&&uploaded.digest===`sha256:${expectedDigest}`);
    const after=await this.inspectInternal(signal),file=after.assets.find(asset=>asset.name===name);this.same(file,uploaded);
    readback=await this.downloadSelected(uploaded,signal);guard(readback.length===expectedSize&&sha256(readback)===expectedDigest);
-   return {phase,assetId:uploaded.id,name,size:expectedSize,ciphertextDigest:expectedDigest,releaseId:this.manifest.releaseId,
-    jobId:this.manifest.job.id,jobNonce:this.manifest.job.nonce,headSha:this.manifest.job.headSha,operationId:this.manifest.operationId,
+   return {phase,assetId:uploaded.id,name,size:expectedSize,ciphertextDigest:expectedDigest,releaseId:this.binding.releaseId,
+    jobId:this.binding.job.id,jobNonce:this.binding.job.nonce,headSha:this.binding.job.headSha,operationId:this.binding.operationId,
     observedAt:new Date(this.now()).toISOString(),anonymousDraft404:true,anonymousAsset404:true,exactRetainedAssetVerified:true,readbackVerified:true,retryAllowed:false,paymentAccepted:false};
   }catch{return fail();}finally{owned?.fill(0);readback?.fill(0);}
+ }
+}
+/** Normal member transport still requires a complete fresh financial manifest. */
+export class CheckoutPrivateDraft extends CheckoutDraftTransport {
+ readonly manifest:Manifest;
+ constructor(raw:unknown,head:string,token:string,dependencies:Dependencies={}) {
+  const manifest=validateManifest(raw,head,(dependencies.now??Date.now)());
+  super(manifest,token,dependencies,phases);this.manifest=manifest;
+  const freeze=(value:object)=>{for(const child of Object.values(value))if(child&&typeof child==='object')freeze(child);Object.freeze(value);};freeze(manifest);
+ }
+}
+/** Pre-parent failure retention only: no financial manifest is fabricated or
+ * freshened. Rejects any parent-phase assets, all downloads and non-final writes.
+ * Caller must fsync its exclusive failure-upload intent before invoking upload. */
+export class CheckoutBootstrapFailureDraft extends CheckoutDraftTransport {
+ constructor(raw:unknown,head:string,token:string,dependencies:Dependencies={}) {
+  const value=inputMailboxBinding.parse(raw);guard(value.headSha===head);
+  super({releaseId:value.releaseId,operationId:approved.operationId,job:{id:value.jobId,nonce:value.jobNonce,headSha:head}},token,dependencies,['input','final']);
+ }
+ override async download():Promise<Buffer>{return fail();}
+ override async upload(phase:CheckoutAssetPhase,bytes:Buffer,signal?:AbortSignal) {
+  guard(phase==='final');return super.upload(phase,bytes,signal);
  }
 }

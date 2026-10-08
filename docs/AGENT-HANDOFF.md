@@ -2,6 +2,31 @@
 
 ## October 8 latest override: lifecycle hour failed and was safely retired
 
+Recovery/responder continuation: callable `checkout-bootstrap-retention.ts`
+preserves exact original pre-parent failure files with real exclusive/fsynced
+permission and encrypted reserved-final transfer. A manifest-free final-only
+transport reuses the reviewed private readback implementation without fabricating
+financial proof; rejects all parent-phase assets/downloads/non-final writes;
+never retries; and is never fallback after the parent is invoked. Recovery is
+bound only after the actual job identity is known. Pre-identity failure never
+announces readiness or admits member work. Actual hosted recovery remains unproven.
+`checkout-root-responder.ts` durably admits one original request/provider round/
+response upload, invokes mandatory current binding verification, checks fresh
+exact pre-submit proof and encrypted response readback, preserves original times,
+and fails without replay on stale/changed/uncertain evidence. Callable/injected
+tests are not actual provider acceptance or a finished local operator pipeline.
+
+Dedicated `CHECKOUT_STAGING_BUNDLE_KEY` is now provisioned in GitHub Actions.
+Local CurrentUser Windows DPAPI protect/decrypt/compare passed; GitHub accepted
+one write and name readback. Value readback is unavailable; actual hosted shared
+decrypt still needs testing. Protected originals/intents are ignored under
+`tools/simulation/.state/checkout-key/`. Never rerun provisioning or rotate the
+key automatically. No provider/database/admin credentials transferred.
+Full local simulator suite:352 passed/1 Linux-only skip; types/explicit lint pass.
+Next: current source approval and actual root readiness/preparation wiring, then
+bounded native Checkout and independent signed-webhook/coverage/ledger/normal-tier
+acceptance. No native dispatch, Checkout creation/submission or paid grant occurred.
+
 Native bootstrap continuation: `checkout-bootstrap.ts`, initial encrypted
 `checkout-input-mailbox.ts` and guarded `.github/workflows/checkout-staging.yml`
 are wired. Linux/Node/Git/source checks precede readiness. Exclusive/fsynced

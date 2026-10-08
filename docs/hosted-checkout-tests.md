@@ -6,8 +6,9 @@ member, guarded Linux member entrypoint, durable parent filesystem adapter,
 bounded ordered IPC, encrypted fresh-proof exchange, local-only provider GET
 reader and the Linux parent integration. They have no automatic execution.
 The dedicated native bootstrap/manual workflow is now wired, but has not been
-dispatched. The local fresh-proof responder, current approved source tuple,
-dedicated transfer-key configuration and actual hosted paid acceptance remain unfinished.
+dispatched. The local fresh-proof responder is callable and dedicated transfer-key
+configuration is complete. Current source approval, root readiness/preparation
+orchestration and actual hosted paid acceptance remain unfinished.
 Do not dispatch the historical policy/source tuple against the new adapter code.
 Offline tests are not payment acceptance.
 
@@ -34,12 +35,32 @@ still contains only four allowlisted non-secret variables.
 `checkout-bootstrap.ts --execute-native-bootstrap` is the only native entrypoint.
 It has no injected runtime route. Policy/HTTP tests are offline only. The current
 historical source tuple intentionally prevents native readiness on the new code;
-append a separately reviewed current tuple before dispatch. Configure a dedicated
-`CHECKOUT_STAGING_BUNDLE_KEY`, not a Stripe/database/admin credential. Before
-actual execution, finish the root readiness observer/fresh-proof responder and
-review pre-parent failure evidence recovery; local bootstrap files alone are not
-proof of retention after an ephemeral runner disappears. No financial acceptance
-or complete hosted bootstrap recovery is established by offline tests.
+append a separately reviewed current tuple before dispatch. Before actual execution,
+finish the root readiness observer/preparation orchestration. The callable
+`checkout-root-responder.ts` durably admits one response, preserves original
+encrypted request/provider proof/response, invokes the mandatory current-binding
+verifier, obtains the local reader's fresh pre-submit round and retains one
+private response with readback. It never rewrites opening observation time.
+Stale/changed/uncertain responses, operator/provider failures and interruption
+stop without replay. Actual local operator wiring/provider acceptance is not
+established by injected tests.
+
+`checkout-bootstrap-retention.ts` handles failures after the exact native job
+binding is known and before invoking the member parent. It snapshots fixed
+original bootstrap files, encrypts failure evidence, fsyncs exclusive upload
+permission and uses the reserved final asset. Its manifest-free transport does
+not fabricate financial proofs; rejects parent-phase assets/downloads/non-final
+writes; and verifies exact private readback. It is never fallback after invoking
+the member parent, avoiding a second uncertain final transfer. Real local files/
+crypto plus injected remote tests pass; actual native remote recovery remains
+unverified. Failure before the job binding exists cannot publish a bound receipt
+and never announces readiness or admits member work.
+
+`CHECKOUT_STAGING_BUNDLE_KEY` was provisioned once through the GitHub CLI. The
+local copy is CurrentUser Windows DPAPI protected in ignored simulation state;
+actual decrypt/compare passed and GitHub accepted the write/name readback. The
+vault does not permit value readback; do not infer a verified hosted decrypt
+from metadata alone. No Stripe/database/admin credentials were transferred.
 
 The parent creates/fsyncs an exclusive lease before launching, rejects inherited
 credentials, independently checks kernel process identity during broker calls,

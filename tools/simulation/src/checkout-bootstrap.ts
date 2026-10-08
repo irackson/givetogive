@@ -13,7 +13,8 @@ import { checkoutParentSourceSnapshot,runHostedCheckoutParent } from './hosted-c
 import { publishCheckoutReadiness } from './checkout-readiness.ts';
 import { downloadBootstrapInput,checkoutResponseBytes } from './checkout-input-mailbox.ts';
 import { decryptInput } from './hosted-checkout-protocol.ts';
-import { CheckoutPrivateDraft } from './hosted-checkout-github.ts';
+import { CheckoutPrivateDraft,CheckoutBootstrapFailureDraft } from './hosted-checkout-github.ts';
+import { retainCheckoutBootstrapFailure } from './checkout-bootstrap-retention.ts';
 const base=fileURLToPath(new URL('../',import.meta.url));
 const fail=():never=>{throw Error('Native Checkout bootstrap stopped; originals retained; no financial retry.');};
 function guard(value:unknown):asserts value {if(!value)fail();}
@@ -48,6 +49,8 @@ function original(directory:string,name:string,value:unknown) {
 export async function executeCheckoutBootstrap() {
  let key:Buffer|undefined,inputBytes:Buffer|undefined;
  const controller=new AbortController(),stop=()=>controller.abort();let directory:string|undefined;
+ let recovery:{binding:{headSha:string;releaseId:number;jobId:string;jobNonce:string};token:string}|undefined;
+ let phase:'readiness'|'input-transfer'|'input-validation'|'member-environment'='readiness',parentInvoked=false;
  try {
   guard(process.argv.length===3&&process.argv[2]==='--execute-native-bootstrap');
   const config=checkoutBootstrapConfiguration(process.env,process.platform,Number(process.versions.node.split('.')[0]));
@@ -76,25 +79,36 @@ export async function executeCheckoutBootstrap() {
     status:z.literal('in_progress'),head_sha:z.literal(config.headSha),run_id:z.coerce.string().pipe(z.literal(config.runId))})).length(1)}).parse(JSON.parse(jobBytes.toString('utf8')));
    jobId=String(jobs.jobs[0]!.id);
   }finally{jobBytes.fill(0);}
+  recovery={binding:{headSha:config.headSha,releaseId:config.releaseId,jobId,jobNonce:nonce},token:config.token};
   const ready=await publishCheckoutReadiness({protocol:1,purpose:'checkout-parent-readiness',repository:approved.repository,
    headSha:config.headSha,runId:config.runId,jobId,jobNonce:nonce,observedAt:new Date().toISOString(),...source,freeBytes:freemem(),
    bootstrapSourceApprovalStillRequired:true,noCheckoutAdmission:true,paymentAccepted:false,retryAllowed:false},config.headSha,
    {token:config.token,directory,signal});
   guard(ready.transportEvidence==='github-live-run-job-readback');
+  phase='input-transfer';
   const transferred=await downloadBootstrapInput({headSha:config.headSha,releaseId:config.releaseId,jobId,jobNonce:nonce},
    {token:config.token,signal,persistSelection:value=>original(directory!,'input-selection.intent.json',value)});
   inputBytes=transferred.ciphertext;original(directory,'original-input.g2genc',inputBytes);
+  phase='input-validation';
   const input=decryptInput(inputBytes,key,config.headSha,Date.now());
   guard(input.manifest.releaseId===config.releaseId&&input.manifest.job.id===jobId&&input.manifest.job.nonce===nonce);
+  phase='member-environment';
   const home=join(directory,'member-home'),temp=join(directory,'member-tmp');mkdirSync(home,{mode:0o700});mkdirSync(temp,{mode:0o700});
   const executable=chromium.executablePath();guard(lstatSync(executable).isFile());
   const environment=validateChildEnvironment({PATH:config.path,HOME:home,TMPDIR:temp,PLAYWRIGHT_BROWSERS_PATH:checkoutBrowserCacheRoot(executable)});
   const draft=new CheckoutPrivateDraft(input.manifest,config.headSha,config.token);
+  parentInvoked=true;
   const result=await runHostedCheckoutParent(input,config.headSha,{root:directory,key,draft,memberEnvironment:environment,signal});
   original(directory,'bootstrap-result.json',{protocol:1,parentFailed:result.failed,finalRetentionVerified:!result.privateFinalRetentionStillRequired,
    nativeBootstrap:true,jobId,jobNonce:nonce,headSha:config.headSha,paymentAccepted:false,retryAllowed:false});
   guard(!result.failed);return {nativeBootstrap:true,privateFinalRetentionVerified:true,paymentAccepted:false,retryAllowed:false};
- }catch{return fail();}finally{key?.fill(0);inputBytes?.fill(0);process.off('SIGTERM',stop);process.off('SIGINT',stop);}
+ }catch{
+  if(!parentInvoked&&recovery&&directory&&key){
+   const draft=new CheckoutBootstrapFailureDraft(recovery.binding,recovery.binding.headSha,recovery.token);
+   await retainCheckoutBootstrapFailure(recovery.binding,directory,key,phase,draft,AbortSignal.timeout(180000));
+  }
+  return fail();
+ }finally{key?.fill(0);inputBytes?.fill(0);process.off('SIGTERM',stop);process.off('SIGINT',stop);}
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
  executeCheckoutBootstrap().then(result=>console.log(JSON.stringify(result))).catch(()=>{

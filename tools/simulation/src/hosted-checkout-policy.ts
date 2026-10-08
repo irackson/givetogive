@@ -208,10 +208,11 @@ export function validateChildEnvironment(raw: unknown): Record<string, string> {
 	return parse(z.object({ PATH: z.string().min(1), HOME: z.string().min(1), TMPDIR: z.string().min(1),
 		PLAYWRIGHT_BROWSERS_PATH: z.string().min(1) }).strict(), raw);
 }
-export function assetName(manifest: Manifest, phase: 'input' | 'open-proof' | 'submit-proof' | 'ack-intent' | 'submit-intent' | 'final') {
+export type CheckoutAssetBinding = Pick<Manifest, 'releaseId' | 'operationId'> & { job: Pick<Manifest['job'], 'id' | 'nonce' | 'headSha'> };
+export function assetName(manifest: CheckoutAssetBinding, phase: 'input' | 'open-proof' | 'submit-proof' | 'ack-intent' | 'submit-intent' | 'final') {
 	return `checkout-${manifest.operationId}-${manifest.job.id}-1-${manifest.job.nonce}-${phase}.g2genc`;
 }
-export function validateAssetSet(raw: unknown, manifest: Manifest, next: Parameters<typeof assetName>[1]) {
+export function validateAssetSet(raw: unknown, manifest: CheckoutAssetBinding, next: Parameters<typeof assetName>[1]) {
 	const rows = parse(z.array(z.object({ id: z.number().int().positive(), name: z.string(), digest: sha,
 		size: z.number().int().positive().max(limits.checkpointBytes) }).strict()).max(limits.maxAssets), raw);
 	const phases = ['input', 'open-proof', 'submit-proof', 'ack-intent', 'submit-intent', 'final'] as const;

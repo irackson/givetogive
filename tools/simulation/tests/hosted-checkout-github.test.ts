@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { CheckoutPrivateDraft, type CheckoutAssetPhase } from '../src/hosted-checkout-github.ts';
+import { CheckoutPrivateDraft, CheckoutBootstrapFailureDraft, type CheckoutAssetPhase } from '../src/hosted-checkout-github.ts';
 import { approved, assetName, limits, type Manifest } from '../src/hosted-checkout-policy.ts';
 
 // All data, tokens and ciphertext are PUBLIC OFFLINE fixtures. No actual network or secret input.
@@ -54,6 +54,20 @@ function fake(){
  const transport=new CheckoutPrivateDraft(m,HEAD,TOKEN,{request,now:()=>now,pause:async(ms,signal)=>{signal.throwIfAborted();pauses++;now+=ms;state.pauseHook?.();}});
  return{m,rows,bytes,calls,release,state,transport,add,request,get pauses(){return pauses;}};
 }
+
+test('pre-parent retention requires only exact binding, cannot download or write another phase, and rejects parent assets',async()=>{
+ const f=fake(),binding={headSha:HEAD,releaseId:f.m.releaseId,jobId:f.m.job.id,jobNonce:f.m.job.nonce};
+ const transport=new CheckoutBootstrapFailureDraft(binding,HEAD,TOKEN,{request:f.request,now:()=>NOW});
+ assert.equal(f.calls.length,0);
+ await assert.rejects(transport.download(),safeFailure);
+ await assert.rejects(transport.upload('input',ciphertext()),safeFailure);assert.equal(f.calls.length,0);
+ f.add('input');const result=await transport.upload('final',ciphertext());assert.equal(result.paymentAccepted,false);assert.equal(result.phase,'final');
+ await assert.rejects(transport.upload('final',ciphertext()),safeFailure);
+ assert.equal(f.calls.filter(call=>call.method==='POST').length,1);
+ const foreign=fake();foreign.add('open-proof');
+ const rejected=new CheckoutBootstrapFailureDraft(binding,HEAD,TOKEN,{request:foreign.request,now:()=>NOW});
+ await assert.rejects(rejected.upload('final',ciphertext()),safeFailure);assert.equal(foreign.calls.filter(call=>call.method==='POST').length,0);
+});
 
 test('constructor/import are inert and exact manifest/head are required before fake network',()=>{
  const f=fake();assert.equal(f.calls.length,0);
