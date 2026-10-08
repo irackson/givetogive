@@ -10,6 +10,16 @@ current approved source tuple and actual hosted paid acceptance remain unfinishe
 Do not dispatch the historical policy/source tuple against the new adapter code.
 Offline tests are not payment acceptance.
 
+The readiness transport is implemented in `checkout-readiness.ts`: it verifies
+the exact manual run, sole still-live `checkout-parent` job, actor, head, attempt
+and Linux runner label before publishing strictly public check-run metadata.
+Exclusive local admission precedes its one POST, then the live job and exact
+check-run readback are rechecked. It uses no encrypted asset slot and transfers
+no member/provider credential. Injected HTTP is permanently labeled offline.
+The native waiting bootstrap and source approval are NOT proved by this marker;
+root must independently recheck both and the still-live job before preparation.
+The dedicated workflow has not yet been wired or dispatched.
+
 The parent creates/fsyncs an exclusive lease before launching, rejects inherited
 credentials, independently checks kernel process identity during broker calls,
 and signals only its still-matching owned child. It retains the original worker

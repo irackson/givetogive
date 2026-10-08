@@ -25,6 +25,7 @@ export const checkoutRunnerFiles = [
 	'checkout-process-observation.ts', 'hosted-checkout-github.ts', 'hosted-checkout-protocol.ts',
 	'hosted-community-attention.ts', 'hosted-community-bundle.ts', 'hosted-community-policy.ts',
 	'checkout-final-retention.ts',
+	'checkout-readiness.ts',
 ] as const;
 const base = fileURLToPath(new URL('../', import.meta.url));
 const repositoryRoot = resolve(base, '../..');

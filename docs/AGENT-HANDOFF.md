@@ -2,6 +2,22 @@
 
 ## October 8 latest override: lifecycle hour failed and was safely retired
 
+Readiness continuation: `checkout-readiness.ts` implements bounded exact GitHub
+manual-run/job validation and one-shot check-run publication/readback, retaining
+an exclusive/fsynced local intent before POST. It transfers only strict public
+metadata and consumes none of the six private asset slots. Unknown/terminal jobs,
+wrong actor/head, stale/under-memory metadata, changed readback and interrupted
+publication fail without a repeated POST. Injected HTTP stays labeled offline;
+native parent/source approval is explicitly still required. No native bootstrap
+or dedicated workflow is wired yet; publication alone does not authorize normal
+member Checkout preparation. Implement the waiting native bootstrap next, then
+current source approval, root fresh-proof responder and actual paid acceptance.
+
+Signed final-retention commit `5b2ad14502fe60bc2822230e55cf865f88a6ac68` passed
+exact-head GitHub verification `37841300269`, including published public browser
+smoke (home/Asks/sign-in/admin redirect, zero console/page/HTTP errors). It is
+not authenticated/payment acceptance; production financial gates remain off.
+
 Final retention continuation: `checkout-final-retention.ts` is integrated into
 the parent. It keeps original lease/member/proof/intent/parent files immutable,
 accepts only fixed names and regular unlinked files, encrypts the original bundle,
