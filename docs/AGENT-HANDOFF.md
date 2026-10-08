@@ -1,5 +1,52 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 current staging release and mobile dashboard checkpoint
+
+The exact remote Git deployment `dpl_EgBQ5axXnPxCJTEvzrkfr774yZqF` is READY,
+from signed/tested commit `3da4c97fe21a3aa51f2ccbe51badb1a9e0fe5794`, and now
+owns `givetogive-staging.vercel.app` (automatic alias assignment read back).
+Read-only inspection at 15:49:55 UTC verified staging project/team, protection
+`all`, Node 24, compiled build/route table/no error markers, normal synthetic
+admin cookie authentication/private reads, no active controllers, and stopped
+historical 253-member run. Runtime: staging/test Stripe, subscriptions enabled,
+Ask/fund gates off, billing management enabled, configured publishable key
+matches local without disclosure. Production root link remained unchanged.
+Receipt: `tmp/current-staging-release-inspection-1791474595733.json`.
+
+Actual Chromium 390x844 mobile/touch rendering passed simulation list, retained
+run detail, and populated individual history (not just its loading state), with
+zero console/page/HTTP errors, no page-wide horizontal overflow, no external
+requests or browser mutations. Screenshots and receipt are in
+`tmp/mobile-dashboard-inspection-1791474938096/`. This is **not** physical iPhone
+Safari acceptance or a new hour soak. Visual review found the date filter
+controls cramped; improve their mobile layout in the next UI pass and verify
+the published CSS. The earlier screenshot-only receipt did not wait for the
+activity feed; use the later populated-history receipt above.
+
+Ian asked to view simulations on iPhone: use
+`https://givetogive-staging.vercel.app/admin/simulations`, then project-authorized
+Vercel login and separate GiveToGive staging login. Exact-owner SELECT-only
+inspection found **zero** staging accounts for `inasusr@gmail.com`. Do not claim
+his production credentials work here, copy password hashes, mark verified, or
+share synthetic credentials. Ordinary staging registration and verification
+remain user-owned; this does not block independent simulator work.
+
+Hosted community provenance now supports append-only **reviewed release**
+bindings rather than forcing every future run onto the failed historical
+deployment. Original approval shape/position/values stay exact; origin/database
+identity/name remain fixed; code/runner/seed/lock hashes are validated; a given
+deployment ID cannot acquire conflicting source bindings; consumers select the
+compiled registry and reject unknown/mixed release/run tuples. No env/file/test
+fixture can add an operational approval. Local source verification now uses the
+selected release's Windows versus canonical Git digest. Runtime registry still
+contains **only the historical approval**: a genuinely fresh cohort, journals,
+setup/source evidence, exact reviewed record and signed checkpoint are required
+before launching a new full run. No simulation or payment was started.
+All 260 local simulation/tool tests and simulation TypeScript passed; the 24
+tests in the four pre-existing untracked Checkout files remain included in that
+local total, not implied committed/hosted acceptance. Focused 44-test approval,
+manifest and observer-parent regression suite passed as well.
+
 ## October 8 failed-community retirement — supersedes queued Stop 25 below
 
 The separately reviewed continuation consumed existing Stop **25** successfully

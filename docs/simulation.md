@@ -1,5 +1,27 @@
 # Local community simulation
 
+## Viewing hosted runs from a phone
+
+Open [the staging simulation dashboard](https://givetogive-staging.vercel.app/admin/simulations).
+It is hosted independently of the ROG: recorded runs and individual action
+histories remain viewable when the laptop/runner is off. New live actions require
+an active runner; a stopped run is history, not a live simulation.
+
+Staging keeps Vercel deployment protection. Sign into a Vercel account authorized
+for the project, then your **separate GiveToGive staging account**. Dashboard
+access requires the verified, unfrozen, non-synthetic `inasusr@gmail.com` account;
+production cookies/accounts do not automatically carry across the isolated
+database. As of October 8, that staging account has not been registered. Use
+ordinary registration/email verification, not shared bot credentials or a copied
+production password. Personal MFA enrollment is iceboxed; financial operator
+permissions and production step-up are still separate requirements.
+
+Select a run, then an individual member to inspect its recorded actions. The
+foreground dashboard refreshes every two seconds; background polling is disabled.
+Mobile Chromium 390x844 rendering of the list, stopped-run detail and populated
+individual history passed without page-wide overflow or browser errors. Physical
+iPhone Safari and Ian's authenticated staging flow remain unverified.
+
 **Historical runner:** the accepted scripted/browser community is documented in
 `community-runner.md`. The model/MCP runner below now uses
 `npm run legacy:preflight` and `npm run legacy:start`; plain `npm start` starts

@@ -15,7 +15,7 @@ import { fixtureIds } from './provisioning.ts';
 import { CommunityControl } from './community-control.ts';
 import { communityContinuity } from './community-evidence.ts';
 import { supervisionEnvironment } from './community-supervisor.ts';
-import { approved, containedPath, inputPaths, manifestSchema, requireHosted, runnerFiles, sha256, trustedExecution, validateManifest, type HostedManifest } from './hosted-community-policy.ts';
+import { approved, selectManifestApproval, containedPath, inputPaths, manifestSchema, requireHosted, runnerFiles, sha256, trustedExecution, validateManifest, type HostedManifest } from './hosted-community-policy.ts';
 import { encryptionKey, fileBytes, privateFile, seal, unseal, validateFiles, type PrivateFile } from './hosted-community-bundle.ts';
 import { bindObserverHandoff, collectObserverArtifacts, observerChildEnvironment } from './hosted-community-observer-parent.ts';
 import { PrivateDraft } from './hosted-community-github.ts';
@@ -66,10 +66,11 @@ function sourceDigest() {
  return hash.digest('hex');
 }
 export function verifyLocalBindings(manifest: HostedManifest) {
+ const selected = selectManifestApproval(manifest);
  const actual = sourceDigest();
- // 9a3 is the original Windows upload; a84a is independently measured canonical Git blob bytes.
- requireHosted(actual === (process.platform === 'win32' ? approved.authoredSourceDigest : approved.gitAuthoredSourceDigest));
- requireHosted(sha256(readFileSync(join(root, 'package-lock.json'))) === approved.lockDigest);
+ // Windows source bytes and canonical Git blobs are attested independently per release.
+ requireHosted(actual === (process.platform === 'win32' ? selected.authoredSourceDigest : selected.gitAuthoredSourceDigest));
+ requireHosted(sha256(readFileSync(join(root, 'package-lock.json'))) === selected.lockDigest);
  requireHosted(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim() === manifest.headSha);
  const runner = createHash('sha256');
  for (const name of runnerFiles) runner.update(name).update('\0').update(readFileSync(join(base, 'src', name))).update('\0');

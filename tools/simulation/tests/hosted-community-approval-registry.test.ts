@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { approved, fullRunApprovals, selectFullRunApproval, validateFullRunApprovalRegistry, validateFullRunApprovalTuple,
- validateManifest, observerInputName, sha256, type HostedManifest } from '../src/hosted-community-policy.ts';
+ validateManifest, validateReleaseApproval, selectManifestApproval, observerInputName, sha256, type HostedManifest } from '../src/hosted-community-policy.ts';
 import { validateObserverInput, observerPath } from '../src/hosted-community-observer-evidence.ts';
 import { bindObserverHandoff, collectObserverArtifacts } from '../src/hosted-community-observer-parent.ts';
 import { fixtureIds } from '../src/provisioning.ts';
@@ -53,9 +53,44 @@ test('pure fixture registry supports distinct exact tuples without changing runt
 test('registry rejects duplicates, cross-role identity collisions and unknown/common changed fields',()=>{
  for(const patch of [{runId:approved.runId},{stateDirectory:approved.stateDirectory},{actionJournalId:approved.actionJournalId},
   {telemetryJournalId:approved.telemetryJournalId},{actionJournalId:approved.telemetryJournalId},
-  {actionJournalId:foreign.telemetryJournalId},{sourceDigest:'wrong'},{origin:'https://evil.example'},{runnerDigest:'0'.repeat(64)},
+  {actionJournalId:foreign.telemetryJournalId},{sourceDigest:'wrong'},{origin:'https://evil.example'},{runnerDigest:'invalid'},
   {extra:'unapproved'},{stateDirectory:'../escape'}]) assert.throws(()=>validateFullRunApprovalRegistry([approved,{...foreign,...patch}]));
  assert.throws(()=>validateFullRunApprovalRegistry([]));
+});
+
+test('new release fixture binds exact code and deployment without mutating historical or runtime approval',()=>{
+ const next={...foreign,deploymentId:'dpl_OfflineNewRelease',authoredSourceDigest:'6'.repeat(64),
+  gitAuthoredSourceDigest:'7'.repeat(64),lockDigest:'8'.repeat(64),runnerDigest:'9'.repeat(64),seedDigest:'a'.repeat(64)};
+ const records=validateFullRunApprovalRegistry([approved,next]);
+ assert.deepEqual(records[0],approved);assert.deepEqual(records[1],next);
+ const value={...manifest(),...next,release:{...manifest().release,deploymentId:next.deploymentId,
+  authoredSourceDigest:next.authoredSourceDigest,lockDigest:next.lockDigest}};
+ validateReleaseApproval(value,records[1]!);
+ assert.throws(()=>validateReleaseApproval(value,records[0]!));
+ for(const field of ['deploymentId','authoredSourceDigest','lockDigest'] as const)
+  assert.throws(()=>validateReleaseApproval({...value,release:{...value.release,[field]:approved[field]}},records[1]!));
+ for(const field of ['runnerDigest','seedDigest'] as const)
+  assert.throws(()=>validateReleaseApproval({...value,[field]:approved[field]},records[1]!));
+ // A fixture passing pure validation confers no authority to the actual runtime.
+ assert.throws(()=>selectManifestApproval(value));assert.throws(()=>validateManifest(value,NOW));
+ assert.throws(()=>validateFullRunApprovalRegistry([next]));
+ assert.throws(()=>validateFullRunApprovalRegistry([{...approved,deploymentId:next.deploymentId},next]));
+ for(const field of ['authoredSourceDigest','gitAuthoredSourceDigest','lockDigest','runnerDigest','seedDigest'] as const)
+  assert.throws(()=>validateFullRunApprovalRegistry([approved,{...foreign,[field]:'f'.repeat(64)}]));
+ for(const patch of [{databaseIdentity:next.runId},{databaseName:'production'},{deploymentId:'https://evil.example'},
+  {authoredSourceDigest:'invalid'},{gitAuthoredSourceDigest:'invalid'},{seedDigest:'invalid'}])
+  assert.throws(()=>validateFullRunApprovalRegistry([approved,{...next,...patch}]));
+ assert.equal(fullRunApprovals.length,1);
+});
+
+test('known run and smoke cannot mix another release into a trusted manifest',()=>{
+ for(const mode of ['full-hour','authenticated-smoke'] as const) {
+  const value=mode==='full-hour'?manifest():{...manifest(),mode,runId:foreign.runId,stateDirectory:foreign.stateDirectory,population:5,durationSeconds:300};
+  for(const patch of [{release:{...value.release,deploymentId:'dpl_Unknown'}},
+   {release:{...value.release,authoredSourceDigest:'b'.repeat(64)}},
+   {release:{...value.release,lockDigest:'c'.repeat(64)}},{runnerDigest:'d'.repeat(64)},{seedDigest:'e'.repeat(64)}])
+   assert.throws(()=>validateManifest({...value,...patch},NOW));
+ }
 });
 
 test('full manifest cannot select unknown run or mix tuples; every registered full namespace excludes smoke',()=>{

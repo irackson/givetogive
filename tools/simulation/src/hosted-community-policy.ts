@@ -24,17 +24,26 @@ export const approved = {
  * Adding a run requires reviewed actual provenance and a new signed trusted source checkpoint. */
 export type FullRunApproval = Readonly<{ [Key in keyof typeof approved]: string }>;
 const fullRunFields = ['runId','stateDirectory','sourceDigest','programDigest','actionJournalId','telemetryJournalId','setupDigest'] as const;
+const releaseHashFields = ['authoredSourceDigest','gitAuthoredSourceDigest','lockDigest','runnerDigest','seedDigest'] as const;
 /** Pure injectable registry validation for offline fixtures; it never changes the runtime registry. */
 export function validateFullRunApprovalRegistry(raw: unknown): readonly FullRunApproval[] {
  const schema = z.object(Object.fromEntries(Object.keys(approved).map(key => [key,z.string()]))).strict();
  const records = z.array(schema).min(1).max(16).parse(raw) as FullRunApproval[];
+ // Every extension retains the exact original approval in its original position.
+ requireHosted(JSON.stringify(records[0]) === JSON.stringify(approved));
  const identities = new Set<string>(), directories = new Set<string>();
+ const deployments = new Map<string, FullRunApproval>();
  for (const record of records) {
   requireHosted(uuid.test(record.runId) && uuid.test(record.actionJournalId) && uuid.test(record.telemetryJournalId)
    && /^\.state\/community-[a-z0-9-]+$/.test(record.stateDirectory));
-  for (const field of ['sourceDigest','programDigest','setupDigest'] as const) requireHosted(/^[a-f0-9]{64}$/.test(record[field]));
-  for (const field of Object.keys(approved) as (keyof typeof approved)[])
-   if (!fullRunFields.some(runField => runField === field)) requireHosted(record[field] === approved[field]);
+  for (const field of ['sourceDigest','programDigest','setupDigest',...releaseHashFields] as const)
+   requireHosted(/^[a-f0-9]{64}$/.test(record[field]));
+  requireHosted(/^dpl_[A-Za-z0-9]+$/.test(record.deploymentId));
+  const priorRelease = deployments.get(record.deploymentId);
+  if (priorRelease) for (const field of releaseHashFields) requireHosted(record[field] === priorRelease[field]);
+  else deployments.set(record.deploymentId,record);
+  // New reviewed releases may change code/deployment, never the isolated target.
+  for (const field of ['origin','databaseIdentity','databaseName'] as const) requireHosted(record[field] === approved[field]);
   for (const value of [record.runId,record.actionJournalId,record.telemetryJournalId]) {
    requireHosted(!identities.has(value)); identities.add(value);
   }
@@ -50,6 +59,21 @@ export function selectFullRunApproval(runId: unknown): FullRunApproval {
 export function validateFullRunApprovalTuple(value: Pick<HostedManifest, typeof fullRunFields[number] | 'runnerDigest' | 'seedDigest'>, record: FullRunApproval) {
  for (const field of [...fullRunFields,'runnerDigest','seedDigest'] as const) requireHosted(value[field] === record[field]);
 }
+/** Pure comparison only: callers must supply a record selected from the trusted source registry. */
+export function validateReleaseApproval(value: Pick<HostedManifest, 'release' | 'runnerDigest' | 'seedDigest'>, record: FullRunApproval) {
+ requireHosted(value.release.deploymentId === record.deploymentId && value.release.authoredSourceDigest === record.authoredSourceDigest
+  && value.release.lockDigest === record.lockDigest && value.runnerDigest === record.runnerDigest && value.seedDigest === record.seedDigest);
+}
+/** No environment/file/fixture registration: only compiled, reviewed approvals are eligible. */
+export function selectManifestApproval(value: HostedManifest): FullRunApproval {
+ if (value.mode === 'full-hour') {
+  const record = selectFullRunApproval(value.runId); validateReleaseApproval(value, record); return record;
+ }
+ const record = fullRunApprovals.find(record => value.release.deploymentId === record.deploymentId
+  && value.release.authoredSourceDigest === record.authoredSourceDigest && value.release.lockDigest === record.lockDigest
+  && value.runnerDigest === record.runnerDigest && value.seedDigest === record.seedDigest);
+ requireHosted(record); return record;
+}
 export const runnerFiles = ['community-supervisor.ts', 'community-cli.ts', 'community-browser.ts',
  'browser-observation.ts', 'controller-cadence.ts', 'community-generate.ts', 'community-config.ts', 'activity.ts'];
 const hash = z.string().regex(/^[a-f0-9]{64}$/), id = z.string().regex(uuid);
@@ -60,8 +84,8 @@ export const manifestSchema = z.object({
  population: z.number().int(), durationSeconds: z.number().int(),
  sourceDigest: hash, programDigest: hash, actionJournalId: id, telemetryJournalId: id,
  runnerDigest: hash, setupDigest: hash, seedDigest: hash, simulationLockDigest: hash,
- release: z.object({ observedAt: z.iso.datetime(), deploymentId: z.literal(approved.deploymentId),
-  authoredSourceDigest: z.literal(approved.authoredSourceDigest), lockDigest: z.literal(approved.lockDigest),
+ release: z.object({ observedAt: z.iso.datetime(), deploymentId: z.string().regex(/^dpl_[A-Za-z0-9]+$/),
+  authoredSourceDigest: hash, lockDigest: hash,
   canonical: z.literal(true), protected: z.literal(true), ready: z.literal(true),
   independentReadinessPassed: z.literal(true), noOtherControllers: z.literal(true),
   noMemberTokens: z.literal(true),
@@ -74,9 +98,8 @@ export const observerInputPolicy = Object.freeze({ waitMilliseconds: 300000, max
 /** The trusted wrapper supplies its exact GITHUB_RUN_ID. Do not refresh the original launch attestation. */
 export function observerInputName(raw: HostedManifest, githubRunId: string) {
  const value = manifestSchema.parse(raw);
- const selected = selectFullRunApproval(value.runId);
+ const selected = selectManifestApproval(value);
  requireHosted(value.mode === 'full-hour' && value.population === 253 && value.durationSeconds === 4500
-  && value.runnerDigest === approved.runnerDigest && value.seedDigest === approved.seedDigest
   && value.release.cloudBrowserSmokePassed && value.release.authenticatedSmokePassed);
  validateFullRunApprovalTuple(value,selected);
  requireHosted(/^[1-9][0-9]*$/.test(githubRunId) && Number.isSafeInteger(Number(githubRunId)));
@@ -89,11 +112,11 @@ export function validateManifest(raw: unknown, now = Date.now()): HostedManifest
  const value = manifestSchema.parse(raw);
  const age = now - Date.parse(value.release.observedAt);
  requireHosted(age >= -30000 && age <= 300000);
- requireHosted(value.runnerDigest === approved.runnerDigest && value.seedDigest === approved.seedDigest);
+ const selected = selectManifestApproval(value);
  if (value.mode === 'full-hour') {
   requireHosted(value.population === 253 && value.durationSeconds === 4500);
   requireHosted(value.release.cloudBrowserSmokePassed && value.release.authenticatedSmokePassed);
-  validateFullRunApprovalTuple(value,selectFullRunApproval(value.runId));
+  validateFullRunApprovalTuple(value,selected);
  } else requireHosted(value.population === 5 && value.durationSeconds === 300
   && !fullRunApprovals.some(record => value.runId === record.runId || value.stateDirectory === record.stateDirectory));
  return value;
