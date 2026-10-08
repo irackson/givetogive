@@ -5,10 +5,16 @@ Tracked modules include the private-draft transport, ordinary-cookie Playwright
 member, guarded Linux member entrypoint, durable parent filesystem adapter,
 bounded ordered IPC, encrypted fresh-proof exchange, local-only provider GET
 reader and the Linux parent integration. They have no automatic execution.
-The dedicated native bootstrap/manual workflow is now wired, but has not been
-dispatched. The local fresh-proof responder is callable and dedicated transfer-key
-configuration is complete. Current source approval, root readiness/preparation
-orchestration and actual hosted paid acceptance remain unfinished.
+The dedicated native bootstrap/manual workflow and local native operator are
+wired. The first dispatch (GitHub run `37850544550`, head `5c25195`) failed in
+credential-free browser preflight; the credential-bearing native step was skipped.
+No Checkout was prepared or submitted. Its original local records are retained.
+The empty private draft was retired only after terminal failure, skipped native
+step and unchanged unused original financial admission were verified. Corrections
+use the dedicated Checkout workflow identity and exact run-detail branch readback.
+The local fresh-proof responder and dedicated transfer-key configuration are
+complete. Source approvals preserve whole historical tuples and append separately
+reviewed current tuples. Actual hosted paid acceptance remains unfinished.
 Do not dispatch the historical policy/source tuple against the new adapter code.
 Offline tests are not payment acceptance.
 
@@ -20,7 +26,7 @@ check-run readback are rechecked. It uses no encrypted asset slot and transfers
 no member/provider credential. Injected HTTP is permanently labeled offline.
 The native waiting bootstrap and source approval are NOT proved by this marker;
 root must independently recheck both and the still-live job before preparation.
-The dedicated workflow is wired but not dispatched. It installs locked tools and
+The dedicated workflow installs locked tools and
 Chromium before exposing a narrowly scoped GitHub token and a dedicated encrypted
 transfer key. It shares staging concurrency with the community workflow and
 rejects wrong actor/ref/head/attempt. The native bootstrap checks actual Linux,
@@ -34,9 +40,13 @@ still contains only four allowlisted non-secret variables.
 
 `checkout-bootstrap.ts --execute-native-bootstrap` is the only native entrypoint.
 It has no injected runtime route. Policy/HTTP tests are offline only. The current
-historical source tuple intentionally prevents native readiness on the new code;
-append a separately reviewed current tuple before dispatch. Before actual execution,
-finish the root readiness observer/preparation orchestration. The callable
+historical source tuple is preserved and cannot approve changed runner bytes;
+every changed runner needs a separately reviewed current tuple before dispatch.
+`scripts/checkout-native-operator.mjs --execute-reviewed` connects native readiness,
+the original SQLite preparation, local provider proofs and private final recovery.
+Default/import is inert. Exclusive source-bound attempt records and unchanged
+original financial admission prevent replay; a returned encrypted final is not
+settlement evidence. The callable
 `checkout-root-responder.ts` durably admits one response, preserves original
 encrypted request/provider proof/response, invokes the mandatory current-binding
 verifier, obtains the local reader's fresh pre-submit round and retains one
