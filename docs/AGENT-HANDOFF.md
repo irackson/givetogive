@@ -1,5 +1,51 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 failed cohort retired; fresh native-release cohort bound
+
+Signed checkpoint repair `1f5ecc348e354875b986216e7ff14f984eabd254` passed root
+hosted verification `37821457109`. Previous failed full cohort
+`8b4d85f5-e07e-42f5-9402-3ffa866ff761` is now **stopped**, unowned/offline, all
+253 members idle, all worker counts zero. Retired through normal synthetic-admin
+Stop and the reviewed CONTROL-ONLY checkpoint, not SQL status edits or resumed
+member work. Copied working journals into `tmp/community-retirement-oct8`; original
+final recovery snapshot files were hashed before/after and unchanged. All 2,064
+historical steps have identical row digest, claims zero and telemetry drained.
+Receipt: `tmp/community-retirement-oct8/receipt-1791482881678.json`.
+
+The first retirement helper attempt failed at Windows fsync on a read-only handle,
+BEFORE HTTP submission. Preserved its intent, reproduced EPERM, independently
+verified no Stop command since the intent, changed flush handle to read/write,
+and durably recorded a separate exclusive POST intent before ONE actual request.
+No retry after POST, duplicate command, member action, or original-file alteration.
+Helper is ignored `tmp/retire-oct8-failed-community.mjs`; never execute again.
+
+New run **58568b0d-6eea-42cc-8bb9-faa8c32af1b4** is created/provisioned, NOT started.
+Normal admin creation used protected native-history deployment
+`dpl_4ZF8gk4Rv3NYoZcgFQeSnfBmNUg5` at exact app SHA 8888877. Current inspection
+`tmp/freshness-staging-release-inspection-1791482904593.json` confirmed the old
+failed run stopped and all release/gate/source guards. Seed created 253 synthetic
+members, ONE scoped runner token, ZERO member API tokens, ZERO Asks and paid grants.
+All 253 actual independent passwords reverified; zero contributions/payments/
+subscriptions. Program has 1,115 rules and an exact-run Ask namespace.
+
+Fresh exclusive journals are empty; canonical recursive Git source fingerprint
+and full tuple recorded in
+`tmp/community-stage/oct8-native-journal-provenance-1791482988335.json`.
+Compiled append-only `october8NativeApproved` preserves both original approvals;
+registry tests now verify both real later cohorts, including changed runner hashes,
+and retain fixture/cross-release/unknown/cohort/namespace rejection. All 273 simulator
+tests and strict TypeScript pass. Current four Checkout WIP files remain untouched.
+
+NEXT: sign/push/check the new exact approval. Prepare a NEW five-member authenticated
+smoke using native deployment/current runner provenance (old smoke evidence cannot
+be restamped). Rebind cloned smoke/full operators/readiness/recovery/upload helpers
+to the new approval and separate file names, retaining historical originals. Verify
+small smoke then full-hour prerequisites, execute bounded mixed hour and observer,
+recover originals and independently review continuity/ownership/drain/freshness.
+No full-hour, steady-load five-second freshness, paid-tier, or payment acceptance
+is claimed. Production payment gates remain dark; pending Stripe/PDF/branch work
+still needs completion. Do not rerun creation, seeding or journal initialization.
+
 ## October 8 clean published navigation diagnostic and checkpoint binding repair
 
 Signed commit `8888877182d76c18de40a747fd573b3d04643006` passed root hosted

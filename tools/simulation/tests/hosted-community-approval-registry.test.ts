@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { approved, october8Approved, fullRunApprovals, selectFullRunApproval, validateFullRunApprovalRegistry, validateFullRunApprovalTuple,
+import { approved, october8Approved, october8NativeApproved, fullRunApprovals, selectFullRunApproval, validateFullRunApprovalRegistry, validateFullRunApprovalTuple,
  validateManifest, validateReleaseApproval, selectManifestApproval, observerInputName, sha256, type HostedManifest } from '../src/hosted-community-policy.ts';
 import { validateObserverInput, observerPath } from '../src/hosted-community-observer-evidence.ts';
 import { bindObserverHandoff, collectObserverArtifacts } from '../src/hosted-community-observer-parent.ts';
@@ -33,9 +33,11 @@ function observer() {
 }
 
 test('runtime registry preserves historical byte shape and appends the actual October 8 cohort',()=>{
- assert.equal(fullRunApprovals.length,2);assert.deepEqual(selectFullRunApproval(approved.runId),approved);
+ assert.equal(fullRunApprovals.length,3);assert.deepEqual(selectFullRunApproval(approved.runId),approved);
  assert.deepEqual(fullRunApprovals[1],october8Approved);
  assert.deepEqual(selectFullRunApproval(october8Approved.runId),october8Approved);
+ assert.deepEqual(fullRunApprovals[2],october8NativeApproved);
+ assert.deepEqual(selectFullRunApproval(october8NativeApproved.runId),october8NativeApproved);
  assert.equal(JSON.stringify(selectFullRunApproval(approved.runId)),JSON.stringify(approved));
  assert.equal(Object.isFrozen(fullRunApprovals),true);assert.equal(Object.isFrozen(fullRunApprovals[0]),true);
  assert.throws(()=>selectFullRunApproval(foreign.runId));assert.throws(()=>selectFullRunApproval(undefined));
@@ -49,11 +51,11 @@ test('pure fixture registry supports distinct exact tuples without changing runt
  validateFullRunApprovalTuple({...manifest(),...foreign},records[1]!);
  assert.throws(()=>validateFullRunApprovalTuple(manifest(),records[1]!));
  assert.throws(()=>validateFullRunApprovalTuple({...manifest(),...foreign},records[0]!));
- assert.throws(()=>selectFullRunApproval(foreign.runId));assert.equal(fullRunApprovals.length,2);
+ assert.throws(()=>selectFullRunApproval(foreign.runId));assert.equal(fullRunApprovals.length,3);
 });
 
 test('October 8 full manifest and observer accept only their actual matching provenance',()=>{
- const next=october8Approved;
+ for(const next of [october8Approved,october8NativeApproved]) {
  const m:HostedManifest={...manifest(),runId:next.runId,stateDirectory:next.stateDirectory,
   sourceDigest:next.sourceDigest,programDigest:next.programDigest,actionJournalId:next.actionJournalId,
   telemetryJournalId:next.telemetryJournalId,runnerDigest:next.runnerDigest,setupDigest:next.setupDigest,seedDigest:next.seedDigest,
@@ -65,6 +67,7 @@ test('October 8 full manifest and observer accept only their actual matching pro
  for(const field of ['deploymentId','authoredSourceDigest'] as const)
   assert.throws(()=>validateManifest({...m,release:{...m.release,[field]:approved[field]}},NOW));
  const input={...observer(),runId:next.runId,authoredSourceDigest:next.authoredSourceDigest,
+  runnerDigest:next.runnerDigest,seedDigest:next.seedDigest,lockDigest:next.lockDigest,
   gitAuthoredSourceDigest:next.gitAuthoredSourceDigest,stateDirectory:next.stateDirectory,programDigest:next.programDigest,
   actionJournalId:next.actionJournalId,telemetryJournalId:next.telemetryJournalId,
   cohort:Array.from({length:253},(__unused,index)=>{const ids=fixtureIds(next.runId,index);return{id:ids.id,userId:ids.userId};}),
@@ -73,6 +76,7 @@ test('October 8 full manifest and observer accept only their actual matching pro
  assert.throws(()=>validateObserverInput({...input,cohort:observer().cohort},NOW));
  assert.throws(()=>validateObserverInput({...input,gitAuthoredSourceDigest:approved.gitAuthoredSourceDigest},NOW));
  assert.throws(()=>validateManifest(m,NOW+300001));
+ }
 });
 
 test('registry rejects duplicates, cross-role identity collisions and unknown/common changed fields',()=>{
@@ -105,7 +109,7 @@ test('new release fixture binds exact code and deployment without mutating histo
  for(const patch of [{databaseIdentity:next.runId},{databaseName:'production'},{deploymentId:'https://evil.example'},
   {authoredSourceDigest:'invalid'},{gitAuthoredSourceDigest:'invalid'},{seedDigest:'invalid'}])
   assert.throws(()=>validateFullRunApprovalRegistry([approved,{...next,...patch}]));
- assert.equal(fullRunApprovals.length,2);
+ assert.equal(fullRunApprovals.length,3);
 });
 
 test('known run and smoke cannot mix another release into a trusted manifest',()=>{
