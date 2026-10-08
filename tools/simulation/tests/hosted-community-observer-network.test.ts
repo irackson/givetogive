@@ -26,9 +26,11 @@ async function bytes(values:unknown[]) {
 class FakeSession extends EventEmitter {
  buffers=new Map<string,string>(); calls:{method:string;id?:string}[]=[];
  handler?: (id:string)=>Promise<{bufferedData:string}>;
+ completedHandler?: (id:string)=>Promise<{body:string;base64Encoded:boolean}>;
  async send(method:string,parameters?:{requestId?:string}) {
   const id=parameters?.requestId;this.calls.push({method,id});
   if(method==='Network.enable')return {};
+  if(method==='Network.getResponseBody'){assert.ok(id);assert.ok(this.completedHandler);return this.completedHandler(id);}
   assert.equal(method,'Network.streamResourceContent');assert.ok(id);
   return this.handler?this.handler(id):{bufferedData:this.buffers.get(id)??''};
  }
@@ -142,4 +144,56 @@ test('already-issued genuine failures survive closure, absent terminals fail bou
  const y=await setup();y.session.request('one',url(y.input));y.session.response('one');
  await assert.rejects(()=>y.collector.settle(10),/Observer passive read deadline exceeded/);y.collector.close();
  await assert.rejects(()=>y.collector.settle(5001),/Observer guard rejected/);
+});
+
+test('completed responses recover exact existing CDP body when stream acquisition races completion',async()=>{
+ for(const base64Encoded of [false,true]){
+  const x=await setup(),body=await bytes([activity(x.input)]);
+  x.session.handler=async()=>{throw Error('public completed-resource fixture');};
+  x.session.completedHandler=async id=>{assert.equal(id,'finished');return{body:body.toString(base64Encoded?'base64':'utf8'),base64Encoded};};
+  x.session.request('finished',url(x.input));x.session.response('finished');x.session.finish('finished');
+  await x.collector.settle();assert.equal(x.captures.length,1);assert.equal(x.captures[0]!.termination,'finished');
+  assert.equal(x.captures[0]!.bytes,body.length);assert.deepEqual(x.issues,[]);
+  assert.deepEqual(x.session.calls.map(call=>call.method),['Network.enable','Network.streamResourceContent','Network.getResponseBody']);
+  assert.equal(x.collector.diagnostics.rawBodyFailures,0);assert.equal(x.collector.diagnostics.expectedSuccessfulQueryAborts,0);
+  x.collector.close();
+ }
+});
+
+test('unavailable streaming cannot borrow completed-body fallback for aborted responses',async()=>{
+ const x=await setup();x.session.handler=async()=>{throw Error('public unavailable fixture');};
+ x.session.completedHandler=async()=>{throw Error('must not be called');};
+ x.session.request('aborted',url(x.input));x.session.response('aborted');x.session.abort('aborted');await x.collector.settle();
+ assert.equal(x.captures.length,0);assert.equal(x.collector.diagnostics.unqualifiedFailedRequests,1);
+ assert.equal(x.collector.diagnostics.captureUnavailable,1);assert.ok(x.issues.includes('body'));
+ assert.equal(x.session.calls.some(call=>call.method==='Network.getResponseBody'),false);x.collector.close();
+});
+
+test('completed fallback rejects absent, oversized, invalid or foreign actual bodies without a second request',async()=>{
+ const body=await bytes([activity(fixture())]);
+ for(const mode of ['absent','empty','oversized','bad-base64','truncated','foreign'] as const){
+  const x=await setup();x.session.handler=async()=>{throw Error('public stream unavailable fixture');};
+  x.session.completedHandler=async()=>{
+   if(mode==='absent')throw Error('public body unavailable fixture');
+   if(mode==='empty')return{body:'',base64Encoded:false};
+   if(mode==='oversized')return{body:'x'.repeat(1_048_577),base64Encoded:false};
+   if(mode==='bad-base64')return{body:'!invalid!',base64Encoded:true};
+   if(mode==='foreign')return{body:(await bytes([activity(x.input,'foreign')])).toString('utf8'),base64Encoded:false};
+   return{body:body.subarray(0,10).toString('utf8'),base64Encoded:false};
+  };
+  x.session.request('finished',url(x.input));x.session.response('finished');x.session.finish('finished');await x.collector.settle();
+  assert.equal(x.captures.length,0);assert.equal(x.collector.diagnostics.rawBodyFailures,1);assert.ok(x.issues.includes('body'));
+  assert.equal(x.session.calls.filter(call=>call.method==='Network.getResponseBody').length,1);x.collector.close();
+ }
+});
+
+test('cancellation during completed-body acquisition discards late data and does not create acceptance',async()=>{
+ const parent=new AbortController(),x=await setup(parent.signal);let finish!:(value:{body:string;base64Encoded:boolean})=>void;
+ let acquired!:()=>void;const acquisition=new Promise<void>(resolve=>{acquired=resolve;});
+ x.session.handler=async()=>{throw Error('public stream unavailable fixture');};
+ x.session.completedHandler=()=>new Promise(resolve=>{finish=resolve;acquired();});
+ x.session.request('finished',url(x.input));x.session.response('finished');x.session.finish('finished');
+ await acquisition;parent.abort();x.collector.close();
+ finish({body:(await bytes([activity(x.input)])).toString('utf8'),base64Encoded:false});await Promise.resolve();await Promise.resolve();
+ assert.equal(x.captures.length,0);assert.deepEqual(x.issues,[]);
 });

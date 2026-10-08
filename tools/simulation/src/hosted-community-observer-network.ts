@@ -10,7 +10,7 @@ export type QueryCapture = { url: string; values: unknown[]; requestStartedAt: n
 type Decode = (url: string, status: number, accept: string, body: Uint8Array, signal?: AbortSignal) => Promise<unknown[]>;
 type RecordState = { url: string; accept: string; requestStartedAt: number; phase: NetworkPhase; scoped: boolean;
  status?: number; headersAt?: number; chunks: Buffer[]; queued: Buffer[]; bytes: number; ready: boolean;
- initial?: Promise<void>; timer?: ReturnType<typeof setTimeout>; terminal?: 'finished' | Failure; finalized: boolean };
+ initial?: Promise<void>; streamUnavailable?: boolean; timer?: ReturnType<typeof setTimeout>; terminal?: 'finished' | Failure; finalized: boolean };
 type CdpEvent = Record<string, unknown>;
 const maximumBytes = 1_048_576, maximumRequests = 2048, maximumActiveBodies = 8;
 const object = (raw: unknown): CdpEvent => raw !== null && typeof raw === 'object' && !Array.isArray(raw) ? raw as CdpEvent : {};
@@ -86,7 +86,14 @@ export class ObserverNetwork {
   record.initial = (async () => {
    let bytes: Buffer | undefined;
    try {
-    const result = await this.session.send('Network.streamResourceContent', { requestId: id });
+    let result;
+    try { result = await this.session.send('Network.streamResourceContent', { requestId: id }); }
+    catch {
+     // Chromium may finish a small response before streaming can be enabled.
+     // Only a later loadingFinished event permits reading its existing body.
+     if (this.active() && !record.finalized) record.streamUnavailable = true;
+     return;
+    }
     if (!this.active() || record.finalized) return;
     guard(typeof result.bufferedData === 'string');
     bytes = this.base64(result.bufferedData);
@@ -133,10 +140,21 @@ export class ObserverNetwork {
   }
   this.retain((async () => {
    let body: Buffer | undefined;
-   let stage:'bytes'|'decode'|'scope'|'delivery'='bytes';
+   let stage:'unavailable'|'bytes'|'decode'|'scope'|'delivery'='bytes';
    try {
-    await record.initial; guard(this.active() && !record.finalized && record.ready);
-    body = Buffer.concat(record.chunks); guard(body.length === record.bytes && body.length > 0 && body.length <= maximumBytes);
+    await record.initial; guard(this.active() && !record.finalized);
+    if (record.streamUnavailable) {
+     stage='unavailable';guard(termination === 'finished');
+     const result = await this.session.send('Network.getResponseBody', { requestId: event.requestId as string });
+     guard(this.active() && !record.finalized && typeof result.body === 'string' && typeof result.base64Encoded === 'boolean');
+     guard(result.body.length <= (result.base64Encoded ? 4 * Math.ceil(maximumBytes / 3) : maximumBytes));
+     body = result.base64Encoded ? this.base64(result.body) : Buffer.from(result.body, 'utf8');
+     guard(body.length > 0 && body.length <= maximumBytes);
+     // The completed body is authoritative; never append partial stream chunks.
+    } else {
+     guard(record.ready);body = Buffer.concat(record.chunks);
+     guard(body.length === record.bytes && body.length > 0 && body.length <= maximumBytes);
+    }
     if (termination === 'aborted') guard(record.accept === 'application/jsonl');
     stage='decode';const values = await this.decode(record.url, 200, record.accept, body, this.signal);
     guard(this.active() && !record.finalized);stage='scope';this.validateValues(record.url, values);stage='delivery';
@@ -146,7 +164,7 @@ export class ObserverNetwork {
     if (termination === 'aborted') this.diagnostics.expectedSuccessfulQueryAborts++;
     record.finalized = true;
    } catch {
-    if (this.active()) { if(!record.finalized)this.diagnostics.captureStages[stage]++;if (termination !== 'finished') this.requestFailure(record, termination); this.bodyFailure(record); }
+    if (this.active()) { if(!record.finalized)this.diagnostics.captureStages[stage]++;if (termination !== 'finished') this.requestFailure(record, termination); this.bodyFailure(record,stage === 'unavailable'); }
    } finally { body?.fill(0); this.erase(record); }
   })());
  }

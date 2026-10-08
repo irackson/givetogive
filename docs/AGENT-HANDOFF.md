@@ -1,5 +1,36 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 completed-response capture race repair
+
+Latest state supersedes older created/unstarted notes below: full cohort
+`8b4d85f5-e07e-42f5-9402-3ffa866ff761` failed early in hosted run
+`37813048863`. Original recovery and journals are preserved. It is paused,
+controller unowned, all 253 members idle, all worker counts zero; 55 Asks and
+401 contributions remain. Do not reset, replay or automatically resume it.
+
+A real local Chromium experiment using public synthetic JSONL exposed a passive
+CDP capture race: 30 immediately completed responses had 30 capture failures,
+while 30 held-open responses were captured. The observer now reads Chromium's
+existing response body by exact request ID ONLY after `loadingFinished` if stream
+acquisition fails. No second HTTP request, redirect, proxy, credential use or
+acceptance relaxation. Aborted requests cannot use this fallback. Existing size,
+deadline, decoding, actor/run scope and cancellation checks still apply.
+
+After the repair, both 30-response cases captured all 30 with zero body failures.
+Held-open transport aborts qualified only after full response validation. Local
+reproduction: `node tmp/observer-cdp-local-reproduction.mjs` (ignored, public data
+only). Four new regressions cover text/Base64 recovery, abort rejection, absent/
+oversized/malformed/foreign bodies and cancellation during acquisition. All 268
+simulation tests, tools TypeScript, explicit zero-warning changed-file lint and
+diff checks passed. This proves the local race repair, NOT hosted acceptance.
+
+NEXT: diagnose remaining unqualified abort categories without persisting URLs,
+headers or private bodies; preserve strict error acceptance. Obtain new hosted
+evidence before another full-hour attempt. The hour, real paid-tier lifecycle
+acceptance and final site/PDF acceptance remain unfinished. Four pre-existing
+untracked Checkout files are preserved. Owner staging identity was independently
+rechecked verified/unfrozen/non-synthetic; no owner credentials were used.
+
 ## October 8 fresh-cohort journal and compiled approval checkpoint
 
 Run `8b4d85f5-e07e-42f5-9402-3ffa866ff761` remains created/unstarted. Independent
