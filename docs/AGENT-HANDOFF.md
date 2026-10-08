@@ -1,5 +1,35 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 verified generic Checkout checkpoint (not paid acceptance)
+
+Signed `2eff401dce0463dd3725aad856f1fa1b762dc8fc` passed exact-head hosted
+verification **37856504068**, including application tests/types, 396 passing
+simulator tests plus one Linux-only skip, published public browser smoke and
+all seven actual-Chromium synthetic Checkout DOM guards. Earlier DOM run
+**37856197300** also passed at `93f2b11`; neither contacted Stripe or paid.
+
+Fresh normal-member inspections indices 0, 1 and 2 all passed against the retained
+plan and canonical staging clock/customer bindings. All were Neighbor with zero
+existing planned operations. Local purchase-0 process **10435** is terminal
+(exit 1), rejected at `memory-admission` BEFORE its exclusive intent. Intent
+file count is zero. Independent SQL and provider readback then confirmed all
+three customers' invoice/subscription lists empty and application payments,
+subscriptions, paid coverage and ledger counts zero. No financial preparation,
+browser launch, submission, paid grant or budget consumption happened.
+
+Do not mistake that pre-admission memory rejection for an ambiguous payment or
+for a running process. Current fresh plan remains unused. The private harness
+now pins its exact previously observed plan digest, flushes exclusive admission
+and result files, and reports only allowlisted fixed browser phases. The genuine
+next acceptance step is the same retained fresh normal-UI plan on a qualified
+host, preserving the 2.5 GiB startup/1.5 GiB floor; local observed RAM fluctuated
+below startup after observer initialization. Use the authorized free hosted
+member lane when local headroom cannot be sustained, with provider/DB secrets
+remaining in the root observer and reviewed immutable run/member/operation
+bindings. Do not revive the old hardcoded native attempt/approval or fabricate a
+new approval merely to make it pass. Full paid lifecycle/Ask/fund/253-member-hour
+acceptance and final deliverables remain outstanding; goal is active.
+
 ## October 8 generic browser runtime and credential isolation correction
 
 Fresh private UI acceptance `inspect 1` also passed normal member authentication,
