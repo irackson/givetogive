@@ -48,6 +48,17 @@ also fixes the observed hosted TypeScript failure without changing runtime code.
 Do not dispatch the historical policy/source tuple against the new adapter code.
 Offline tests are not payment acceptance.
 
+`checkout-diagnostic.yml` is a separate manual nonfinancial diagnostic. A
+domain-separated HMAC challenge binds the existing local transfer key to its exact
+reviewed main head and a random nonce; the runner compares it without disclosing
+the key. It then performs only authenticated JSON metadata GETs and anonymous
+404 probes for the failed original draft/input IDs pinned in source. It never
+downloads the encrypted member input, calls Stripe/SQL, signs in a member,
+prepares Checkout, submits payment, rotates credentials or repeats recovery.
+It shares staging controller concurrency. A successful diagnostic establishes
+only current key equality and metadata permissions, not the old runner's key
+state, binary download permission, native worker execution or paid acceptance.
+
 The readiness transport is implemented in `checkout-readiness.ts`: it verifies
 the exact manual run, sole still-live `checkout-parent` job, actor, head, attempt
 and Linux runner label before publishing strictly public check-run metadata.
