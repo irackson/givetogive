@@ -1,5 +1,42 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 published demand-only links and passive-capture evidence
+
+Exact signed application commit `33fb45dc23b576aba67d6ebdd628eeed7f367bff`
+passed root hosted verification `37815550018` and independent credential-free
+browser smoke `37815890305`. Protected staging Git deployment
+`dpl_Hq5buRqZ161b6KVrX8thkcFezYFY` is READY/canonical with successful compiled
+build/routes, Node24, protection all, unchanged hosted environment metadata and
+production root project link. Receipt:
+`tmp/freshness-staging-release-inspection-1791480145666.json`. Windows authored
+source digest: `eeb8ebe946cb8b65497717c83c19e5c608153702865b7382e9c017bd0efb2ad7`.
+Subscriptions/billing management remain sandbox-only; Ask/fund gates remain off.
+Failed full cohort remains paused/unowned/idle with all worker counts zero.
+
+Published real dashboard-to-member click-through passed with zero console/page/
+HTTP errors and zero blocked requests. Actual passive collector decoded 57
+scoped responses: five finished, 52 fully validated query aborts, zero body,
+capture/capacity/non-success errors. This is hosted evidence for the completed-
+response capture repair, NOT full freshness/hour/paid acceptance. Strict observer
+still fails: 27 unqualified aborts (26 non-200 unscoped requests and one HTTP200
+RSC navigation); no hour or new member actions were attempted.
+Original receipt: `tmp/observer-abort-category-inspection-1791480283293.json`.
+
+The diagnostic now mirrors the observer's existing `suppressedShellPrefetch`
+204 route fulfillment. This appears to create the 26 unscoped aborts; verify
+exact 204 totals and explicit local fulfillment before any qualification change.
+One actual navigation abort needs separate proof. Do not discard errors, broaden
+request admission or infer a full pass from visible headings. The ignored
+diagnostic now distinguishes 204 and counts operator suppression for the next
+inspection. Optional `--expose-gc` reclaims only this process's module-loader
+garbage before unchanged RAM admission; no other applications were closed.
+
+Branch audit: only local main exists, but four Dependabot remote branches/PRs
+(36-39) have appeared for Next, sharp, source-map-js and simulation MCP SDK.
+Review these before final branch cleanup; main-only remote is not yet achieved.
+Do not indiscriminately merge dependency upgrades during observer diagnosis.
+Preserve the four original untracked Checkout files and all failed-run evidence.
+
 ## October 8 real-dashboard abort categorization and demand-only detail links
 
 Signed observer repair `6e7d76602f9b6a9168a688ba022da1a32d10b2b5` passed hosted
