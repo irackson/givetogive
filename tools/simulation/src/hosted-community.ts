@@ -141,7 +141,7 @@ export function gracefulShutdown(signalOwnedChild: () => void) {
  let requested = false;
  return () => { if (!requested) { requested = true; signalOwnedChild(); } };
 }
-async function browserSmoke() {
+export async function browserSmoke() {
  requireHosted(freemem() / 2 ** 30 >= 2.5);
  // Exercise the EXACT supervisor allowlist/cache discovery, not a more permissive parent environment.
  const parts:Buffer[]=[];let stdoutBytes=0,stderrBytes=0,oversized=false;

@@ -49,7 +49,7 @@ export async function executeNativeCheckoutOperator() {
   guard(approvedSourceTuple(source));
   const localState=join(root,'tools/simulation/.state');
   guard(lstatSync(localState).isDirectory()&&!lstatSync(localState).isSymbolicLink()&&realpathSync(localState)===localState);
-  directory=join(localState,`checkout-native-${approved.operationId}`);mkdirSync(directory,{mode:0o700});
+  directory=join(localState,`checkout-native-${approved.operationId}-${head}`);mkdirSync(directory,{mode:0o700});
   original('operator-lease.json',{headSha:head,operationId:approved.operationId,maximumDispatches:1,maximumPreparations:1,maximumSubmits:1,paymentAccepted:false,retryAllowed:false});
   original('release.original.json',release);original('prerequisites.original.json',prerequisites.summary);
   key=loadCheckoutTransferKey();
@@ -96,7 +96,9 @@ export async function executeNativeCheckoutOperator() {
    const matches=runs.workflow_runs.filter(value=>!seen.has(value.id)&&value.head_sha===head&&value.actor?.login===approved.actor&&value.event==='workflow_dispatch');
    guard(matches.length<=1);run=matches[0];if(!run)await new Promise(resolve=>setTimeout(resolve,3000));
   }
-  guard(run.run_attempt===1&&run.head_branch==='main');const runId=String(run.id);
+  const runId=String(run.id);run=await gh(`actions/runs/${runId}`);
+  guard(String(run.id)===runId&&run.head_sha===head&&run.run_attempt===1&&run.head_branch==='main'&&run.event==='workflow_dispatch'&&
+   run.actor?.login===approved.actor&&run.triggering_actor?.login===approved.actor&&run.path==='.github/workflows/checkout-staging.yml');
   original('workflow-dispatch.result.json',{runId,headSha:head,releaseId,retryAllowed:false});
   phase='native-readiness';progress();let check;
   while(!check){

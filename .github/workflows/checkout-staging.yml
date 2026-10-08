@@ -45,7 +45,7 @@ jobs:
         run: npx --no-install playwright install --with-deps chromium
       - name: Credential-free exact child environment and browser closure smoke
         working-directory: tools/simulation
-        run: node --experimental-strip-types src/hosted-community.ts browser-smoke
+        run: node --experimental-strip-types src/checkout-browser-smoke.ts --execute-credential-free
       - name: Native readiness, encrypted input and one ordinary-member Checkout
         working-directory: tools/simulation
         env:
