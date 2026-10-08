@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { allowedCheckoutRequest, sandboxOrigin, validateCheckoutContext, type SandboxBoundary, type CheckoutScenario } from '../src/sandbox-policy.ts';
 import { SandboxLedger } from '../src/sandbox-ledger.ts';
 import { SandboxCheckoutExecutor } from '../src/sandbox-checkout.ts';
-import type { CheckoutDriver } from '../src/stripe-checkout-driver.ts';
+import { checkoutBrowserEnvironment, type CheckoutDriver } from '../src/stripe-checkout-driver.ts';
 
 function fixture() {
   const operationId = randomUUID(); const actorId = 'synthetic-person-one';
@@ -19,6 +19,16 @@ function ledger() { return new SandboxLedger(join(mkdtempSync(join(tmpdir(), 'g2
 function driver(events: string[], fail = false): CheckoutDriver {
   return { async open() { events.push('open'); }, async fillFixture(scenario) { events.push(scenario); if (fail) throw new Error('secret card value and private URL'); }, async submit() { events.push('submit'); }, async challenge(success) { events.push(success ? '3ds-complete' : '3ds-fail'); }, async cancel() { events.push('cancel'); }, async close() { events.push('close'); } };
 }
+
+test('payment Chromium receives only platform OS variables, never root observer credentials or debug hooks', () => {
+  const env = { PATH: '/public/bin', HOME: '/public/home', LANG: 'en_US.UTF-8', PROGRAMDATA: 'C:/ProgramData', SYSTEMROOT: 'C:/Windows',
+    STRIPE_SECRET_KEY: 'public-forbidden-fixture', DATABASE_URL: 'public-forbidden-fixture', NEXTAUTH_SECRET: 'public-forbidden-fixture',
+    GITHUB_TOKEN: 'public-forbidden-fixture', CHECKOUT_BUNDLE_KEY: 'public-forbidden-fixture', DEBUG: 'public-forbidden-fixture',
+    PWDEBUG: 'public-forbidden-fixture', NODE_OPTIONS: 'public-forbidden-fixture', LD_PRELOAD: 'public-forbidden-fixture' };
+  assert.deepEqual(checkoutBrowserEnvironment(env, 'linux'), { PATH: env.PATH, HOME: env.HOME, LANG: env.LANG });
+  assert.deepEqual(checkoutBrowserEnvironment(env, 'darwin'), { PATH: env.PATH, HOME: env.HOME, LANG: env.LANG });
+  assert.deepEqual(checkoutBrowserEnvironment(env, 'win32'), { PATH: env.PATH, HOME: env.HOME, LANG: env.LANG, PROGRAMDATA: env.PROGRAMDATA, SYSTEMROOT: env.SYSTEMROOT });
+});
 test('sandbox verification rejects live, wrong actor/origin/run, stale, expired and over-budget sessions before opening a browser', () => {
   const { boundary, context } = fixture();
   assert.doesNotThrow(() => validateCheckoutContext(context, boundary));

@@ -18,6 +18,13 @@ export interface CheckoutDriver {
 // Official public Stripe test fixtures. Never configurable by personas, model output, or CLI PAN input.
 const fixtureCards = { success: '4242424242424242', decline: '4000000000000002', three_ds_success: '4000000000003220', three_ds_failure: '4000000000003220' } as const;
 
+/** Chromium must never inherit the root observer's provider/database/auth secrets. */
+export function checkoutBrowserEnvironment(environment: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform): Record<string, string> {
+  const names = new Set(['path', 'home', 'tmpdir', 'lang', 'lc_all', 'tz', 'display', 'xdg_runtime_dir']);
+  if (platform === 'win32') for (const name of ['systemroot', 'windir', 'systemdrive', 'temp', 'tmp', 'localappdata', 'appdata', 'userprofile', 'programdata']) names.add(name);
+  return Object.fromEntries(Object.entries(environment).filter((entry): entry is [string, string] => names.has(entry[0].toLowerCase()) && typeof entry[1] === 'string'));
+}
+
 /** Dedicated browser: no tracing, screenshots, video, HAR, downloads, or request/console payload logging. */
 export class StripeCheckoutDriver implements CheckoutDriver {
   private browser?: Browser; private context?: BrowserContext; private page?: Page; private checkout?: VerifiedCheckout;
@@ -27,15 +34,16 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   pageErrors = 0;
   private readonly counters: Counters = { consoleErrors: 0, pageErrors: 0, httpErrors: 0, blockedRequests: 0, failedRequests: 0, unexpectedPages: 0 };
   private readonly noticeClick = new OneNativeClick();
-  constructor(bypass: string, syntheticEmail: string, private readonly admitNotice?: () => Promise<void>) {
+  private readonly admitNotice?: () => Promise<void>;
+  constructor(bypass: string, syntheticEmail: string, admitNotice?: () => Promise<void>) {
     if (!syntheticEmail.endsWith('@givetogive.invalid')) throw new Error('Only a synthetic fixture email is allowed.');
     if (process.env.DEBUG || process.env.PWDEBUG) throw new Error('Disable Playwright/debug tracing before sandbox payment execution.');
-    this.bypass = bypass; this.syntheticEmail = syntheticEmail;
+    this.bypass = bypass; this.syntheticEmail = syntheticEmail; this.admitNotice = admitNotice;
   }
   async open(checkout: VerifiedCheckout) {
     if (freemem() < 2.5 * 1024 ** 3) throw new Error('Insufficient memory for sandbox Checkout browser startup.');
     this.checkout = checkout;
-    this.browser = await chromium.launch({ headless: true });
+    this.browser = await chromium.launch({ headless: true, env: checkoutBrowserEnvironment() });
     this.context = await this.browser.newContext({ acceptDownloads: false, serviceWorkers: 'block', locale: 'en-US', viewport: { width: 1280, height: 900 } });
     this.context.on('response', response => { if (response.status() >= 400) { this.failedStatuses.push(response.status()); this.counters.httpErrors++; } });
     this.context.on('requestfailed', () => { this.counters.failedRequests++; });

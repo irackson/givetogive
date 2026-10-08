@@ -1,5 +1,22 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 generic browser runtime and credential isolation correction
+
+Fresh private UI acceptance `inspect 1` also passed normal member authentication,
+canonical test-clock/customer binding and zero existing operation, with Neighbor
+tier unchanged. No preparation or payment was admitted. Free RAM was 2.44 GiB.
+
+Added a runtime import regression for the generic driver. It exposed constructor
+parameter-property syntax unsupported by Node24 strip-only execution (earlier
+tests imported only its erased interface). Replaced it with explicit field
+assignment. All 397 simulator tests now run: 396 pass, one Linux-only skip;
+simulator types and lint pass. Generic Chromium launch now uses a platform-guarded
+OS-variable allowlist instead of inheriting root Stripe/database/auth credentials,
+GitHub keys, NODE_OPTIONS, LD_PRELOAD or debug hooks. Regression covers Windows,
+Linux and Mac environment behavior. This changes runner bytes again; no old
+native source approval was reused. Actual hosted DOM run `37856197300` remains
+in progress; wait for its terminal result rather than infer it from these tests.
+
 ## October 8 fresh UI acceptance inspection and hosted DOM test lane
 
 Exact-head read-only verification `37855691298` succeeded for signed `598b4f2`,
