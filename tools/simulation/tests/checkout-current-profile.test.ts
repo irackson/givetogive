@@ -55,3 +55,13 @@ test('fresh phase observations retain exact job nonce/run/job/head/source and ca
  const changed=fixture();changed.source.runnerDigest='e'.repeat(64);
  assert.throws(()=>recheckCurrentCheckoutProfile(changed,original,now),/binding rejected/);
 });
+test('startup keeps 2.5 GiB headroom while already-running phase checks retain the 1.5 GiB floor',()=>{
+ const original=validateCurrentCheckoutProfile(fixture(),head,source,now),p=fixture();
+ p.job.freeBytes=2*1024**3;p.job.observedAt=new Date(now+1000).toISOString();
+ assert.throws(()=>validateCurrentCheckoutProfile(p,head,source,now+1000),/binding rejected/);
+ const running=recheckCurrentCheckoutProfile(p,original,now+1000);
+ p.job.observedAt=new Date(now+2000).toISOString();
+ assert.equal(recheckCurrentCheckoutProfile(p,running,now+2000).job.freeBytes,2*1024**3);
+ p.job.freeBytes=1.49*1024**3;
+ assert.throws(()=>recheckCurrentCheckoutProfile(p,running,now+2000),/binding rejected/);
+});

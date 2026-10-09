@@ -26,11 +26,18 @@ obtain source/job/OS/provider/member evidence and durable original admission.
 Including this module in the runner closure changes its digest; do not reuse the
 previous digest for the new code.
 
-Local verification: **437 simulator tests, 436 pass, one Linux-only skip, no
-failures**; types and focused ESLint with `--no-ignore` pass. Five new policy tests
+Local verification after the memory-phase correction: **438 simulator tests,
+437 pass, one Linux-only skip, no failures**; types and focused ESLint with
+`--no-ignore` pass. Six new policy tests
 cover identity/budget/fixture substitutions, stale/completed/retried jobs, mixed
-source, credential fields and phase identity changes. Current-head hosted tests
-must be observed after push before claiming hosted verification of this module.
+source, credential fields, phase identity changes and separate startup/runtime
+memory thresholds. Startup remains 2.5 GiB; repeated observations of an already-
+running browser retain the existing 1.5 GiB floor. Current-head hosted tests
+must be observed after push before claiming hosted verification of the memory
+correction. Initial profile head `e56d0d0ef30096d6e64d7ee47939086a39e7af56`
+passed exact-head hosted run **37874759073 SUCCESS/terminal**, job
+**113640681072**: application build/checks, all 437 Linux simulator tests,
+public smoke, intercepted Checkout tests and native source/browser preflight.
 
 Actual SELECT-only original-journal check passed: immutable plan SHA remains
 `e36e25e6e4e49e662a2343b15230c0d3dd1717637ca5eabfc4c342f8da8d1e1a`;

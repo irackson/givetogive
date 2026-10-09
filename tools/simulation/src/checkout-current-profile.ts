@@ -54,11 +54,15 @@ function freeze(value:object) {
  */
 export function validateCurrentCheckoutProfile(raw:unknown,reviewedHead:string,
  reviewedSource:CurrentCheckoutSource,now:number):Readonly<CurrentCheckoutProfile> {
+ return validateProfile(raw,reviewedHead,reviewedSource,now,true);
+}
+function validateProfile(raw:unknown,reviewedHead:string,
+ reviewedSource:CurrentCheckoutSource,now:number,startup:boolean):Readonly<CurrentCheckoutProfile> {
  try {
   const p=profileSchema.parse(raw),s=sourceSchema.parse(reviewedSource);
   guard(Number.isFinite(now)&&p.job.headSha===reviewedHead);
   const age=now-Date.parse(p.job.observedAt);guard(age>=-5000&&age<=30000);
-  checkMemory(p.job.freeBytes,true);
+  checkMemory(p.job.freeBytes,startup);
   currentCheckoutSourceEvidence(p.source,reviewedHead);
   guard(p.source.canonicalSourceDigest===s.canonicalSourceDigest&&p.source.rootLockDigest===s.rootLockDigest&&
    p.source.runnerDigest===s.runnerDigest);
@@ -70,8 +74,8 @@ export function validateCurrentCheckoutProfile(raw:unknown,reviewedHead:string,
  * Callers re-observe the actual native job and source before each phase.
  */
 export function recheckCurrentCheckoutProfile(raw:unknown,original:Readonly<CurrentCheckoutProfile>,now:number) {
- const before=validateCurrentCheckoutProfile(original,original.job.headSha,original.source,Date.parse(original.job.observedAt));
- const after=validateCurrentCheckoutProfile(raw,before.job.headSha,before.source,now);
+ const before=validateProfile(original,original.job.headSha,original.source,Date.parse(original.job.observedAt),false);
+ const after=validateProfile(raw,before.job.headSha,before.source,now,false);
  const {observedAt:_old,freeBytes:_oldMemory,...oldJob}=before.job;
  const {observedAt:_new,freeBytes:_newMemory,...newJob}=after.job;
  guard(JSON.stringify(oldJob)===JSON.stringify(newJob));
