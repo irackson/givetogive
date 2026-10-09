@@ -20,7 +20,7 @@ const fixtureCards = { success: '4242424242424242', decline: '4000000000000002',
 
 /** Diagnostic classification only; never grants request admission or retains URL bytes. */
 export function checkoutRequestCategory(rawUrl: string, resourceType: string, topNavigation: boolean) {
-  let destination: 'stripe-owned' | 'stripe-network' | 'hcaptcha' | 'staging' | 'google-fonts' | 'paypal' | 'link' | 'google-script' | 'cloudflare-challenge' | 'other-https' | 'unsafe-or-non-https' = 'unsafe-or-non-https';
+  let destination: 'stripe-owned' | 'stripe-network' | 'hcaptcha' | 'staging' | 'google-fonts' | 'google-maps' | 'paypal' | 'link' | 'google-script' | 'cloudflare-challenge' | 'other-https' | 'unsafe-or-non-https' = 'unsafe-or-non-https';
   try {
     const url = new URL(rawUrl);
     if (url.protocol === 'https:' && !url.username && !url.password && (!url.port || url.port === '443')) {
@@ -29,6 +29,7 @@ export function checkoutRequestCategory(rawUrl: string, resourceType: string, to
       else if (url.hostname === 'hcaptcha.com' || url.hostname.endsWith('.hcaptcha.com')) destination = 'hcaptcha';
       else if (url.origin === sandboxOrigin) destination = 'staging';
       else if (['fonts.googleapis.com', 'fonts.gstatic.com'].includes(url.hostname)) destination = 'google-fonts';
+      else if (['maps.googleapis.com', 'maps.gstatic.com'].includes(url.hostname)) destination = 'google-maps';
       else if (url.hostname === 'paypal.com' || url.hostname.endsWith('.paypal.com') || url.hostname === 'paypalobjects.com' || url.hostname.endsWith('.paypalobjects.com')) destination = 'paypal';
       else if (url.hostname === 'link.com' || url.hostname.endsWith('.link.com')) destination = 'link';
       else if (['www.google.com', 'www.gstatic.com'].includes(url.hostname)) destination = 'google-script';
