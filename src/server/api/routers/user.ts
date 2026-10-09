@@ -1,6 +1,9 @@
 import { env } from '@/env';
 import { applicationEnvironment } from '@/lib/environment';
-import { authEmailCaptured, authEmailRequestMessage } from '@/lib/auth-email-status';
+import {
+	authEmailCaptured,
+	authEmailRequestMessage,
+} from '@/lib/auth-email-status';
 import {
 	createTRPCRouter,
 	protectedProcedure,
@@ -329,7 +332,15 @@ export const userRouter = createTRPCRouter({
 
 			return {
 				success: true,
-				message: authEmailRequestMessage('password_reset', applicationEnvironment()),
+				message: authEmailRequestMessage(
+					'password_reset',
+					applicationEnvironment(),
+					authEmailCaptured(
+						applicationEnvironment(),
+						email,
+						env.AUTH_EMAIL_STAGING_RECIPIENTS,
+					),
+				),
 				previewUrl,
 			};
 		}),
@@ -370,8 +381,20 @@ export const userRouter = createTRPCRouter({
 
 			return {
 				success: true,
-				message: authEmailRequestMessage('email_verification', applicationEnvironment()),
-				emailCaptured: authEmailCaptured(applicationEnvironment()),
+				message: authEmailRequestMessage(
+					'email_verification',
+					applicationEnvironment(),
+					authEmailCaptured(
+						applicationEnvironment(),
+						email,
+						env.AUTH_EMAIL_STAGING_RECIPIENTS,
+					),
+				),
+				emailCaptured: authEmailCaptured(
+					applicationEnvironment(),
+					email,
+					env.AUTH_EMAIL_STAGING_RECIPIENTS,
+				),
 				previewUrl,
 			};
 		}),

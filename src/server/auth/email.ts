@@ -141,14 +141,18 @@ async function sendWithResend({ to, url, purpose }: AuthEmailInput) {
 }
 
 export async function sendAuthEmail({ to, url, purpose }: AuthEmailInput) {
-	if (authEmailCaptured(applicationEnvironment())) {
-		await db
-			.insert(emailSink)
-			.values({
-				to,
-				purpose,
-				urlCiphertext: sealSecret(url, 'staging-email'),
-			});
+	if (
+		authEmailCaptured(
+			applicationEnvironment(),
+			to,
+			env.AUTH_EMAIL_STAGING_RECIPIENTS,
+		)
+	) {
+		await db.insert(emailSink).values({
+			to,
+			purpose,
+			urlCiphertext: sealSecret(url, 'staging-email'),
+		});
 		return { delivered: false, captured: true, previewUrl: undefined };
 	}
 	const provider = getEmailProvider();

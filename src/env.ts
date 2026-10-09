@@ -69,6 +69,7 @@ export const env = createEnv({
 		GOOGLE_REFRESH_TOKEN: z.string().optional(),
 		GMAIL_SENDER: z.string().optional(),
 		AUTH_EMAIL_TEST_MODE: z.enum(['true']).optional(),
+		AUTH_EMAIL_STAGING_RECIPIENTS: z.string().optional(),
 		RESEND_API_KEY: z.string().optional(),
 		AUTH_EMAIL_FROM: z.string().optional(),
 	},
@@ -130,6 +131,8 @@ export const env = createEnv({
 		GOOGLE_REFRESH_TOKEN: process.env['GOOGLE_REFRESH_TOKEN'],
 		GMAIL_SENDER: process.env['GMAIL_SENDER'],
 		AUTH_EMAIL_TEST_MODE: process.env['AUTH_EMAIL_TEST_MODE'],
+		AUTH_EMAIL_STAGING_RECIPIENTS:
+			process.env['AUTH_EMAIL_STAGING_RECIPIENTS'],
 		RESEND_API_KEY: process.env['RESEND_API_KEY'],
 		AUTH_EMAIL_FROM: process.env['AUTH_EMAIL_FROM'],
 	},

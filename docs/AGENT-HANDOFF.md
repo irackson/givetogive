@@ -1,5 +1,28 @@
 # Resume here: payments and simulation checkpoint
 
+## Staging email delivery: exact-recipient opt-in implemented
+
+The latest simulator adapter follow-up `752c440` passed hosted run
+**37878129452 SUCCESS/terminal**. Email work now adds server-only
+`AUTH_EMAIL_STAGING_RECIPIENTS`: staging defaults to capture; only exact approved
+non-reserved recipients can use the existing sender. Test always captures,
+simulated `.invalid` recipients cannot escape capture, production is unchanged.
+See `docs/staging-auth-email.md`. Local application unit tests (148), TypeScript
+and focused ESLint pass. Existing local Gmail OAuth authorization was checked:
+token grant succeeds and includes send scope; that check sent no email.
+
+The protected staging project's five sender/allowlist settings were provisioned
+as sensitive variables from existing local credentials through stdin. Metadata
+readback confirms all five are scoped only to this separate project's production
+target (its staging alias); the real production project/link is unchanged. No
+email was sent by configuration. The helper is ignored
+`tmp/configure-staging-auth-email.mjs`; do not rerun apply or overwrite the keys.
+New code/configuration requires a staging deployment
+and actual AgentMail receipt/browser verification before claiming delivery fixed.
+Do not reuse the old canonical app/source binding for financial acceptance after
+this app change. The current native parent/root broker remains unfinished; no
+payment has been prepared or submitted by this email work.
+
 ## October 9 UTC: current member adapter/entry/IPC implemented, parent/root wiring open
 
 Previous transport head `4afcf8b0cb583f69856551ad120906b998c5d929` passed
