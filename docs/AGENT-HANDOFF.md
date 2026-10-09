@@ -14,9 +14,16 @@ Packing validates successful anonymous status, zero mutations/errors, bounded
 PNG-only paths/sizes and exact SHA-256 image matches. Unit regressions cover
 round-trip, tamper/weak-key/private-key rejection, failed/authenticated/mutated
 capture refusal and inert local invocation. Full units **161/161**, types and
-scoped zero-warning lint passed before publication. Actual hosted capture,
-encrypted download, local decryption and visual inspection remain to be performed;
-do not claim these primitives alone supply final PDF inputs. Ignored operator
+scoped zero-warning lint passed before publication. Hosted capture **37899962260
+SUCCESS/terminal** at `b5aed1b` actually completed all 40 views with zero mutation
+attempts. Exactly one ciphertext artifact was downloaded after checking job
+source/owner/workflow/first-attempt provenance. DPAPI decryption and all image
+hash checks passed locally; images/manifest are retained at ignored
+`tmp/walkthrough-public-10b7cbe8-ba39-4590-bbb9-eb8e5fd19f40/production`.
+Visual review and final all-view/modal PDF assembly remain incomplete. The first
+successful upload used v4.6.2 under forced Node 24 and emitted a Node 20 warning;
+the pin is now v7.0.2, independently verified upstream to use native Node 24.
+Actual hosted validation of that new action pin remains pending. Ignored operator
 `tmp/hosted-public-capture-operator.mjs` has explicit prepare/dispatch/restore
 phases and once-only dispatch intent. Reconcile the exact hosted job rather than
 dispatching again after an observation timeout. Verify its source SHA and artifact
