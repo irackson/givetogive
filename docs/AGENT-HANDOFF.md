@@ -1,5 +1,47 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 late evening: collapsed Card choice ordering fixed and browser-verified
+
+Signed code head `d9e4c14c26eaecdfd29063015e2af27ed454d111` passed exact-head
+hosted verification **37867135756 SUCCESS/terminal**, job **113616434513**:
+application/simulator tests/types, published public smoke, and **17 intercepted
+actual-Chromium tests in BOTH native TypeScript and tsx**. Local suite: 412 tests,
+411 pass, one Linux-only skip; types and focused explicit lint pass.
+
+Fixed a genuine driver ordering defect: `fillFixture` previously required visible
+editable card inputs BEFORE reaching its Card-option selection. An initially
+collapsed Card section could therefore never advance. The driver now observes
+the exact visible Card button, separately validates fresh healthy TEST-mode
+evidence (no notice/dialog/challenge/errors, exactly one enabled visible choice),
+rechecks before one bounded click, then requires genuine visible editable fields.
+It no longer redundantly clicks Card after fields are ready. Selection permission
+is consumed before clicking and cannot retry; it is NOT submit admission.
+
+Added opt-in fixed Card-choice diagnostics to the generic driver. Read-only
+inspection reports a collapsed choice without selecting it. Default shared
+surface/protocol shape, notice permission/hash guards, financial/source approvals,
+provider freshness and budgets remain unchanged. Browser regression proves one
+selection reveals the fixture fields, while duplicate/disabled/non-test/unknown
+alert cases make zero selection/notice clicks. These are intercepted fixtures,
+NOT proof that collapsed Card was the cause of the earlier private rendering
+failure, or proof of a successful actual payment.
+
+Fresh read-only normal-member preflight (`tmp/fresh-ui-financial-acceptance.mjs
+inspect 2`) passed: original immutable plan digest, real normal session,
+canonical test-clock/customer binding, tier Neighbor, operation count ZERO.
+The untouched decline step remains untouched. Original steps 0 and 1 were
+separately reconciled read-only: both app EXPIRED, provider UNPAID, tier Neighbor,
+no provider error. `webhookVerified:false`/`not_yet_verified` is NOT paid-event
+acceptance. No Checkout preparation, submission, budget reset or paid grant.
+
+Both local reconciliation operators and hosted verification are terminal. Laptop
+free RAM was about 2.18 GiB, below browser-start threshold; preserve other tasks.
+Next: remaining private rendering/capability diagnosis and a reusable independently
+reviewed, finite hosted financial phase. Do not adapt consumed fixed native
+approvals or use new ledgers/IDs to evade the preserved original cap. Full payment
+lifecycle/Connect/funds/253-member acceptance and final artifacts remain unfinished;
+goal active, production financial gates off.
+
 ## October 8 late evening: genuine public wallet SDK execution passed
 
 Signed code head `f3e80d020c725f44bcba1c3fcb2e8328d9c30bb4` adds a manual,
