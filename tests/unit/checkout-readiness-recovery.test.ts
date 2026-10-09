@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
-import { readReadinessRecovery, validateReadinessRecoveryRemote, readinessRecoveryBinding as b } from '../../scripts/checkout-readiness-recovery.mjs';
+import { readReadinessRecovery, validateReadinessRecoveryRemote, observeReadinessRecoveryRemote, readinessRecoveryBinding as b } from '../../scripts/checkout-readiness-recovery.mjs';
 const operationId = '398c5cf9-62de-4908-afb0-ce6321e8b3ad', memberId = 'synthetic-bcfa98ea084ed93e-003';
 function fixture() {
  const common = { event: 'workflow_dispatch', head_branch: 'main', run_attempt: 1, status: 'completed',
@@ -42,4 +42,21 @@ test('filesystem recovery refuses fabricated receipts and any extra association/
   }
   assert.throws(() => readReadinessRecovery(directory, operationId, 'foreign-member'));
  } finally { assert.ok(resolve(directory).startsWith(resolve(tmpdir()) + sep)); rmSync(directory, { recursive: true }); }
+});
+test('actual Fetch response semantics admit only exact successful GETs and anonymous 404, never Playwright-style ok()', async () => {
+ const f = fixture(), calls: string[] = [], token = 'public-offline-fixture-token';
+ const request: typeof fetch = async (url, init) => {
+  assert.equal(init?.method, 'GET'); calls.push(String(url));
+  const authenticated = new Headers(init?.headers).has('Authorization');
+  if (!authenticated) return new Response(null, { status: 404 });
+  if (String(url).endsWith('/' + b.priorRunId)) return Response.json(f.prior);
+  if (String(url).endsWith('/' + b.diagnosticRunId)) return Response.json(f.diagnostic);
+  return Response.json(f.release);
+ };
+ const value = await observeReadinessRecoveryRemote(42, operationId, token, { request });
+ assert.equal(value.transportEvidence, 'injected-offline-http'); assert.equal(value.anonymousDraft404, true); assert.equal(calls.length, 4);
+ for (const status of [401, 404, 500]) await assert.rejects(() => observeReadinessRecoveryRemote(42, operationId, token,
+  { request: async () => new Response(null, { status }) }));
+ await assert.rejects(() => observeReadinessRecoveryRemote(42, operationId, token, { request: async (url) =>
+  String(url).endsWith('/' + b.priorRunId) ? Response.json(f.prior) : String(url).endsWith('/' + b.diagnosticRunId) ? Response.json(f.diagnostic) : Response.json(f.release) }));
 });

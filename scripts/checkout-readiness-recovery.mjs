@@ -61,3 +61,25 @@ export function validateReadinessRecoveryRemote(priorReleaseId, operationId, pri
  return Object.freeze({ failedDispatchPreserved: true, nativeReadinessDiagnosticSuccessful: true,
   priorDraftStillPendingAndEmpty: true, noFinancialActionAuthorized: true });
 }
+/** Authenticated GETs only. No retry, draft mutation, sign-in or payment action.
+ * @param {number} priorReleaseId @param {string} operationId @param {string} token
+ * @param {{request?: typeof fetch, signal?: AbortSignal}} [options] */
+export async function observeReadinessRecoveryRemote(priorReleaseId, operationId, token, options = {}) {
+ guard(typeof token === 'string' && token.length >= 20 && token.length <= 4096 && !/[\r\n]/.test(token));
+ const request = options.request ?? fetch, signal = AbortSignal.any([options.signal ?? new AbortController().signal, AbortSignal.timeout(60000)]);
+ const headers = { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2026-03-10' };
+ const base = 'https://api.github.com/repos/irackson/givetogive/';
+ /** @param {string} path */
+ const get = async path => {
+  const response = await request(base + path, { method: 'GET', headers, redirect: 'error', signal });
+  guard(response.ok); return response.json();
+ };
+ const proof = validateReadinessRecoveryRemote(priorReleaseId, operationId,
+  await get('actions/runs/' + readinessRecoveryBinding.priorRunId),
+  await get('actions/runs/' + readinessRecoveryBinding.diagnosticRunId), await get('releases/' + priorReleaseId));
+ const publicDraft = await request(base + 'releases/' + priorReleaseId, { method: 'GET', redirect: 'manual', signal });
+ try { guard(publicDraft.status === 404); } finally { await publicDraft.body?.cancel(); }
+ signal.throwIfAborted();
+ return Object.freeze({ ...proof, anonymousDraft404: true,
+  transportEvidence: options.request ? 'injected-offline-http' : 'github-live-readiness-recovery' });
+}

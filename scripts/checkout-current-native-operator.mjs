@@ -59,7 +59,7 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
  prerequisites=await inspectCurrentCheckoutPrerequisites();
  }
  if (readinessRecovery) {
-  const { readReadinessRecovery, validateReadinessRecoveryRemote, readinessRecoveryBinding: b } = await import('./checkout-readiness-recovery.mjs');
+  const { readReadinessRecovery, observeReadinessRecoveryRemote, readinessRecoveryBinding: b } = await import('./checkout-readiness-recovery.mjs');
   recoveryProof = readReadinessRecovery(join(state, `current-native-${c.operationId}-predispatch-recovery-v1`), c.operationId, c.memberId);
   // The passed diagnostic's browser owner/member launch implementation must be
   // unchanged. Transport naming can change, but readiness is not simulated.
@@ -68,13 +68,8 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
   const bytes=execFileSync('gh',['auth','token'],{windowsHide:true,stdio:['ignore','pipe','pipe']});let githubToken;
   try{githubToken=bytes.toString().trim();}finally{bytes.fill(0);}
   try {
-   const headers={Authorization:'Bearer '+githubToken,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2026-03-10'};
-   const get=async path=>{const response=await fetch('https://api.github.com/repos/irackson/givetogive/'+path,
-    {headers,redirect:'error',signal:AbortSignal.timeout(20000)});guard(response.ok());return response.json();};
-   validateReadinessRecoveryRemote(recoveryProof.priorReleaseId,c.operationId,
-    await get('actions/runs/'+b.priorRunId),await get('actions/runs/'+b.diagnosticRunId),await get('releases/'+recoveryProof.priorReleaseId));
-   const publicDraft=await fetch('https://api.github.com/repos/irackson/givetogive/releases/'+recoveryProof.priorReleaseId,
-    {redirect:'manual',signal:AbortSignal.timeout(20000)});guard(publicDraft.status===404);await publicDraft.body?.cancel();
+   const remote=await observeReadinessRecoveryRemote(recoveryProof.priorReleaseId,c.operationId,githubToken);
+   guard(remote.transportEvidence==='github-live-readiness-recovery');
   }finally{githubToken=undefined;}
   prerequisites=await inspectCurrentCheckoutPrerequisites();
  }

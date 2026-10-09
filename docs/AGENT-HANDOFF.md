@@ -18,6 +18,13 @@ namespaces are distinct; it never rebinds the original draft, resets holds, or
 replays a previous financial attempt. Verify and sign before executing once.
 No actual decline/payment acceptance is claimed yet. No Vercel deployment needed.
 
+The first invocation at signed `6f09345` stopped during read-only preflight,
+before creating its root namespace, signing in, dispatching, preparing or
+submitting. The new GET adapter incorrectly called Fetch's boolean `ok` as a
+Playwright method. It is now a typed, directly tested read-only observer using
+actual Fetch Response fixtures. No financial or transport intent was consumed;
+reverify the fix before one explicit invocation of the still-unused recovery.
+
 ## October 9 16:08 UTC: browser-group mismatch confirmed and narrowly corrected
 
 Signed `7c4e33d` full hosted verification `37956160986` passed. Separate
