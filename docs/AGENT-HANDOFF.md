@@ -1,5 +1,28 @@
 # Resume here: payments and simulation checkpoint
 
+## Encrypted public capture retention (October 9)
+
+The manual `public-walkthrough.yml` workflow reuses the fixed-origin anonymous
+read-only capture on a standard hosted runner. Only RSA-OAEP/AES-GCM ciphertext
+is uploaded, at an exact single-file path with one-day retention; no raw PNG,
+manifest, auth state, trace, provider/database credential or private key upload.
+Dispatch requires the exact main SHA, repository/owner and first attempt. An
+operator supplies only a fresh strong RSA public key. The local private key is
+protected with Windows CurrentUser DPAPI in an ignored private receipt.
+
+Packing validates successful anonymous status, zero mutations/errors, bounded
+PNG-only paths/sizes and exact SHA-256 image matches. Unit regressions cover
+round-trip, tamper/weak-key/private-key rejection, failed/authenticated/mutated
+capture refusal and inert local invocation. Full units **161/161**, types and
+scoped zero-warning lint passed before publication. Actual hosted capture,
+encrypted download, local decryption and visual inspection remain to be performed;
+do not claim these primitives alone supply final PDF inputs. Ignored operator
+`tmp/hosted-public-capture-operator.mjs` has explicit prepare/dispatch/restore
+phases and once-only dispatch intent. Reconcile the exact hosted job rather than
+dispatching again after an observation timeout. Verify its source SHA and artifact
+provenance before download/decryption. Protected routes remain sign-in boundaries;
+this workflow does not replace authenticated modal/payment/simulation acceptance.
+
 ## Latest publication and hosted-auth preparation (October 9, 07:25 UTC)
 
 Read-only canonical provider/source audit at **07:23:09 UTC** supersedes older
