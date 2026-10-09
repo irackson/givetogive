@@ -2,6 +2,7 @@
 
 import { api } from '@/trpc/react';
 import { simulationMetrics } from '@/lib/simulation-presentation';
+import { simulationMemberPage } from '@/lib/simulation-member-page';
 import {
 	Alert,
 	Button,
@@ -10,6 +11,7 @@ import {
 	DialogContent,
 	DialogTitle,
 	MenuItem,
+	Pagination,
 	TextField,
 } from '@mui/material';
 import Link from 'next/link';
@@ -283,11 +285,17 @@ export function AdminSimulation({
 	const [liveUpdates, setLiveUpdates] = useState(true);
 	const query = api.admin.simulation.useQuery(
 		{ id },
-		{ refetchInterval: liveUpdates ? 2000 : false, refetchIntervalInBackground: false,
-			refetchOnWindowFocus: liveUpdates, refetchOnReconnect: liveUpdates },
+		{
+			refetchInterval: liveUpdates ? 2000 : false,
+			refetchIntervalInBackground: false,
+			refetchOnWindowFocus: liveUpdates,
+			refetchOnReconnect: liveUpdates,
+		},
 	);
 	const [tier, setTier] = useState('');
 	const [state, setState] = useState('');
+	const [memberSearch, setMemberSearch] = useState('');
+	const [memberPage, setMemberPage] = useState(0);
 	const [concurrency, setConcurrency] = useState(1);
 	const [rate, setRate] = useState(1);
 	const [stopOpen, setStopOpen] = useState(false);
@@ -315,10 +323,12 @@ export function AdminSimulation({
 	const metrics = run.metrics;
 	const selected =
 		agentId ? agents.find((agent) => agent.id === agentId) : undefined;
-	const filtered = agents.filter(
-		(agent) =>
-			(!tier || agent.tier === tier) && (!state || agent.state === state),
-	);
+	const members = simulationMemberPage(agents, {
+		tier,
+		state,
+		search: memberSearch,
+		page: memberPage,
+	});
 	const states = [...new Set(agents.map((agent) => agent.state))].sort();
 	const stateCounts = states.map((value) => ({
 		state: value,
@@ -363,8 +373,12 @@ export function AdminSimulation({
 					</p>
 				</div>
 				<div className='payment-actions'>
-					<Button aria-pressed={!liveUpdates} onClick={() => setLiveUpdates(value => !value)}>
-						{liveUpdates ? 'Pause live updates' : 'Resume live updates'}
+					<Button
+						aria-pressed={!liveUpdates}
+						onClick={() => setLiveUpdates((value) => !value)}>
+						{liveUpdates ?
+							'Pause live updates'
+						:	'Resume live updates'}
 					</Button>
 					<StatusPill status={run.status} />
 					<StatusPill status={online ? 'connected' : 'offline'} />
@@ -376,10 +390,14 @@ export function AdminSimulation({
 					/>
 				</div>
 			</div>
-			{!liveUpdates && <p role='status' className='payment-muted'>
-				Live updates are paused for this view. Simulated users and recorded activity continue.
-				Resume live updates to catch up.
-			</p>}
+			{!liveUpdates && (
+				<p
+					role='status'
+					className='payment-muted'>
+					Live updates are paused for this view. Simulated users and
+					recorded activity continue. Resume live updates to catch up.
+				</p>
+			)}
 			{!online && !terminal && agents.length > 0 && (
 				<Alert severity='warning'>
 					The local runner is offline or its heartbeat is stale. The
@@ -884,18 +902,32 @@ export function AdminSimulation({
 						</Panel>
 					</div>
 					<Panel
-						title={`${filtered.length} of ${agents.length} registered agents`}
+						title={`${members.total} of ${agents.length} registered agents`}
 						action={
 							<div className='admin-toolbar__filters'>
+								<TextField
+									size='small'
+									label='Find member by name or ID'
+									className='admin-member-search'
+									value={memberSearch}
+									slotProps={{
+										htmlInput: { maxLength: 120 },
+									}}
+									onChange={(event) => {
+										setMemberSearch(event.target.value);
+										setMemberPage(0);
+									}}
+								/>
 								<TextField
 									select
 									size='small'
 									label='Tier cohort'
 									value={tier}
 									sx={{ minWidth: 150 }}
-									onChange={(event) =>
-										setTier(event.target.value)
-									}>
+									onChange={(event) => {
+										setTier(event.target.value);
+										setMemberPage(0);
+									}}>
 									<MenuItem value=''>All tiers</MenuItem>
 									{['neighbor', 'supporter', 'sustainer'].map(
 										(value) => (
@@ -913,9 +945,10 @@ export function AdminSimulation({
 									label='Agent state'
 									value={state}
 									sx={{ minWidth: 150 }}
-									onChange={(event) =>
-										setState(event.target.value)
-									}>
+									onChange={(event) => {
+										setState(event.target.value);
+										setMemberPage(0);
+									}}>
 									<MenuItem value=''>All states</MenuItem>
 									{states.map((value) => (
 										<MenuItem
@@ -933,26 +966,48 @@ export function AdminSimulation({
 							simulation assignments; account billing records
 							establish actual paid entitlements.
 						</p>
-						{filtered.length ?
-							<div className='admin-agent-grid'>
-								{/* Native navigation isolates member history from the live run's router state. */}
-								{filtered.map((agent) => (
-									<a
-										className='admin-agent'
-										key={agent.id}
-										href={`/admin/simulations/${id}/agents/${agent.id}`}>
-										<strong>{agent.name}</strong>
-										<StatusPill status={agent.state} />
-										<small>
-											{agent.tier} · {agent.cycles} cycles
-										</small>
-										<small>
-											{agent.lastAction ??
-												'No action reported'}
-										</small>
-									</a>
-								))}
-							</div>
+						{members.total ?
+							<>
+								<p
+									className='admin-definition'
+									aria-live='polite'>
+									Showing {members.start}–{members.end} of{' '}
+									{members.total} matching members.
+								</p>
+								{members.pages > 1 && (
+									<Pagination
+										aria-label='Simulation member pages'
+										count={members.pages}
+										page={members.page + 1}
+										onChange={(__event, page) =>
+											setMemberPage(page - 1)
+										}
+										size='small'
+										siblingCount={0}
+										sx={{ mb: 2 }}
+									/>
+								)}
+								<div className='admin-agent-grid'>
+									{/* Native navigation isolates member history from the live run's router state. */}
+									{members.items.map((agent) => (
+										<a
+											className='admin-agent'
+											key={agent.id}
+											href={`/admin/simulations/${id}/agents/${agent.id}`}>
+											<strong>{agent.name}</strong>
+											<StatusPill status={agent.state} />
+											<small>
+												{agent.tier} · {agent.cycles}{' '}
+												cycles
+											</small>
+											<small>
+												{agent.lastAction ??
+													'No action reported'}
+											</small>
+										</a>
+									))}
+								</div>
+							</>
 						:	<EmptyState
 								title={
 									agents.length ?
@@ -960,13 +1015,16 @@ export function AdminSimulation({
 									:	'Waiting for the local runner.'
 								}>
 								{agents.length ?
-									'Choose All tiers and All states to see the full population.'
+									'Clear member search and choose All tiers and All states to see the full population.'
 								:	'Run setup registers synthetic accounts and connects their individual agents. A run record alone does not create active users.'
 								}
 							</EmptyState>
 						}
 					</Panel>
-					<AdminActivity initial={{ runId: id }} liveUpdates={liveUpdates} />
+					<AdminActivity
+						initial={{ runId: id }}
+						liveUpdates={liveUpdates}
+					/>
 				</>
 			}
 			<Dialog

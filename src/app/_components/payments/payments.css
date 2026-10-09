@@ -822,6 +822,16 @@
 		max-width: 60%;
 	}
 }
+.admin-toolbar__filters > .admin-member-search {
+	min-width: 220px;
+}
+@media (max-width: 640px) {
+	.admin-toolbar__filters > .admin-member-search {
+		flex: 1 1 100%;
+		min-width: 0;
+		width: 100%;
+	}
+}
 @media (prefers-reduced-motion: reduce) {
 	.payment-loading__dot {
 		animation: none;

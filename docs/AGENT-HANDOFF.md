@@ -1,5 +1,27 @@
 # Resume here: payments and simulation checkpoint
 
+## Mobile simulation member navigation bounded (October 9)
+
+Hosted verification **37896426951** for `311dc34` reached SUCCESS/terminal.
+Historical real staging mobile screenshots (October 8, 390x844, synthetic normal
+admin session) exposed the run page's long 253-card list before activity. Current
+`AdminSimulations.tsx` still rendered the entire filtered array. Member cards now
+render at most 24 per page, with labeled pagination, literal case-insensitive
+name/ID search, filters resetting to the first page and derived page clamping.
+Stable name/ID ordering avoids action-counter updates reordering cards. Whole-run
+totals, state counts, selected-member lookup, controls and live activity retain
+the full population. The mobile search occupies its own full-width toolbar row.
+
+Four new helper regressions pass, including every one of 253 members reachable
+exactly once across pages, composed filters, empty/invalid/shrinking pages and
+stable ordering. Full application units **157/157**, types and scoped zero-warning
+lint passed. This is implementation/unit evidence, NOT rendered acceptance of
+the new layout. RAM was below the 2.5-GiB browser startup floor; no local browser
+was launched. Vercel publication remains quota-gated. After publication, verify
+desktop/mobile pagination and search, page reset after filters, keyboard controls,
+no horizontal overflow and individual-history links in a normal authenticated
+staging session. Refresh final screenshots; never relabel older captures as new.
+
 ## Full isolated integration pass and CI network guard (October 9)
 
 Main `d2d7994` hosted verification **37895158360 SUCCESS/terminal** was observed.
