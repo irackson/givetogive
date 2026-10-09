@@ -110,11 +110,15 @@ export async function dispatchCurrentCheckoutWorker(options: {
   const inventory = await draft.inspect(signal); guard(inventory.assets.length === 0);
   await observeCurrentCheckoutReadiness({ headSha: options.headSha, workflowRunId }, options.source,
    { token: options.token, signal, request: options.request, now, original: observation });
-  await options.verifyCurrent(signal); signal.throwIfAborted();
+  // This is only an associated, input-free transport, not financial authority.
+  // Preparation independently reobserves source/job/member/provider/budget
+  // BEFORE any financial intent. Do not consume readiness on that duplicate
+  // full gate here after the same gate already ran immediately before PATCH.
+  signal.throwIfAborted();
   record('association-write.result.json', { releaseId: created.id, exactPrivateDraftReadback: true, profileDigest: observation.readiness.profileDigest,
-   paymentAccepted: false, retryAllowed: false });
+   sourceApprovalStillRequired: true, paymentAccepted: false, retryAllowed: false });
   return { draft, observation, directory, workflowRunId, releaseId: created.id,
    nativeEvidence: options.request ? 'injected-offline-http' : 'github-live-current-dispatch',
-   memberInputStillRequired: true, paymentAccepted: false, retryAllowed: false };
+   sourceApprovalStillRequired: true, memberInputStillRequired: true, paymentAccepted: false, retryAllowed: false };
  } catch { return fail(); }
 }

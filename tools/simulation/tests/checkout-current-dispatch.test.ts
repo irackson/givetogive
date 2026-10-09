@@ -75,6 +75,8 @@ test('one current dispatch and exact private association retain all write intent
   const result = await dispatchCurrentCheckoutWorker(f.options);
   assert.deepEqual(f.writes, ['create', 'dispatch', 'associate']); assert.equal(result.nativeEvidence, 'injected-offline-http');
   assert.equal(result.paymentAccepted, false); assert.equal(result.memberInputStillRequired, true);
+  assert.equal(result.sourceApprovalStillRequired, true); assert.equal(f.contexts(), 5);
+  assert.equal(JSON.parse(readFileSync(join(f.directory, 'association-write.result.json'), 'utf8')).sourceApprovalStillRequired, true);
   for (const name of readdirSync(f.directory)) assert.doesNotMatch(readFileSync(join(f.directory, name), 'utf8'), /public-fixture-token|password|stagingBypass/);
   await assert.rejects(() => dispatchCurrentCheckoutWorker(f.options)); assert.deepEqual(f.writes, ['create', 'dispatch', 'associate']);
  } finally { f.cleanup(); }

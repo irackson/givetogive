@@ -31,6 +31,15 @@ preparation independently performs that exact gate before ANY financial intent.
 This avoids consuming browser freshness on redundant reads. No Vercel release
 needed; no actual payment or full-goal acceptance yet.
 
+Native read-only validation of the parallelized helper passed: full observation
+33,654 ms, repeat observation 6,272 ms, current gates verified, local context
+unchanged, and original source timestamp preserved. The association transport
+also no longer repeats the same full gate AFTER its immediately pre-PATCH gate
+and exact private/readiness readback. Its result explicitly still requires
+source approval; input preparation independently performs the full fresh gate
+before ANY financial intent. No original memory timestamp/freshness limit,
+provider proof, atomic budget or submission gate is weakened.
+
 ## October 9 16:21 UTC: genuine Chromium readiness and shutdown passed
 
 Signed `b7cb0c8` full verification `37957565355` passed. Separate native
