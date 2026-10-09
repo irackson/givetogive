@@ -11,13 +11,25 @@ Staging keeps Vercel deployment protection. Sign into a Vercel account authorize
 for the project, then your **separate GiveToGive staging account**. Dashboard
 access requires the verified, unfrozen, non-synthetic `inasusr@gmail.com` account;
 production cookies/accounts do not automatically carry across the isolated
-database. As of October 8, that staging account has not been registered. Use
-ordinary registration/email verification, not shared bot credentials or a copied
-production password. Personal MFA enrollment is iceboxed; financial operator
+database. Read-only inspection on October 9 at 06:11 UTC confirmed that this
+staging account exists, is verified, unfrozen and non-synthetic. Sign in normally;
+an already verified account does not need another verification email. If sign-in
+fails, use your staging password/recovery flow, not shared bot credentials or a
+copied production password. The owner's actual iPhone login remains unverified.
+See [staging email evidence and boundaries](staging-auth-email.md). Personal MFA
+enrollment is iceboxed; financial operator
 permissions and production step-up are still separate requirements.
 
 Select a run, then an individual member to inspect its recorded actions. The
 foreground dashboard refreshes every two seconds; background polling is disabled.
+The four currently approved full-hour run IDs were independently read on October
+9 at 06:12 UTC: all are stopped with no controller held. The latest full-hour
+GitHub job is terminal failure; these are historical experiments, not a currently
+live fleet or a passed hour. Do not restart a stopped run or reset its journals.
+Fresh-cohort approval and full-hour acceptance remain required after staging
+release/source verification. Read [the current handoff](AGENT-HANDOFF.md) before
+starting or recovering any controller.
+
 Mobile Chromium 390x844 rendering of the list, stopped-run detail and populated
 individual history passed without page-wide overflow or browser errors. Physical
 iPhone Safari and Ian's authenticated staging flow remain unverified.

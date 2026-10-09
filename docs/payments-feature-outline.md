@@ -19,39 +19,36 @@ Tags describe origin, not deployment or acceptance:
   existing feature was completed in this implementation. It does not certify a
   whole untested provider workflow.
 
-Snapshot: protected staging's supporter gate is enabled in test mode; Ask/fund
-and production gates remain disabled. Full genuine Stripe sandbox acceptance and live-money
-approval remain outstanding. The new code is published as an explicitly dark
-production release (latest verified runtime source at signed commit `bfa90f213`): payments,
-supporter/fund sales and production simulations remain disabled. Protected staging verification,
-the final PDF, deployment identity, and full acceptance results must be recorded
-separately in the release handoff and [acceptance contract](payments-implementation-plan.md).
+## Current reviewed checkpoint - October 9, 2026
 
-Later October 3 follow-up: signed docs/capture checkpoint `f7447e197` is verified
-READY on production (`dpl_EYMH9dGgVSTKd1MTFwNebeJh1kBT`) with the same authored
-runtime as the earlier browser-tested release. Production gates remain off.
-Individual-member history subsequently passed a separate read-only browser
-check; the original combined failure is preserved. A fresh 253-account cohort
-and recurring program are provisioned and read-only verified, but **not running**
-and not hour-soak or paid-tier acceptance. Ian approved a manual staging-only
-GitHub-hosted test runner to address laptop memory limits; implementation is
-underway, not yet executed. PDF tooling/explicit open-dialog metadata are static
-verification improvements, not a new walkthrough or completed payment flow.
+This inventory is **not a completion claim**. At 06:11 UTC, canonical production
+deployment `dpl_CcXNsZLV8bWxe2yot9Qn4Yk4hCdZ` was READY on Node 24, with Git
+source `e83fed1cedf4121080e5c44a8c3f902c95f7d0c3`. Its application files matched
+reviewed main `ac3ab2bcc75989dc344c9bc6975be38735ac4af6`. The public availability
+API at 06:12 UTC reported Ask payments, subscriptions, funds and billing management
+all disabled, with live mode false. This does not independently inspect every
+private environment flag. No production financial enablement is claimed.
 
-October 3 checkpoint: protected canonical staging deployment
-`dpl_9v2tUXxH8AJ7qsaaSn8UfMdCmmZS` is READY on Node 24 with authored runtime
-digest `9a3d105bf3026e03726eba1621400a6f24aa47d3e1a300cb7f6b2dc606245e8f`.
-Its source/upload/lock and all-deployment protection were verified. Supporter
-test sales alone are enabled; Ask/fund and production gates remain off. This
-does not establish a paid member tier or completion of financial acceptance.
+Protected staging deployment `dpl_CN1fLhs5nKqXnPK7UMKxKZrQYn5z` was READY on
+Node 24 with source `f7301db9bf188374fbd0cff3e374e16ab11292c7`. Four auth-email
+files differ from current main; new staging publication remains required after
+the provider's daily deployment quota opens. The same staged source cannot be
+treated as a newly reviewed financial or community release.
 
-October 3, 21:14 UTC follow-up: the same authored runtime is READY on canonical
-production deployment `dpl_odip1yeXLq67Ya4FQd9Nzf3PDrZ1`; fresh anonymous smoke
-passes 17/17 states with no browser/console/server errors. The ten-minute mixed
-28-member regression completed and drained with 799 successes; its dashboard
-sample passed 111/111 within five seconds. Individual history verification and
-the full253 continuous hour remain open. The latest ordinary Stripe acknowledgment
-timed out without card entry/payment submission; actual paid tiers remain unproved.
+The hosted test runner is implemented and has executed; it is not merely planned.
+Read-only verification **37890909986** passed for `e83fed1`, including the build,
+unit/simulation checks and public browser smoke. Real registration/resend emails
+arrived in an existing AgentMail inbox through the current loopback router, and
+real hosted mobile verification/link-reuse rejection and ordinary sign-in passed.
+That is not hosted acceptance of the updated signup/resend request handler.
+
+The four approved full-hour runs are stopped with no controller held, confirmed
+by independent isolated database reads at 06:12 UTC; the latest full-hour GitHub
+job **37828856578** is terminal failure. No full 253-member hour or paid-tier
+population is accepted. The new 40 public desktop/mobile PNGs are current reference
+captures, not authenticated/admin/modal/paid-state coverage or the final PDF.
+Use [the handoff](AGENT-HANDOFF.md), [auth evidence](staging-auth-email.md), and
+[acceptance contract](payments-implementation-plan.md) for exact remaining gates.
 
 ## Existing community capabilities retained
 
@@ -106,11 +103,12 @@ introduced. No paid tier is earned by assigning a label to a synthetic account.
 | Per-Ask payment pause | brand new | Authorized administrators can pause/resume new payment and fund-allocation reservations with an audited reason and stale-state protection. Existing Checkouts can still settle; refunds and recovery continue. No provider eligibility or environment gate is bypassed. |
 | Recovery-case review | brand new | Paginated private operator history with audited acknowledgement/escalation and idempotent retries. Reviewing a case cannot resolve a financial hold, change a payment, or claim money recovered. |
 | Analytics definitions | brand new | Giving excludes legacy pledges and supporter subscriptions. Verified net subtracts confirmed recipient refunds/disputes. Supporter MRR requires active, non-canceling, paid-through supporter subscriptions. Request latency is measured, not fabricated; missing observations remain unavailable. |
-| Member/admin authorization | brand new | Verified administrator role, current account/freeze/session checks, server-side permissions and session/token revocation. A display name does not grant administration. |
+| Member/admin authorization | brand new | Fresh verified/unfrozen database identity and session-version checks. Real dashboard access is restricted to non-synthetic `inasusr@gmail.com`; normal synthetic admins are allowed only in isolated staging/test. Dashboard viewing does not grant the admin role or financial authority. A display name or email-only request claim grants nothing. |
 | Financial admin step-up | brand new | Recent authentication and replay-protected TOTP mint a five-minute encrypted, account/session-bound elevation token held only in browser memory. Production financial actions enforce it. Ian's own bootstrap and MFA enrollment are not claimed complete. |
 | Concurrent auth throttling | newly finished | The existing database limiter now updates atomically rather than losing simultaneous attempts. |
 | Password-reset revocation | newly finished | Resetting an existing account password also invalidates prior session versions/tokens; already-issued sessions are no longer silently retained. |
-| Environment isolation | brand new | Separate synthetic-only staging and CI databases/roles, environment identity, protected staging origin, private encrypted staging email sink, independent payment/supporter/fund flags, and explicit production live approval gate. |
+| Staging authentication email and one-link recovery | newly finished | Exact approved-recipient allowlist permits real staging delivery; reserved synthetic domains and test environments stay captured. Real AgentMail registration/resend receipt, superseded/consumed-link rejection, hosted verification and ordinary mobile-size sign-in were observed. Verified-account resend creates no new token. New hosted request-handler publication and actual expired-link/owner-device checks remain open. |
+| Environment isolation | brand new | Separate restricted staging and CI databases/roles and explicit environment identity; protected staging, private encrypted email sink, independent payment/supporter/fund flags and production live approval. Staging includes approved real-owner/AgentMail auth fixtures as well as synthetic simulation members; no production account/data copying or shared member credentials is implied. |
 | Targeted dependency security hardening | newly finished | Retained the installed graph while patching brace-expansion to 5.0.12/1.1.21 and the scoped Workflow devalue override to 5.9.3; three Buffer-view disclosure regressions pass. Thirteen high audit entries remain from two unpatched braces/http-cache-semantics advisories, six in the production installation. Fresh local traces/bundles contain no observed chain paths/markers; this bounded packaging evidence is not universal unreachability or a zero-vulnerability audit. See the [security checkpoint](dependency-security.md). |
 
 Giving is not a bank-payout metric. Daily giving groups current net values by the
@@ -180,7 +178,12 @@ Stripe-hosted Checkout, portal, Express dashboard and configured embedded
 onboarding are provider surfaces; locally rendered empty/gated pages are not
 screenshots of successful provider use.
 
-## Verification boundary at this handoff
+## Historical scoped verification
+
+The checkpoints below preserve earlier evidence, not current liveness or a final
+acceptance claim. Their then-prepared/running descriptions have been superseded
+by the current reviewed checkpoint above. Retained source/job/journal evidence
+is indexed in the handoff and verification record; failed attempts are not erased.
 
 | Evidence | What it establishes | What it does not establish |
 | --- | --- | --- |
@@ -235,7 +238,9 @@ Checkout path, declines/3DS/async flows, signed paid settlement delivery,
 renewals/plan changes/test clocks, refunds/disputes/payout failures, crash recovery,
 and the measured 10 -> 25 -> 100 -> 253 ongoing scripted/browser progression,
 one-hour mixed soak and cross-tier actions.
-Live launch additionally needs Ian's verified admin/MFA setup, business and tax
+Live launch additionally needs any financial operator role/step-up, business and tax
 decisions, hosting/recovery readiness, reviewed production migration/deployment,
-and explicit approval. See the [operator runbook](payments-runbook.md),
+and explicit approval. Ian's personal MFA enrollment is iceboxed, not a prerequisite
+for ordinary dashboard viewing and not an exemption from live financial step-up.
+See the [operator runbook](payments-runbook.md),
 [simulation guide](simulation.md), and [payment invariants](../src/server/payments/README.md).

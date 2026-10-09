@@ -310,7 +310,7 @@ export function AskDetail({
 										'This Ask has been completed.'
 									:	'The goal is fully pledged. Delivery is still in progress.'
 
-								:	`${formatAskAmount(ask.type, remainingAmount, currency)} remains.`
+								:	`${formatAskAmount(ask.type, remainingAmount, currency)} remaining.`
 								}
 							</p>
 							<p className='contribution-panel__completed'>
@@ -626,7 +626,7 @@ export function AskDetail({
 									remainingAmount,
 									currency,
 								)}{' '}
-								remains. Share only what works for you.
+								remaining. Share only what works for you.
 							</Typography>
 							<TextField
 								autoFocus

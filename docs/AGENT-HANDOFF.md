@@ -1,5 +1,24 @@
 # Resume here: payments and simulation checkpoint
 
+## Current capability/access inventory corrected (October 9)
+
+Independent provider/source audit at 06:11 UTC found production READY
+`dpl_CcXNsZLV8bWxe2yot9Qn4Yk4hCdZ` / `e83fed1`, with application files matching
+then-main `ac3ab2b`. Staging remained READY `dpl_CN1fLhs5nKqXnPK7UMKxKZrQYn5z`
+/ `f7301db`, missing the four email changes. Public payment availability at
+06:12 UTC was entirely disabled. Owner's staging account was again directly
+read as verified/unfrozen/non-synthetic. At 06:12:43 UTC, isolated read-only
+inspection found all four compiled full-hour approvals stopped, controller-free;
+GitHub listed no in-progress job. Do not reinterpret those runs as live/accepted.
+
+The feature outline and phone guide now distinguish these current facts from
+historical prepared/running checkpoints, MFA icebox and final acceptance. The
+public screenshot exposed `4 items remains`; the Ask detail and offer dialog
+now use grammatically neutral `remaining` without changing quantities or workflow.
+Application unit tests **152/152**, types and zero-warning component lint passed.
+Fresh published browser verification of that copy follows deployment; the earlier
+40 PNGs remain pre-copy-change reference evidence, not final capture inputs.
+
 ## Real AgentMail registration/resend and hosted verification (October 9)
 
 Hosted read-only verification **37890909986 SUCCESS/terminal** at `e83fed1`
