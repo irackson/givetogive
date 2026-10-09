@@ -1,5 +1,62 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 19:56 UTC: paid views passed; native header click area reproduced
+
+Signed `6f69f39` full first-attempt verification `37981651787` PASSED, including
+the application production build and published browser checks. No further Vercel
+release was needed. Main is the only local and remote branch. Genuine initial
+Sustainer, four lifecycle changes and renewal evidence below remains valid.
+
+Normal paid-member capture now passes all five views and four historical dialogs
+on desktop/mobile: 18 screenshots, zero console/page/HTTP errors or mutations.
+Manifest: `tmp/paid-member-views-20261009/d55a7bc3-31db-48c7-8877-52fa4328b76e-1791574842140/manifest.json`.
+The earlier dialog failure was the test not reopening a native details element
+after Close refreshed the page, not an application failure. Authentication limits
+expired naturally; passwords/active identity were independently verified without
+changing credentials or deleting limits. Full-page modal captures need suitable
+layout/cropping for the final PDF; they are not a complete all-view walkthrough.
+
+The original temporary wallet preferences were restored and read back once at
+19:39. A separately admitted card-test cycle then temporarily disabled the same
+Development-test Apple Pay/Amazon Pay/Link preferences at 19:48. Its originals
+and eventual once-only restoration operator are separate:
+`tmp/stripe-test-wallet-configuration-20261009b.mjs` and matching JSON receipts.
+Restore THIS current cycle after its test lane; never replay the prior cycle.
+No live setting changed. Wallet status POSTs remain blocked, not whitelisted.
+
+A new normal-admin cohort `ab0e1521-6e57-4c1e-bb25-8aa0d23e3956` was created and
+its three fresh verified synthetic identities provisioned once, without Asks,
+paid grants or activity. Canonical shared adapters created clock
+`clock_1UOjimDed7vKVapt9Lo1d4Dp` at `1791575088` and bound all three Accounts v2
+customers. Clock/customer setup originals are in its own setup directory.
+The new immutable plan `tmp/checkout-local-20261009b-plan.json` has $15 total/$5
+per actor: Supporter success, Supporter 3DS success, Supporter decline. Prior
+cohorts, financial holds, clocks and approvals have not been reset or replaced.
+
+New cases 1 and 2 are CONSUMED and unpaid. Case 1 hit blocked wallet dependencies
+before card selection/entry; case 2 attempted Card selection but its label was
+covered by the native button pseudo-element. No card entry, notice or submission
+occurred. Both retain original ambiguous 500-cent holds and independently closed
+Windows browser groups. Neither is a decline or completed 3DS test. Only case 3
+`c501c7fa-dcda-4e8f-adb3-525bfadaa548` remains unused. The private local operator is
+`tmp/checkout-local-20261009b.mjs`; explicitly review/update its source approval
+for the next signed clean head before admitting ONLY that unused step.
+
+Actual read-only DOM plus a no-action trial confirmed the expanded click area.
+The corrected selector validates the exact clickable header, unique Card label,
+known zero-size button classes and center-point ownership before a normal header
+click. A matching Chromium fixture reproduces the label's blocked click; foreign
+overlays, ambiguous/disabled controls, unknown instructions and challenges still
+reject. All 42 native synthetic tests pass; final hosted CI is still required.
+This corrects a harness problem without replaying either financial attempt.
+
+Provider diagnostics independently reproduced an API blind spot: account-only
+invoice listing returned zero despite two real owned paid invoices; clock-scoped
+subscription listing and subscription-scoped invoices returned the actual owned
+objects. Invoices reject a `test_clock` parameter. New operator subscription
+reads include the named clock. Do not claim invoice absence from an account-only
+list or reuse the old generic absence-proof reader for fresh admission.
+
 ## October 9 19:31 UTC: genuine paid Sustainer lifecycle and first renewal passed
 
 This supersedes the older unpaid checkpoint below. Canonical staging and

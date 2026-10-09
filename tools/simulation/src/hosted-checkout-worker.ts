@@ -134,11 +134,12 @@ export function validateCardSelectionSurface(raw: unknown, now: number): void {
 	requirePolicy(value.cardChoiceKind === undefined || value.cardChoiceKind === 'button' ||
 		((value.cardChoiceKind === 'radio' || value.cardChoiceKind === 'tile') && value.cardChoiceUnchecked === true));
 }
-/** Native Checkout's visible Card label is sometimes bound to a zero-size
- * screen-reader button. Never force-click that button or arbitrary Card text.
- * Only the observed exact label/header/control binding qualifies as a tile. */
+/** Native Checkout's Card header has an expanded pseudo-element click area on
+ * a zero-size button. Click the validated visible header containing that area,
+ * never force-click its hidden button or the covered, non-actionable label. */
 export function cardChoiceLocator(frame: Frame, kind: CheckoutSurface['cardChoiceKind']) {
-	return kind === 'tile' ? frame.locator('#payment-method-label-card') :
+	return kind === 'tile' ? frame.locator('.AccordionItemHeader.AccordionItemCover-header.AccordionItemHeader--clickable')
+		.filter({ has: frame.locator('#payment-method-label-card') }) :
 		frame.getByRole(kind ?? 'button', { name: 'Card', exact: true });
 }
 export async function cardChoiceCandidateState(choice: Locator, kind: NonNullable<CheckoutSurface['cardChoiceKind']>) {
@@ -146,13 +147,19 @@ export async function cardChoiceCandidateState(choice: Locator, kind: NonNullabl
 	if (!visible) return { visible: false, enabled: false, unchecked: false };
 	if (kind === 'tile') {
 		const bound = await choice.evaluate(element => {
-			const header = element.closest('.AccordionItemHeader-content');
-			const buttons = header?.querySelectorAll<HTMLButtonElement>('button[type="button"][aria-label="Pay with card"]');
-			if (!header || header.querySelectorAll('#payment-method-label-card').length !== 1 ||
-				element.textContent?.trim() !== 'Card' || buttons?.length !== 1 ||
+			const header = element;
+			const content = header.querySelector('.AccordionItemHeader-content');
+			const labels = header.querySelectorAll('#payment-method-label-card');
+			const buttons = content?.querySelectorAll<HTMLButtonElement>('button[type="button"][aria-label="Pay with card"]');
+			if (!header.matches('.AccordionItemHeader.AccordionItemCover-header.AccordionItemHeader--clickable') ||
+				header.querySelectorAll('.AccordionItemHeader-content').length !== 1 || labels.length !== 1 ||
+				!content?.contains(labels[0]!) || labels[0]!.textContent?.trim() !== 'Card' || buttons?.length !== 1 ||
+				!buttons[0]!.matches('.AccordionButton.AccordionButton-open.AccordionButton-expandedClickArea.AccordionButton-expandedFocusArea') ||
 				buttons[0]!.matches(':disabled') || buttons[0]!.closest('[aria-disabled="true"],[inert]')) return false;
 			const rectangle = buttons[0]!.getBoundingClientRect();
-			return rectangle.width === 0 && rectangle.height === 0;
+			const area = header.getBoundingClientRect();
+			return rectangle.width === 0 && rectangle.height === 0 && area.width > 0 && area.height > 0 &&
+				document.elementFromPoint(area.x + area.width / 2, area.y + area.height / 2) === buttons[0];
 		});
 		return { visible, enabled: bound && await choice.isEnabled(), unchecked: bound };
 	}

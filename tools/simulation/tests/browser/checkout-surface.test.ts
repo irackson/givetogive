@@ -10,16 +10,20 @@ import { requestAllowed } from '../../src/hosted-checkout-policy.ts';
 
 const base = '<p>Test mode</p><input name="cardNumber"><input name="cardExpiry"><input name="cardCvc">';
 const counters = (): Counters => ({ consoleErrors: 0, pageErrors: 0, httpErrors: 0, blockedRequests: 0, failedRequests: 0, unexpectedPages: 0 });
-const nativeCardTile = '<div class="AccordionItemHeader-content"><div id="payment-method-label-card" onclick="window.cardSelections=(window.cardSelections||0)+1;document.querySelector(\'#fields\').hidden=false">Card</div>' +
-  '<button type="button" aria-label="Pay with card" style="width:0;height:0;padding:0;border:0;overflow:hidden"></button></div>';
+const nativeCardTile = '<style>.AccordionItemHeader{position:relative;width:320px;height:60px}.AccordionButton-expandedClickArea::after{content:"";position:absolute;inset:0}</style>' +
+  '<div class="AccordionItemHeader AccordionItemCover-header AccordionItemHeader--clickable" onclick="window.cardSelections=(window.cardSelections||0)+1;document.querySelector(\'#fields\').hidden=false">' +
+  '<div class="AccordionItemHeader-content"><div id="payment-method-label-card">Card</div>' +
+  '<button class="AccordionButton AccordionButton-open AccordionButton-expandedClickArea AccordionButton-expandedFocusArea" type="button" aria-label="Pay with card" style="width:0;height:0;padding:0;border:0;overflow:hidden"></button></div></div>';
 const tileFields = '<div id="fields" hidden><input name="cardNumber"><input name="cardExpiry"><input name="cardCvc"></div>';
 
-test('actual driver selects only the observed native Card tile, never its zero-size screen-reader button', async () => {
+test('actual driver clicks the bound Card header despite its button pseudo-element covering the visible label', async () => {
   await fixture('<span>Sandbox</span>' + nativeCardTile + tileFields, async page => {
     const before = await observeSurface(page, counters(), Date.now(), { cardChoice: true });
     assert.equal(before.cardChoiceKind, 'tile');
     assert.equal(before.cardChoiceCount, 1);
     assert.doesNotThrow(() => validateCardSelectionSurface(before, Date.now()));
+    await assert.rejects(page.locator('#payment-method-label-card').click({ trial: true, timeout: 100 }));
+    assert.equal(await page.locator('button[aria-label="Pay with card"]').isVisible(), false);
     const driver = new StripeCheckoutDriver('', 'tile-card-fixture@givetogive.invalid');
     Object.assign(driver, { page });
     await driver.fillFixture('success');
@@ -59,6 +63,9 @@ for (const [name, html] of [
   ['duplicate native tiles', nativeCardTile + nativeCardTile],
   ['conflicting Card button and tile', '<button>Card</button>' + nativeCardTile],
   ['visible screen-reader control', nativeCardTile.replace('width:0;height:0;padding:0;border:0;overflow:hidden', 'width:100px;height:30px')],
+  ['unreviewed clickable header', nativeCardTile.replace('AccordionItemCover-header', 'MerchantHeader')],
+  ['unreviewed button click area', nativeCardTile.replaceAll('AccordionButton-expandedClickArea', 'MerchantClickArea')],
+  ['foreign overlay intercepting the header', nativeCardTile + '<button style="position:absolute;left:0;top:0;width:1000px;height:1000px">Merchant action</button>'],
 ]) test(`actual Chromium refuses native Card tile selection with ${name}`, async () => {
   await fixture('<span>Sandbox</span>' + html + tileFields, async page => {
     const surface = await observeSurface(page, counters(), Date.now(), { cardChoice: true });

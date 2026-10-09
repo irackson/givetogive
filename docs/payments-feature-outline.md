@@ -21,6 +21,18 @@ Tags describe origin, not deployment or acceptance:
 
 ## Current reviewed checkpoint - October 9, 2026
 
+**19:56 UTC refresh:** The genuine paid member's five views and four historical
+dialogs pass on both layouts: 18 actual captures with zero errors/mutations.
+Full verification `37981651787` passed at signed `6f69f39`; no new Vercel release.
+The next three-member cohort is separately provisioned with real canonical clock
+bindings but no paid grants. Its first two Checkouts stopped before card entry or
+submission; they remain consumed/unpaid, not declines or completed 3DS. Native
+read-only evidence exposed Stripe's expanded button click area covering the Card
+label; the header-targeting fix passes 42 synthetic Chromium guards. One new
+decline case remains unused pending signed-source/CI verification. The current
+separate temporary test-wallet cycle still requires verified restoration. Paid
+population/hour, Ask/fund financial acceptance and final PDF remain unfinished.
+
 **19:31 UTC refresh:** Genuine normal-UI $15 Sustainer signup is paid and mapped
 to the app, with signed events, balanced journals, paid coverage and actual
 recognition. Cancel/resume and scheduled downgrade/undo passed through normal

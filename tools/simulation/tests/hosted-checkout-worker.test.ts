@@ -164,6 +164,7 @@ function fakeExecution(settings: { panel?: boolean; badDurable?: boolean; badAss
 		return rawResponse({ result: { data: superjson.serialize(result) } });
 	}, dispose: async () => { order.push('api-close'); } };
 	const locator = (__selector: string, type?: string) => ({
+		filter() { return this; },
 		count: async () => type === 'absent' ? 0 : type === 'card' ? Number(collapsed) : panel && !type ? 0 : 1, nth() { return this; },
 		isVisible: async () => type === 'checkbox' ? panel : type === 'card' ? !panel && collapsed : !panel && !collapsed,
 		isEnabled: async () => true, isEditable: async () => true, isChecked: async () => false,
@@ -175,7 +176,7 @@ function fakeExecution(settings: { panel?: boolean; badDurable?: boolean; badAss
 		},
 	});
 	const frame = { url: () => value.proof.url, parentFrame: () => null,
-		locator: (selector: string) => locator(selector, selector === '#payment-method-label-card' ? 'absent' : undefined),
+		locator: (selector: string) => locator(selector, selector === '#payment-method-label-card' || selector.startsWith('.AccordionItemHeader') ? 'absent' : undefined),
 		getByText: () => locator('', 'absent'),
 		getByRole: (role: string, options?: { name?: string }) => locator('', role === 'radio' ? 'absent' : role === 'checkbox' ? 'checkbox' : options?.name === 'Card' ? 'card' : 'submit'),
 		evaluate: async () => ({ panels: Number(panel), hash: panel ? approved.panelDigest : null, controls: Number(panel),
