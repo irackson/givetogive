@@ -67,7 +67,8 @@ export async function executeCurrentNativeOperator() {
  const { CurrentCheckoutRootResponder } = await import('../tools/simulation/src/checkout-current-responder.ts');
  const { coordinateCurrentCheckout } = await import('../tools/simulation/src/checkout-current-coordinate.ts');
  const { stripeCheckoutReads } = await import('../tools/simulation/src/checkout-provider-proof.ts');
- const { unseal, fileBytes } = await import('../tools/simulation/src/hosted-community-bundle.ts');
+ const { unseal } = await import('../tools/simulation/src/hosted-community-bundle.ts');
+ const { validateCurrentFinalEvidence } = await import('../tools/simulation/src/checkout-current-final-evidence.ts');
  const { currentProfileDigest } = await import('../tools/simulation/src/checkout-current-phase.ts');
  process.on('SIGINT', stop); process.on('SIGTERM', stop);
  const targetFor = () => ({ headSha: head, workflowRunId: worker.workflowRunId, jobId: worker.observation.readiness.profile.job.jobId });
@@ -171,7 +172,11 @@ export async function executeCurrentNativeOperator() {
       decoded.binding?.releaseId === worker.releaseId && decoded.binding.operationId === c.operationId && decoded.binding.job?.id === initial.job.jobId &&
       decoded.binding.job.nonce === initial.job.jobNonce && decoded.binding.job.headSha === head && decoded.paymentAccepted === false &&
       decoded.retryAllowed === false && decoded.independentClosureAndSettlementRequired === true && Array.isArray(decoded.files) && decoded.files.length > 0);
-     for (const file of decoded.files) { const bytes = fileBytes(file); bytes.fill(0); }
+     guard(input);
+     const uploadIntent = JSON.parse(readFileSync(join(directory, `current-root-input-${c.operationId}-${initial.job.jobId}-${initial.job.jobNonce}`, 'input-upload.intent.json'), 'utf8'));
+     const validated = validateCurrentFinalEvidence(decoded, { profile: initial, connectionNonce: worker.observation.readiness.connectionNonce,
+      inputProfileDigest: input.profileDigest, inputCiphertextDigest: uploadIntent.ciphertextDigest, releaseId: worker.releaseId });
+     original('final-evidence-validation.result.json', validated);
      original('final-recovery.result.json', { originalRetained: true, authenticatedDecryption: true,
       ciphertextDigest: createHash('sha256').update(final).digest('hex'), paymentAccepted: false, independentClosureAndSettlementRequired: true, retryAllowed: false });
     } finally { final.fill(0); }

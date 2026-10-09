@@ -1,5 +1,36 @@
 # Resume here: payments and simulation checkpoint
 
+## Strict CURRENT final-original receipt validation implemented (October 9)
+
+Final-job head `6d69d9d` hosted verification **37886829671 SUCCESS/terminal** was
+checked directly. `checkout-current-final-evidence.ts` validates decrypted originals
+against the separately retained root input ciphertext digest, initial and refreshed
+profile digests, exact job/head/nonce/release and connection. Fixed bounded inventory
+rejects unknown/duplicate/missing/traversal names, altered hashes and undersized
+ciphertexts. Bound launch/native browser evidence, zero prior member sign-ins,
+exactly one eventual sign-in/submission, optional notice completeness, matching
+worker/parent/bootstrap receipts, successful exit, closed group/browser/API, no
+escaped descendants/public output, complete phase originals and response digests
+are required. Native entry retains raw final ciphertext before validating, then
+retains a redacted validation result; failure does not replay the operation.
+
+This is pure receipt validation, NOT authentication of arbitrary supplied JSON or
+actual payment acceptance. Caller must decrypt actual retained ciphertext; provider,
+signed webhook/app entitlements/ledger and exact terminal-job readbacks remain
+independent requirements. Output says recordedNativeClosureValidated, not newly
+observed OS closure. No financial journal state is changed by this validator.
+
+Verification: five public fabricated-receipt tests using real hashes/envelope codec;
+full simulator **576 tests / 574 pass / two Linux-only skips / zero failures**,
+TypeScript and zero-warning lint pass. New ciphertext size guard was separately
+rerun against all five relevant tests. No native financial run or payment occurred.
+Runner fingerprint includes the new validator; old runner fingerprints are stale.
+
+Next: native provider/normal-member/webhook/app decline outcome reconciliation and
+original submitted-state verification. Publish/review the pending staging app after
+quota availability before actual financial execution. Complete paid lifecycles,
+full 253-member hour cohort, mobile owner access and final PDF remain unfinished.
+
 ## Fixed CURRENT final-job completion boundary (October 9)
 
 Native-entry head `b5a5326` hosted run **37886508227** was still **in_progress**
