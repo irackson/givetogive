@@ -2,6 +2,24 @@
 
 ## Bounded hosted AgentMail acceptance
 
+October 9 **15:07 UTC** hosted signup/resend run `37949225115` passed on
+`077805c`: one normal member, one signup POST and one resend POST, zero browser
+errors. AgentMail independently received both actual emails. Hosted verification
+run `37949564862` subsequently observed superseded-link rejection, replacement
+verification, consumed-link rejection, normal password sign-in, exact member
+session identity and no second email request. Restricted read-only SQL confirmed
+the same ordinary, unfrozen, non-synthetic account verified.
+
+That verification job retained a **failed** result solely because its final
+assertion expected two HTTP 400 responses. The app's JSONL tRPC transport returns
+logical errors with HTTP 200; its exact invalid-link alerts were observed twice,
+with zero unexpected HTTP, console or page errors. The original failed receipt
+is not rewritten or relabeled successful. Regression tests now require both
+semantic rejections and accept either streamed or non-streamed HTTP status.
+A separate `verified-signin` phase reuses the verified fixture through normal
+password auth only: zero registration/resend/verification POSTs, no token replay
+or direct database grants. This follow-up is not a rerun of the consumed phase.
+
 The manually dispatched `auth-email-staging.yml` workflow tests one specifically
 owned, allowlisted tagged AgentMail fixture through the real hosted UI. Its two
 one-time phases cover signup/resend and received-link verification/sign-in. It

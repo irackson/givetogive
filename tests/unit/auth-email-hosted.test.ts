@@ -6,6 +6,7 @@ import {
 	validateHostedAuthInput,
 	hostedAuthContext,
 	authFieldLabel,
+	verificationDiagnosticsAccepted,
 } from '../../scripts/auth-email-hosted.ts';
 const sha = 'a'.repeat(40),
 	nonce = '11111111-1111-4111-8111-111111111111';
@@ -26,6 +27,40 @@ test('auth labels accept MUI required markers without matching other fields', ()
 		assert.match(`${name} *`, authFieldLabel(name));
 		assert.doesNotMatch(`Confirm ${name}`, authFieldLabel(name));
 	}
+});
+test('JSONL logical rejection is proven by UI, not inferred from HTTP status', () => {
+	assert.equal(verificationDiagnosticsAccepted(2, 0), true);
+	assert.equal(verificationDiagnosticsAccepted(2, 2), true);
+	assert.equal(verificationDiagnosticsAccepted(1, 0), false);
+	assert.equal(verificationDiagnosticsAccepted(0, 2), false);
+	assert.equal(verificationDiagnosticsAccepted(2, 3), false);
+});
+test('verified-only sign-in accepts no verification link or account mutation input', () => {
+	const data = {
+		...input(),
+		phase: 'verified-signin',
+		memberId: 'owned-fixture',
+	};
+	assert.equal(
+		validateHostedAuthInput(data, sha, 'verified-signin', nonce).phase,
+		'verified-signin',
+	);
+	assert.throws(() =>
+		validateHostedAuthInput(
+			{ ...data, memberId: undefined },
+			sha,
+			'verified-signin',
+			nonce,
+		),
+	);
+	assert.throws(() =>
+		validateHostedAuthInput(
+			{ ...data, oldLink: 'extra' },
+			sha,
+			'verified-signin',
+			nonce,
+		),
+	);
 });
 test('real received links must be complete, first-party single-token verification URLs', () => {
 	const valid =

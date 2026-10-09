@@ -14,13 +14,20 @@ const origin = 'https://givetogive-staging.vercel.app',
 export function authFieldLabel(name: 'Name' | 'Email' | 'Password') {
 	return new RegExp(`^${name}\\s*\\*?$`);
 }
+export function verificationDiagnosticsAccepted(
+	semanticRejections: number,
+	httpRejections: number,
+) {
+	// httpBatchStreamLink reports logical errors in HTTP 200 JSONL responses.
+	return semanticRejections === 2 && [0, 1, 2].includes(httpRejections);
+}
 export const authEmailInput = z
 	.object({
 		purpose: z.literal('owned-agentmail-hosted-auth'),
 		nonce: z.uuid(),
 		headSha: z.string().regex(/^[a-f0-9]{40}$/),
 		issuedAt: z.iso.datetime(),
-		phase: z.enum(['signup-resend', 'verify-signin']),
+		phase: z.enum(['signup-resend', 'verify-signin', 'verified-signin']),
 		email: z.literal(
 			'ian-4303+givetogive-hosted-1791530445337@agentmail.to',
 		),
@@ -71,12 +78,13 @@ export function validateHostedAuthInput(
 	);
 	if (input.phase === 'signup-resend')
 		guard(!input.memberId && !input.oldLink && !input.replacementLink);
-	else
+	else if (input.phase === 'verify-signin')
 		guard(
 			input.memberId &&
 				receivedAuthLink(input.oldLink) !==
 					receivedAuthLink(input.replacementLink),
 		);
+	else guard(input.memberId && !input.oldLink && !input.replacementLink);
 	return input;
 }
 export function hostedAuthContext(
@@ -98,7 +106,7 @@ export function hostedAuthContext(
 			env['AUTH_EXPECTED_SHA'] === env['GITHUB_SHA'] &&
 			/^[1-9][0-9]*$/.test(env['AUTH_RELEASE_ID'] ?? '') &&
 			z.uuid().safeParse(env['AUTH_NONCE']).success &&
-			['signup-resend', 'verify-signin'].includes(
+			['signup-resend', 'verify-signin', 'verified-signin'].includes(
 				env['AUTH_PHASE'] ?? '',
 			) &&
 			freemem() >= 2.5 * 1024 ** 3,
@@ -225,6 +233,7 @@ async function browserAcceptance(input: Input) {
 			console: 0,
 			unexpectedHttp: 0,
 			expectedInvalidLink: 0,
+			semanticInvalidLink: 0,
 		},
 		posts: Record<string, number> = {};
 	const monitor = setInterval(() => {
@@ -246,7 +255,8 @@ async function browserAcceptance(input: Input) {
 					const allowed =
 						input.phase === 'signup-resend' ?
 							['user.register', 'user.resendVerification']
-						:	['user.verifyEmail'];
+						: input.phase === 'verify-signin' ? ['user.verifyEmail']
+						: [];
 					const method = url.pathname.slice('/api/trpc/'.length);
 					guard(allowed.includes(method));
 					posts[method] = (posts[method] ?? 0) + 1;
@@ -370,62 +380,70 @@ async function browserAcceptance(input: Input) {
 					!errors.console,
 			);
 		} else {
-			stage = 'superseded-link';
-			guard(
-				(
-					await page.goto(receivedAuthLink(input.oldLink), {
-						waitUntil: 'networkidle',
+			if (input.phase === 'verify-signin') {
+				stage = 'superseded-link';
+				guard(
+					(
+						await page.goto(receivedAuthLink(input.oldLink), {
+							waitUntil: 'networkidle',
+						})
+					)?.status() === 200,
+				);
+				await page
+					.getByRole('alert')
+					.filter({
+						hasText:
+							'This verification link is invalid or has expired.',
 					})
-				)?.status() === 200,
-			);
-			await page
-				.getByRole('alert')
-				.filter({
-					hasText:
-						'This verification link is invalid or has expired.',
-				})
-				.waitFor();
-			result['supersededLinkRejected'] = true;
-			stage = 'replacement-link';
-			guard(
-				(await page
-					.getByRole('button', {
-						name: 'Send verification link',
-						exact: true,
+					.waitFor();
+				result['supersededLinkRejected'] = true;
+				errors.semanticInvalidLink++;
+				stage = 'replacement-link';
+				guard(
+					(await page
+						.getByRole('button', {
+							name: 'Send verification link',
+							exact: true,
+						})
+						.count()) === 0,
+				);
+				guard(
+					(
+						await page.goto(
+							receivedAuthLink(input.replacementLink),
+							{
+								waitUntil: 'networkidle',
+							},
+						)
+					)?.status() === 200,
+				);
+				await page
+					.getByRole('alert')
+					.filter({ hasText: 'Email verified. You can now sign in.' })
+					.waitFor();
+				result['replacementLinkVerified'] = true;
+				stage = 'consumed-link';
+				await page.reload({ waitUntil: 'networkidle' });
+				await page
+					.getByRole('alert')
+					.filter({
+						hasText:
+							'This verification link is invalid or has expired.',
 					})
-					.count()) === 0,
-			);
-			guard(
-				(
-					await page.goto(receivedAuthLink(input.replacementLink), {
-						waitUntil: 'networkidle',
-					})
-				)?.status() === 200,
-			);
-			await page
-				.getByRole('alert')
-				.filter({ hasText: 'Email verified. You can now sign in.' })
-				.waitFor();
-			result['replacementLinkVerified'] = true;
-			stage = 'consumed-link';
-			await page.reload({ waitUntil: 'networkidle' });
-			await page
-				.getByRole('alert')
-				.filter({
-					hasText:
-						'This verification link is invalid or has expired.',
-				})
-				.waitFor();
-			result['consumedLinkRejected'] = true;
+					.waitFor();
+				result['consumedLinkRejected'] = true;
+				errors.semanticInvalidLink++;
+				stage = 'password-signin';
+				guard(
+					(await page
+						.getByRole('button', {
+							name: 'Send verification link',
+							exact: true,
+						})
+						.count()) === 0,
+				);
+			}
 			stage = 'password-signin';
-			guard(
-				(await page
-					.getByRole('button', {
-						name: 'Send verification link',
-						exact: true,
-					})
-					.count()) === 0,
-			);
 			guard(
 				(
 					await page.goto(origin + '/signin?callbackUrl=%2Fasks', {
@@ -456,11 +474,16 @@ async function browserAcceptance(input: Input) {
 			result['normalPasswordSignIn'] = true;
 			result['ownSessionIdentityVerified'] = true;
 			result['noSecondEmailRequested'] = true;
-			guard(
-				posts['user.verifyEmail'] === 3 &&
-					errors.expectedInvalidLink === 2 &&
-					errors.console <= 2,
-			);
+			if (input.phase === 'verify-signin')
+				guard(
+					posts['user.verifyEmail'] === 3 &&
+						verificationDiagnosticsAccepted(
+							errors.semanticInvalidLink,
+							errors.expectedInvalidLink,
+						) &&
+						errors.console <= 2,
+				);
+			else guard(Object.keys(posts).length === 0 && errors.console === 0);
 		}
 		stage = 'final-diagnostics';
 		guard(

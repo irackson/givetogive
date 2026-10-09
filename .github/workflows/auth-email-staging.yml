@@ -19,7 +19,7 @@ on:
                 description: One-time phase; never rerun
                 type: choice
                 required: true
-                options: [signup-resend, verify-signin]
+                options: [signup-resend, verify-signin, verified-signin]
 
 permissions:
     contents: read
