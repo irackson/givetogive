@@ -16,8 +16,20 @@ historical prepared/running checkpoints, MFA icebox and final acceptance. The
 public screenshot exposed `4 items remains`; the Ask detail and offer dialog
 now use grammatically neutral `remaining` without changing quantities or workflow.
 Application unit tests **152/152**, types and zero-warning component lint passed.
-Fresh published browser verification of that copy follows deployment; the earlier
-40 PNGs remain pre-copy-change reference evidence, not final capture inputs.
+Signed `f5cf5e2` was pushed; hosted verification **37892665032 SUCCESS/terminal**
+and actual production READY `dpl_EQzMssLW7kX4h6nwFUhZGY4CEdxz` with matching app
+source were observed. The fresh public capture retained 32 views but failed before
+completion, with zero mutations/console/page/HTTP errors recorded. Preserve
+`tmp/walkthrough-public-ed38b7a0-7c15-47f9-b57b-f20308b3a5a7/production/manifest.json`
+as FAILED. Its desktop Ask PNG 019 was visually inspected and actually displays
+`4 items remaining.`; this is not complete fresh mobile/all-view acceptance.
+The next scheduled route was mobile `/account/billing`; a separate narrow probe
+was denied at the startup RAM floor before any browser/navigation. Original
+failure substep is unknown: do not invent a timeout or memory cause. Diagnose
+with safe phase metadata when headroom allows before repeating the full capture.
+The earlier completed 40 PNGs remain pre-copy-change reference evidence, not final
+combined PDF inputs. Staging now differs in five app files including AskDetail;
+do not waive that release gate for the unused financial candidate or hour cohort.
 
 ## Real AgentMail registration/resend and hosted verification (October 9)
 
