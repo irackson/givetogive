@@ -72,13 +72,18 @@ type Resource={runtime:CurrentParentRuntime;source:CurrentCheckoutSource;head:st
  message:(raw:unknown)=>void;removeAbort():void;cleanup?:Promise<Cleanup>;injected:boolean};
 const resources=new WeakMap<Prepared,Resource>();
 const live=(row:CheckoutProcessIdentity)=>!['Z','X','x'].includes(row.state??'');
-function sample(resource:Resource){const table=resource.runtime.processes();const closure=resource.observation.inspect(table);
+function sample(resource:Resource){const table=resource.runtime.processes();
+ // Native Playwright intentionally detaches Chromium. Bind its exact live
+ // direct-child executable/group before classifying other groups as escapes.
+ for(const row of table)if(row.parentPid===resource.root.pid&&live(row)&&row.processGroup===row.pid&&row.session===row.pid&&
+  resource.runtime.browserExecutable(row))resource.observation.admitOwnedBrowserGroup(row,table,resource.runtime.browserExecutable);
+ const closure=resource.observation.inspect(table);
  guard(!closure.escapedDescendantObserved);return {table,closure,rootLive:table.some(row=>row.pid===resource.root.pid&&row.startTicks===resource.root.startTicks&&live(row))};}
 function active(resource:Resource){resource.signal.throwIfAborted();checkMemory(resource.runtime.freeBytes(),false);
  resource.runtime.verifySources(resource.head,resource.source);const state=sample(resource);guard(state.rootLive&&!resource.exited&&!resource.failed&&resource.outputBytes===0);return state;}
 function browserObserved(resource:Resource){const {table}=active(resource);const descendants=new Set([resource.root.pid]);
  for(let depth=0;depth<64;depth++){let added=false;for(const row of table)if(descendants.has(row.parentPid)&&!descendants.has(row.pid)){descendants.add(row.pid);added=true;}if(!added)break;guard(depth<63);}
- const matches=table.filter(row=>row.pid!==resource.root.pid&&descendants.has(row.pid)&&row.processGroup===resource.root.processGroup&&row.session===resource.root.session&&live(row)&&resource.runtime.browserExecutable(row));
+ const matches=table.filter(row=>row.pid!==resource.root.pid&&descendants.has(row.pid)&&resource.observation.ownsProcessGroup(row)&&live(row)&&resource.runtime.browserExecutable(row));
  guard(matches.length>0);const after=active(resource).table;
  guard(matches.some(before=>after.some(row=>row.pid===before.pid&&row.startTicks===before.startTicks&&live(row)&&resource.runtime.browserExecutable(row))));
 }

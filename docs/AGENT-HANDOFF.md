@@ -1,5 +1,31 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 16:08 UTC: browser-group mismatch confirmed and narrowly corrected
+
+Signed `7c4e33d` full hosted verification `37956160986` passed. Separate
+readiness-only probe `37956772968` FAILED with native parent phase
+`waiting-browser-readiness`, a launched child, zero public output bytes,
+`escapedDescendantObserved=true` and exactly one executable-verified detached
+browser child. This confirms the mismatch with the installed Playwright Linux
+launcher, which intentionally starts Chromium in a separate session/group.
+The original financial dispatch and both diagnostic failures remain unchanged;
+no private member input or financial preparation/submission occurred.
+
+The process observer now has an explicit one-browser-group admission. Native
+admission requires the original live member PID/start-ticks, exact direct-child
+browser PID/start-ticks, its session/group leadership and independently verified
+locked browser executable. The current parent performs that check before group
+inspection. Unknown escapes, unverified/reparented/replaced/second leaders and
+surviving descendants still reject; admission can never erase an earlier escape.
+Legacy callers remain single-group strict unless they explicitly admit a verified
+browser. Unit tests cover detached ownership, orphan closure and refusal cases;
+the real Linux fixture covers both shared and separate groups on hosted CI.
+
+Do not call this native acceptance until a separately dispatched readiness-only
+probe passes actual Chromium and shutdown. Financial preparation remains gated;
+original candidate/plan/budget/journals must stay untouched. This is tooling only
+and requires no Vercel application deployment.
+
 ## October 9 15:58 UTC: nonfinancial probe isolates browser readiness
 
 Signed `ba384bd` full hosted verification `37955011518` passed. Separate

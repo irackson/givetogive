@@ -11,7 +11,7 @@ import type { CheckoutIpcPeer } from '../src/checkout-broker-ipc.ts';
 import { currentProfile,currentInput,head,source,now } from './fixtures/current-checkout.ts';
 import { currentProfileDigest } from '../src/checkout-current-phase.ts';
 const environment={PATH:'/public/bin',HOME:'/public/home',TMPDIR:'/public/tmp',PLAYWRIGHT_BROWSERS_PATH:'/public/browser'};
-function harness(options:{browser?:boolean;wrongReady?:boolean;leak?:boolean;reuse?:boolean;output?:boolean}={}) {
+function harness(options:{browser?:boolean;wrongReady?:boolean;leak?:boolean;reuse?:boolean;output?:boolean;detachedBrowser?:boolean}={}) {
  const root=mkdtempSync(join(tmpdir(),'g2g-current-parent-')),profile=currentProfile();
  type Send=(value:unknown,callback:(error?:Error)=>void)=>void;
  const child=new EventEmitter() as EventEmitter&{pid:number;connected:boolean;stdout:EventEmitter;stderr:EventEmitter;send:Send;kill:()=>boolean;disconnect:()=>void};
@@ -43,7 +43,7 @@ function harness(options:{browser?:boolean;wrongReady?:boolean;leak?:boolean;reu
   pause:async()=>{time+=100;await new Promise<void>(resolve=>setImmediate(resolve));},launch:env=>{assert.deepEqual(env,environment);launches++;return child as unknown as ChildProcess;},
   processes:()=>[
    ...(alive?[{pid:400,parentPid:100,startTicks:options.reuse&&browser?'reused':'root',processGroup:400,session:400,state:'S'}]:[]),
-   ...(browser?[{pid:401,parentPid:alive?400:1,startTicks:'browser',processGroup:400,session:400,state:'S'}]:[]),
+   ...(browser?[{pid:401,parentPid:alive?400:1,startTicks:'browser',processGroup:options.detachedBrowser?401:400,session:options.detachedBrowser?401:400,state:'S'}]:[]),
   ],browserExecutable:row=>row.pid===401,verifySources:()=>{sourceChecks++;},
  };
  const controller=new AbortController();
@@ -68,6 +68,15 @@ test('ordinary member is launched once with public profile and independently obs
 test('protocol readiness without an actual owned browser rejects before private transfer',async()=>{
  for(const options of [{browser:false},{wrongReady:true},{reuse:true},{output:true}]){
   const h=harness(options);await assert.rejects(()=>h.prepare());assert.equal(h.counters().transfers,0);assert.equal(h.counters().launches,1);
+ }
+});
+
+test('Playwright detached browser remains owned, and an orphan still prevents final closure',async()=>{
+ for(const leak of [false,true]){const h=harness({detachedBrowser:true,leak}),prepared=await h.prepare();
+  assert.equal(inspectPreparedCurrentCheckoutParent(prepared).browserConnected,true);
+  const result=await runCurrentCheckoutParent(prepared,currentInput(),{phase:async()=>({})});
+  assert.equal(result.failed,leak);assert.equal(result.cleanup.ownedGroupClosed,!leak);
+  assert.equal(result.cleanup.escapedDescendantObserved,false);assert.equal(h.counters().launches,1);
  }
 });
 

@@ -47,12 +47,38 @@ const live = (identity: CheckoutProcessIdentity) => !['Z', 'X', 'x'].includes(id
 export class CheckoutProcessObservation {
 	private readonly root: CheckoutProcessIdentity;
 	private readonly observed = new Map<string, CheckoutProcessIdentity>();
+	private readonly browserGroups = new Map<string, CheckoutProcessIdentity>();
 	private escaped = false;
 	constructor(root: CheckoutProcessIdentity, parentPid: number) {
 		if (!Number.isSafeInteger(parentPid) || parentPid < 1 || root.parentPid !== parentPid ||
 			root.pid === parentPid || root.processGroup !== root.pid || root.session !== root.pid || !live(root)) fail();
 		this.root = Object.freeze({ ...root });
 		this.observed.set(key(root), this.root);
+	}
+	/** Playwright on Linux creates its browser in a separate session/group.
+	 * Admit ONE independently executable-verified direct child while the original
+	 * member is live. Never attach an arbitrary/reparented PID, clear an escape,
+	 * permit a second browser launch, or infer ownership from a serialized receipt. */
+	admitOwnedBrowserGroup(leader: CheckoutProcessIdentity, table: readonly CheckoutProcessIdentity[],
+		verifyExecutable: (row: CheckoutProcessIdentity) => boolean) {
+		if (this.escaped || table.length > 65536 || new Set(table.map(row => row.pid)).size !== table.length) fail();
+		const member = table.find(row => row.pid === this.root.pid), current = table.find(row => row.pid === leader.pid);
+		if (!member || key(member) !== key(this.root) || !live(member) || !current || key(current) !== key(leader) ||
+			!live(current) || current.parentPid !== this.root.pid || current.pid === this.root.pid ||
+			current.processGroup !== current.pid || current.session !== current.pid || !verifyExecutable(current)) return fail();
+		const prior = this.browserGroups.get(key(current));
+		if (prior) {
+			if (prior.processGroup !== current.processGroup || prior.session !== current.session) fail();
+			return;
+		}
+		if (this.browserGroups.size !== 0) fail();
+		this.browserGroups.set(key(current), Object.freeze({ ...current }));
+		this.observed.set(key(current), { ...current });
+	}
+	/** Used only with fresh executable and descendant checks by the native owner. */
+	ownsProcessGroup(row: CheckoutProcessIdentity): boolean {
+		return (row.processGroup === this.root.processGroup && row.session === this.root.session) ||
+			[...this.browserGroups.values()].some(group => row.processGroup === group.processGroup && row.session === group.session);
 	}
 	inspect(table: readonly CheckoutProcessIdentity[]) {
 		if (table.length > 65536 || new Set(table.map(row => row.pid)).size !== table.length) fail();
@@ -71,7 +97,10 @@ export class CheckoutProcessObservation {
 			if (depth === 63) fail();
 		}
 		for (const row of table) {
-			const sameGroup = row.processGroup === this.root.processGroup && row.session === this.root.session;
+			const browserGroup = [...this.browserGroups.values()].find(group => row.processGroup === group.processGroup && row.session === group.session);
+			const replacementLeader = browserGroup && byPid.get(browserGroup.pid);
+			const browserGroupCurrent = browserGroup && (!replacementLeader || key(replacementLeader) === key(browserGroup));
+			const sameGroup = (row.processGroup === this.root.processGroup && row.session === this.root.session) || !!browserGroupCurrent;
 			// Group ID reuse cannot turn a replacement session leader into our child.
 			if (sameGroup && row.pid === this.root.pid && key(row) !== key(this.root)) continue;
 			if (!descendants.has(row.pid) && !sameGroup) continue;

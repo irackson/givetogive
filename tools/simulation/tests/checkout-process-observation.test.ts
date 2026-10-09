@@ -43,6 +43,37 @@ test('observed cross-session descendants permanently invalidate group-based clos
 	assert.equal(observer.inspect([]).ownedGroupClosed, false);
 });
 
+test('one executable-verified direct-child browser group is tracked through orphaning and closure',()=>{
+ const observer=new CheckoutProcessObservation(row(100,90),90),browser=row(101,100,{processGroup:101,session:101});
+ observer.admitOwnedBrowserGroup(browser,[row(100,90),browser],value=>value.pid===101);
+ assert.equal(observer.ownsProcessGroup(browser),true);
+ assert.equal(observer.inspect([row(100,90),browser,row(102,101,{processGroup:101,session:101})]).escapedDescendantObserved,false);
+ assert.equal(observer.inspect([row(101,1,{processGroup:101,session:101}),row(102,101,{processGroup:101,session:101})]).ownedGroupClosed,false);
+ assert.equal(observer.inspect([row(102,1,{processGroup:101,session:101})]).ownedGroupClosed,false);
+ assert.equal(observer.inspect([]).ownedGroupClosed,true);
+});
+
+test('browser admission rejects unverified, unrelated, reparented, replaced or second group leaders',()=>{
+ const browser=row(101,100,{processGroup:101,session:101}),member=row(100,90);
+ for(const bad of [row(101,1,{processGroup:101,session:101}),row(101,100,{processGroup:102,session:101}),
+  row(101,100,{processGroup:101,session:102})]){
+  const observer=new CheckoutProcessObservation(member,90);assert.throws(()=>observer.admitOwnedBrowserGroup(bad,[member,bad],()=>true));
+ }
+ const observer=new CheckoutProcessObservation(member,90);
+ assert.throws(()=>observer.admitOwnedBrowserGroup(browser,[member,browser],()=>false));
+ assert.throws(()=>observer.admitOwnedBrowserGroup(browser,[{...member,startTicks:'replacement'},browser],()=>true));
+ observer.admitOwnedBrowserGroup(browser,[member,browser],()=>true);
+ const second=row(103,100,{processGroup:103,session:103});assert.throws(()=>observer.admitOwnedBrowserGroup(second,[member,browser,second],()=>true));
+ const replaced={...browser,startTicks:'replacement'};assert.throws(()=>observer.admitOwnedBrowserGroup(replaced,[member,replaced],()=>true));
+});
+
+test('admitting a browser cannot erase a previously observed unknown escape',()=>{
+ const observer=new CheckoutProcessObservation(row(100,90),90),browser=row(101,100,{processGroup:101,session:101});
+ assert.equal(observer.inspect([row(100,90),browser]).escapedDescendantObserved,true);
+ assert.throws(()=>observer.admitOwnedBrowserGroup(browser,[row(100,90),browser],()=>true));
+ assert.equal(observer.inspect([]).ownedGroupClosed,false);
+});
+
 test('PID reuse and unrelated process groups are not mistaken for surviving owned children', () => {
 	const observer = new CheckoutProcessObservation(row(100, 90), 90);
 	observer.inspect([row(100, 90), row(101, 100)]);
@@ -50,11 +81,11 @@ test('PID reuse and unrelated process groups are not mistaken for surviving owne
 	assert.throws(() => observer.inspect([row(101, 1), row(101, 1)]));
 });
 
-test('real Linux detached child exit does not conceal its live reparented descendant', { skip: process.platform !== 'linux', timeout: 15000 }, async () => {
+for(const detachedBrowser of [false,true])test(`real Linux child exit does not conceal its live descendant (separate browser group=${detachedBrowser})`, { skip: process.platform !== 'linux', timeout: 15000 }, async () => {
 	// Public fixture only. No provider, database, password, broker key or browser.
 	const child = spawn(process.execPath, ['-e', `
 		const {spawn}=require('node:child_process');
-		const descendant=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore',env:{PATH:process.env.PATH}});
+		const descendant=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{detached:${detachedBrowser},stdio:'ignore',env:{PATH:process.env.PATH}});
 		process.send({pid:descendant.pid});setInterval(()=>{},1000);
 	`], { detached: true, stdio: ['ignore', 'ignore', 'ignore', 'ipc'], env: { PATH: process.env.PATH ?? '/usr/bin:/bin' } });
 	let descendant: CheckoutProcessIdentity | undefined;
@@ -77,6 +108,8 @@ test('real Linux detached child exit does not conceal its live reparented descen
 		assert.equal(descendant.parentPid, root.pid);
 		assert.equal(realpathSync(`/proc/${pid}/exe`), realpathSync(process.execPath));
 		const observer = new CheckoutProcessObservation(root, process.pid);
+		if(detachedBrowser)observer.admitOwnedBrowserGroup(descendant,table,
+			value=>realpathSync(`/proc/${value.pid}/exe`)===realpathSync(process.execPath));
 		assert.equal(observer.inspect(table).ownedGroupClosed, false);
 		child.kill('SIGTERM'); await exited;
 		assert.equal(observer.inspect(readCheckoutProcessTable()).ownedGroupClosed, false);
