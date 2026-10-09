@@ -1,5 +1,41 @@
 # Resume here: payments and simulation checkpoint
 
+## CURRENT native Windows entry point wired (October 9)
+
+Dispatch head `f4d29c9` hosted verification **37886118967 SUCCESS/terminal** was
+checked directly. `scripts/checkout-current-native-operator.mjs` now assembles
+reviewed release/source, original unused prerequisites and exact plan, signed-head
+runner fingerprint (both workflows), one ordinary member sign-in, current worker
+dispatch/association, original run intent and original UI preparation, independently
+read provider opening, encrypted input, ORIGINAL financial ledger/root broker,
+normal cookie-session/billing identity reads, current phase coordinator and
+authenticated original final download/binding/hash recovery. Provider SDK authority
+stays local. Signals/leases/intents prevent automatic replay; cleanup failures do
+not become success. Final evidence recovery explicitly requires separate closure
+and provider/webhook/app settlement reconciliation, paymentAccepted=false.
+
+Integration exposed and fixed original-intent ordering: unused checker rejects an
+existing `ui-acceptance` intent, so retain that exact original immediately AFTER
+unused observation and BEFORE the normal mutation. Required preparation callback
+retains it once; callback failure prevents mutation. A provider-reader target also
+must omit inspector-only actorId to satisfy the strict target schema.
+
+Verification: actual inert default/import/unknown-flag subprocess tests plus
+original-intent ordering regression; full simulator **565 tests / 563 pass / two
+Linux-only skips / zero failures**, TypeScript and explicit zero-warning lint.
+No complete native financial execution or settlement was observed. Default command
+was actually run and reports zero requests/actions. Explicit native command is
+`node --env-file=.env.staging.local --import tsx scripts/checkout-current-native-operator.mjs --execute-reviewed-current`;
+do NOT run it until staging publication/source review is valid. No injected runtime
+is accepted by this native entry point. Consumed historical entry point is unused.
+
+Next: publish the pending staging email app after quota availability, review/update
+CURRENT release binding without rewriting historical approvals, verify exact-head
+hosted checks, then native operator and original final settlement/closure readback.
+The entry point is wired but its full native path is untested. Signed webhook/app
+acceptance, full paid lifecycles, hour cohort, owner mobile access and final PDF
+remain open; production money gates remain off.
+
 ## CURRENT root dispatch and one-shot association implemented (October 9)
 
 `checkout-current-dispatch.ts` now assembles the private root dispatch path:

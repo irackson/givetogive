@@ -28,6 +28,7 @@ export async function prepareCurrentCheckoutInput(rawReady: unknown, options: {
  draft: Pick<CurrentCheckoutPrivateDraft, 'upload'>;
  observeCurrent(boundary: 'unused' | 'prepared', signal: AbortSignal): Promise<CurrentCheckoutProfile>;
  observeOpening(profile: Readonly<CurrentCheckoutProfile>, signal: AbortSignal): Promise<CurrentCheckoutProof>;
+ retainOriginalRunIntent(signal: AbortSignal): Promise<void>;
  signal: AbortSignal; now?: () => number;
 }) {
  let key: Buffer | undefined, ciphertext: Buffer | undefined;
@@ -71,6 +72,9 @@ export async function prepareCurrentCheckoutInput(rawReady: unknown, options: {
   validateCurrentBootstrapReadiness(ready, now());
   record('normal-preparation.intent.json', { operationId: c.operationId, actorId: c.memberId, maximumAmountCents: 500,
    profileDigest: currentProfileDigest(before), paymentAccepted: false, retryAllowed: false });
+  // Unused inspection must precede the original run intent: its presence marks
+  // the operation spent. Retain it immediately before the one normal mutation.
+  await bounded(() => options.retainOriginalRunIntent(signal));
   // Mutation remains awaited; timeout/ambiguity can never admit a retry.
   await options.preparation.prepare(options.session, c.memberId, step);
   signal.throwIfAborted(); guard(options.preparation.state(c.operationId) === 'prepared');

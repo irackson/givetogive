@@ -31,6 +31,7 @@ async function fixture(mode = 'ok') {
   rootSourceAndJobReviewStillRequired: true, financialAdmission: false, paymentAccepted: false, retryAllowed: false };
  const options = { root, key: Buffer.alloc(32, 7), releaseId: 42, account: input.member, stagingBypass: input.stagingBypass,
   plan, preparation, signal: new AbortController().signal, now: () => now,
+  retainOriginalRunIntent: async () => { calls.push('run-intent'); },
   session: { userId: c.memberId as string, query: async () => undefined, mutate: async (procedure: string) => {
    calls.push('prepare'); assert.equal(procedure, 'billing.createCheckout');
    if (mode === 'uncertain-prepare') throw Error('public ambiguous fixture'); return { ignoredResponse: true };
@@ -55,7 +56,7 @@ test('original 2000-cent holds plus current 500-cent preparation hand off encryp
  const f = await fixture(); try {
   const result = await prepareCurrentCheckoutInput(f.ready, f.options);
   assert.equal(result.paymentAccepted, false); assert.equal(result.privateInputRetained, true);
-  assert.deepEqual(f.calls, ['unused', 'prepare', 'prepared', 'provider', 'prepared', 'upload']);
+  assert.deepEqual(f.calls, ['unused', 'run-intent', 'prepare', 'prepared', 'provider', 'prepared', 'upload']);
   assert.equal(f.options.preparation.state(c.operationId), 'prepared');
   const directory = join(f.root, readdirSync(f.root).find(name => name.startsWith('current-root-input-'))!);
   for (const name of readdirSync(directory).filter(name => name.endsWith('.json')))
@@ -92,5 +93,12 @@ test('aborted handoff cannot prepare or upload', async () => {
  const f = await fixture(); try {
   const controller = new AbortController(); controller.abort(); f.options.signal = controller.signal;
   await assert.rejects(() => prepareCurrentCheckoutInput(f.ready, f.options)); assert.deepEqual(f.calls, []);
+ } finally { f.cleanup(); }
+});
+test('original run intent retention occurs after unused observation and failure prevents mutation', async () => {
+ const f = await fixture(); try {
+  f.options.retainOriginalRunIntent = async () => { assert.deepEqual(f.calls, ['unused']); throw Error('offline original intent exists'); };
+  await assert.rejects(() => prepareCurrentCheckoutInput(f.ready, f.options));
+  assert.deepEqual(f.calls, ['unused']); assert.equal(f.options.preparation.state(c.operationId), undefined);
  } finally { f.cleanup(); }
 });
