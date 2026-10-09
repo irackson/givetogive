@@ -2,12 +2,33 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 // Import must remain inert: no browser launch, output allocation or network.
 import {
+	captureFailureType,
 	origin,
 	publicDetailPath,
 	publicPaths,
 	readOnlyMethod,
 	signInCallback,
 } from '../../scripts/capture-public-walkthrough.mjs';
+
+test('capture failure classification never returns private messages, URL or unknown error names', () => {
+	const privateMessage = 'https://private.invalid/?token=not-public';
+	assert.equal(
+		captureFailureType({ name: 'TimeoutError', message: privateMessage }),
+		'timeout',
+	);
+	assert.equal(
+		captureFailureType({ name: 'AssertionError', message: privateMessage }),
+		'assertion',
+	);
+	for (const error of [
+		new Error(privateMessage),
+		{ name: privateMessage },
+		privateMessage,
+		null,
+	]) {
+		assert.equal(captureFailureType(error), 'runtime');
+	}
+});
 
 test('public capture is fixed to production anonymous routes with no sensitive query', () => {
 	assert.equal(origin, 'https://givetogive.vercel.app');

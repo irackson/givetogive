@@ -52,6 +52,20 @@ export function publicDetailPath(href, kind) {
 export function signInCallback(route) {
 	return route.startsWith('/admin') ? '/admin' : route;
 }
+/** Fixed diagnostic vocabulary only; never return error messages or URLs.
+ * @param {unknown} error
+ */
+export function captureFailureType(error) {
+	const name =
+		typeof error === 'object' && error !== null && 'name' in error ?
+			error.name
+		:	null;
+	return (
+		name === 'TimeoutError' ? 'timeout'
+		: name === 'AssertionError' ? 'assertion'
+		: 'runtime'
+	);
+}
 
 export async function capturePublicWalkthrough() {
 	assert.ok(
@@ -78,7 +92,13 @@ export async function capturePublicWalkthrough() {
 		fixtureDisclosure:
 			'Current public records only, including any historical demonstration accounts or Asks already published; they are not proof of real community adoption. This capture creates no fixtures, sign-ins or writes. Protected-route screenshots show the access boundary, not authenticated features. Recovery pages have no tokens. No paid-state, email-delivery or simulation acceptance is claimed.',
 		views: /** @type {Array<{ index: number, title: string, caption: string, route: string, finalPath: string, status: number, image: string, imageSha256: string, capturedAt: string, viewport: {width: number, height: number}, dialogIds: string[], authenticatedViewCaptured: boolean }>} */ ([]),
+		failure:
+			/** @type {{phase: string, type: string, viewportWidth: number, completedViews: number} | null} */ (
+				null
+			),
 	};
+	let phase = 'browser-start';
+	let viewportWidth = 0;
 	const browser = await chromium.launch({ headless: true });
 	let lowMemory = false;
 	let timedOut = false;
@@ -106,6 +126,8 @@ export async function capturePublicWalkthrough() {
 			{ width: 1440, height: 1000 },
 			{ width: 390, height: 844 },
 		]) {
+			viewportWidth = viewport.width;
+			phase = 'context-start';
 			const context = await browser.newContext({
 				viewport,
 				reducedMotion: 'reduce',
@@ -136,16 +158,19 @@ export async function capturePublicWalkthrough() {
 				for (let position = 0; position < routes.length; position++) {
 					const route = routes[position];
 					assert.ok(route, 'Expected a bounded route');
+					phase = 'navigation';
 					const response = await page.goto(origin + route, {
 						waitUntil: 'networkidle',
 						timeout: 45000,
 					});
+					phase = 'document-status';
 					assert.equal(
 						response?.status(),
 						200,
 						'Public document must render',
 					);
 					const final = new URL(page.url());
+					phase = 'route-outcome';
 					assert.equal(
 						final.origin,
 						origin,
@@ -165,6 +190,7 @@ export async function capturePublicWalkthrough() {
 							final.searchParams.get('callbackUrl'),
 							signInCallback(route),
 						);
+					phase = 'visible-main';
 					await page
 						.locator('main')
 						.waitFor({ state: 'visible', timeout: 10000 });
@@ -172,10 +198,12 @@ export async function capturePublicWalkthrough() {
 						(await page.locator('main').innerText()).trim().length >
 							0,
 					);
+					phase = 'fonts-ready';
 					await page.evaluate(async () => {
 						await document.fonts.ready;
 					});
 					if (route === '/' || route === '/asks') {
+						phase = 'hero-image';
 						const selector =
 							route === '/' ?
 								'.home-hero__art img'
@@ -193,6 +221,7 @@ export async function capturePublicWalkthrough() {
 							{ timeout: 10000 },
 						);
 					}
+					phase = 'public-link-discovery';
 					if (route === '/asks' && !askDetail) {
 						for (const href of await page
 							.locator('main a[href]')
@@ -219,6 +248,7 @@ export async function capturePublicWalkthrough() {
 						'images',
 						`${String(index).padStart(3, '0')}.png`,
 					);
+					phase = 'screenshot';
 					const bytes = await page.screenshot({
 						path: image,
 						fullPage: true,
@@ -259,6 +289,7 @@ export async function capturePublicWalkthrough() {
 				await context.close();
 			}
 		}
+		phase = 'final-diagnostics';
 		assert.equal(
 			manifest.mutationRequests,
 			0,
@@ -268,8 +299,14 @@ export async function capturePublicWalkthrough() {
 		assert.equal(lowMemory, false, 'Browser running memory floor violated');
 		assert.equal(timedOut, false, 'Capture deadline violated');
 		manifest.status = 'complete';
-	} catch {
+	} catch (error) {
 		manifest.status = 'failed';
+		manifest.failure = {
+			phase,
+			type: captureFailureType(error),
+			viewportWidth,
+			completedViews: manifest.views.length,
+		};
 		manifest.errors.push(
 			lowMemory ? 'memory-floor-violated'
 			: timedOut ? 'capture-deadline-violated'
@@ -291,6 +328,7 @@ export async function capturePublicWalkthrough() {
 		views: manifest.views.length,
 		mutationRequests: manifest.mutationRequests,
 		errors: manifest.errors,
+		failure: manifest.failure,
 		manifest: path
 			.relative(root, path.join(directory, 'manifest.json'))
 			.replaceAll('\\', '/'),
