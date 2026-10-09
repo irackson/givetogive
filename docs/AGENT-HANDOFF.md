@@ -1,5 +1,39 @@
 # Resume here: payments and simulation checkpoint
 
+## Original prepared-budget observation implemented (October 9)
+
+Provider/root head `ed10eda` hosted verification **37881405937 SUCCESS/terminal**.
+This is offline verification, not financial acceptance or email delivery proof.
+
+`checkout-prepared-budget.ts` separately verifies ORIGINAL prepared journals using
+SELECT-only SQLite transactions and exact original plan/intent byte digests. The
+unused-only checker is unchanged. All prior holds, including expired/ambiguous
+operations, stay counted. Current UI preparation must exist exactly once; current
+financial state must match unadmitted, reserved or submitted, and current notice
+consumption must match the root's retained admission state. Existing result files,
+foreign records, missing stores, stale source and unresolved current preparations
+reject without resetting/recreating anything. UI and financial totals are separate;
+the current financial amount is added only before reservation. Cross-journal reads
+are not atomic admission and never grant payment permission.
+
+Local full simulator verification: **510 tests / 509 pass / one Linux-only skip /
+zero failures**, TypeScript and explicit non-ignored ESLint pass. Five new prepared
+journal tests use only temporary SQLite/public fixtures; the root test also checks
+the notice-consumption sequence. No actual cohort journals were changed.
+
+Fresh staging metadata/preflight at 2026-10-09T04:01Z passed, preserving production
+link, protected staging and its isolated database. Canonical staging is still
+`dpl_CN1fLhs5nKqXnPK7UMKxKZrQYn5z` (`f7301db`). Auth email fix remains unpublished.
+Last quota rejection was October 8 23:25 NY and requested a 24-hour wait; no new
+deployment attempt, real email request or financial preparation was made here.
+After quota availability and a fresh source/environment review, publish the email
+fix and test actual receipt/normal auth using existing approved AgentMail inboxes.
+
+Next engineering: connect the root phase controller to encrypted response transport
+and native bootstrap with independent current source/job/member/provider checks;
+wire the prepared-budget checker at each exact phase. Never replay old operations
+or loosen financial source binding to get around the unpublished app mismatch.
+
 ## Current provider/root phase controllers and atomic submission implemented
 
 Exchange head `e1c400b` hosted verification **37880734403 SUCCESS/terminal**:

@@ -59,10 +59,13 @@ function rootFixture(budget=2500){const root=mkdtempSync(join(tmpdir(),'g2g-curr
  const broker=new CurrentCheckoutRootBroker(input,options);return {root,directory,ledger,f,options,broker,calls};
 }
 test('root reserves/acknowledges/submits once in the supplied ledger and preserves prior ambiguous holds',async()=>{
- const h=rootFixture();let previous=input.proof;const nonces=new Set<string>();try{
+ const h=rootFixture();const noticeFlags:boolean[]=[];
+ h.options.verifyOriginalBudget=async(...args:[CurrentCheckoutPhase,AbortSignal?,boolean?])=>{noticeFlags.push(args[2]??false);};
+ let previous=input.proof;const nonces=new Set<string>();try{
   for(const phase of ['opening','fixture','notice','submission'] as const){const packet=await h.broker.phase(phase,identity,new AbortController().signal);
    validateCurrentCheckoutPhase(packet,phase,input.profile,previous,now,nonces);nonces.add(packet.nonce);previous=packet.proof;
    assert.equal(h.ledger.get(input.profile.operationId)?.state,phase==='submission'?'submitted':'reserved');}
+  assert.deepEqual(noticeFlags,[false,false,false,true]);
   assert.equal(h.ledger.report().length,2);assert.equal(h.ledger.report().reduce((total,row)=>total+Number(row.reservedCents),0),1000);
   assert.equal(h.ledger.get('c89fc875-d2d2-41a9-81bd-a1cb246ad53c')?.state,'ambiguous');
   await assert.rejects(()=>h.broker.phase('submission',identity,new AbortController().signal));
