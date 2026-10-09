@@ -1,5 +1,54 @@
 # Resume here: payments and simulation checkpoint
 
+## Encrypted current parent/root phase exchange implemented
+
+Parent head `c9c4645` hosted run **37880063445 SUCCESS/terminal** verifies full
+app checks/build, 484 Linux simulator tests, public/intercepted browser checks
+and credential-free native capability. This is not a native financial member run.
+
+`checkout-current-exchange.ts` adds the current request/response codec and
+`CurrentCheckoutPhaseExchange`, an explicit parent-side `CurrentMemberBroker`
+using the existing private draft upload/download transport. Construction/import
+are inert. Each fixed phase binds the exact input profile digest, child connection
+nonce, random request nonce, original request digest, member/session version and
+previous provider-proof digest. Replies must match the phase/admission, retain
+the exact customer/full Checkout URL including fragment, contain a unique proof
+nonce, and have a fresh proof observed no earlier than the request. Historical
+input is checked at its retained observation; it never replaces fresh phase
+identity/provider/live context checks. Decryption caps both ciphertext and
+authenticated decompressed plaintext. Crypto proves bindings, NOT root admission.
+
+The exchange consumes phase order before work and uses an exclusive flushed
+operation/job namespace. Original encrypted request and non-secret upload intent
+are retained/fsynced/read back BEFORE upload. Actual transport retention metadata
+is checked against exact asset/job/head/size/digest and private anonymous/readback
+proofs. Original response ciphertext is retained before decryption. Native caller
+must independently re-observe job/source/OS before and after each exchange through
+the required context callback. It never loads credentials or has provider/SQL
+authority. Root backend still must perform original atomic financial admission.
+Any failure/uncertainty/concurrent call closes the channel without retry; owned
+key/ciphertext copies are cleared. No member password, bypass or Checkout URL is
+written in plaintext to these journals. All ten fixed transport slots still
+include input and final; final encrypted retention remains mandatory.
+
+Verification: **12 exchange tests**, full simulator **496 tests / 495 pass / one
+Linux-only skip / zero failures**, types and explicit non-ignored lint pass. Tests
+cover crypto/ciphertext/key/channel tampering, bounded decompression, replay,
+stale/foreign proof, phase/session changes, original-before-upload ordering,
+uncertain readback, restart, cancellation and concurrency. Transport/provider
+test doubles are OFFLINE evidence, not real GitHub uploads or provider acceptance.
+Runner source closure includes the exchange; do not reuse an earlier runner hash.
+
+Next: use this broker in the native bootstrap, discover the associated draft only
+after actual browser readiness, and implement the corresponding native root
+responder with independent live job/source/provider/ordinary-member checks and
+ORIGINAL budgets. Preserve initial draft association separately from refreshed
+private-input profile observations; both must remain bound to the same job/nonce.
+Then implement final private retention and execute the actual declined Checkout
+only after the new app is deployed/reviewed. Vercel's deployment quota remains an
+external obstacle to publishing the email update, not permission to weaken gates.
+No financial preparation/admission/submission or new email request occurred.
+
 ## Current parent process owner implemented; native bootstrap/transport still open
 
 `654ac7d` hosted verification **37879397598 SUCCESS/terminal** confirms full app
