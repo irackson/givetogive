@@ -43,10 +43,15 @@ export class SandboxLedger {
     } catch (error) { this.db.exec('ROLLBACK'); throw error; }
   }
   update(operationId: string, state: 'submitted' | 'verified_success' | 'verified_decline' | 'verified_authentication_failure' | 'canceled_unpaid' | 'ambiguous') {
-    const prior = this.get(operationId);
-    if (!prior || (!['reserved', 'submitted', 'ambiguous'].includes(prior.state) && prior.state !== state)) throw new Error('Final sandbox attempt state cannot be rewritten.');
-    if (state === 'submitted' && prior.state !== 'reserved') throw new Error('An admitted operation can only be submitted once.');
-    this.db.prepare('UPDATE sandbox_attempts SET state=?,updated_at=? WHERE run_id=? AND operation_id=?').run(state, Date.now(), this.runId, operationId);
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const prior = this.get(operationId);
+      if (!prior || (!['reserved', 'submitted', 'ambiguous'].includes(prior.state) && prior.state !== state)) throw new Error('Final sandbox attempt state cannot be rewritten.');
+      if (state === 'submitted' && prior.state !== 'reserved') throw new Error('An admitted operation can only be submitted once.');
+      const result = this.db.prepare('UPDATE sandbox_attempts SET state=?,updated_at=? WHERE run_id=? AND operation_id=?').run(state, Date.now(), this.runId, operationId);
+      if (Number(result.changes) !== 1) throw new Error('Sandbox state transition was not retained.');
+      this.db.exec('COMMIT');
+    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
   }
   report() { return this.db.prepare('SELECT actor_id AS actorId,operation_id AS operationId,amount_cents AS reservedCents,scenario,state FROM sandbox_attempts WHERE run_id=? ORDER BY updated_at').all(this.runId); }
   close() { this.db.close(); }

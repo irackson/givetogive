@@ -1,5 +1,54 @@
 # Resume here: payments and simulation checkpoint
 
+## Current provider/root phase controllers and atomic submission implemented
+
+Exchange head `e1c400b` hosted verification **37880734403 SUCCESS/terminal**:
+full app checks/build, 496 Linux simulator tests, public/intercepted browser
+checks and credential-free native capability; not actual financial execution.
+
+`checkout-current-provider.ts` adds an explicit inert-constructor GET reader for
+the selected 500-cent decline operation. Each ordered opening/fixture/optional
+notice/submission round makes exactly seven read-adapter calls: platform,
+test-mode balance, exact canonical Accounts v2 customer/clock, empty invoice and
+subscription lists, and exact unpaid open Checkout. It checks frozen ready clock,
+run name, owner/reference/amount/currency/mode, null settled pointers and exact
+giving return/cancel URLs. Full session URL/fragment and expiry must remain the
+originals. Proof time is the START of the bounded read round, not its end. Failure
+closes the reader; no retry/mutation/SDK/key loading or remote calls on import.
+
+`checkout-current-root.ts` provides an explicit phase backend using a supplied
+ORIGINAL ledger, provider reader, independent live context/budget verifiers and
+ordinary-member identity reader. It creates an exclusive flushed operation-wide
+root lease, retains provider intent and encrypted proof, then records admission
+intent before reserving 500 cents, acknowledging a notice, or admitting submission.
+Member/session and owned reserved state are rechecked; submission state readback
+must confirm the exact actor/amount/scenario. No ledger is created/reset here and
+uncertainty preserves holds. This is a controller, NOT native authority by itself:
+bootstrap must provide actual original-journal/source/job/member/provider adapters.
+
+Found/fixed a genuine concurrency gap in existing `SandboxLedger.update`: its
+check and UPDATE were separate. They now run under BEGIN IMMEDIATE with checked
+row count and commit/rollback. A real two-worker SQLite test proves exactly one
+reserved->submitted contender succeeds and the existing amount/hold is retained.
+
+Verification: 8 provider/root tests plus the real ledger race test; full simulator
+**505 tests / 504 pass / one Linux-only skip / zero failures**, TypeScript and
+explicit non-ignored ESLint pass. Tests use provider doubles and TEMPORARY SQLite,
+never actual staging/private journals. Cases cover foreign/live/moving clocks,
+provider-only records, changed URLs/amount/ownership/settlement, slow/aborted reads,
+prior ambiguous holds, exhausted budget, committed reservation with lost response,
+and independent-member/budget rejection. No actual original hold was added and no
+provider mutation, financial preparation/submission or email request occurred.
+
+Next: implement native original-PREPARED journal verification for opening and
+reserved/submitted phase states (the unused-only checker must NOT be weakened),
+then connect root controller to encrypted response transport and native bootstrap.
+Original plan/historical spent/ambiguous holds must remain unchanged. Retain final
+encrypted evidence; do not treat a controller reply as provider settlement.
+Runner closure includes current provider/root modules and ledger; earlier runner
+digests are obsolete. Financial app-source binding remains strict while Vercel's
+deployment quota prevents publishing the pending email update.
+
 ## Encrypted current parent/root phase exchange implemented
 
 Parent head `c9c4645` hosted run **37880063445 SUCCESS/terminal** verifies full
