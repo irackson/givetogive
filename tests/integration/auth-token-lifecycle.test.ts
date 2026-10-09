@@ -15,6 +15,10 @@ import {
 	hashAuthToken,
 } from '../../src/server/auth/tokens.ts';
 import { userRouter } from '../../src/server/api/routers/user.ts';
+import {
+	hashPassword,
+	verifyPassword,
+} from '../../src/server/auth/password.ts';
 
 const ids: string[] = [];
 let ready = false;
@@ -36,13 +40,11 @@ after(async () => {
 async function member() {
 	const id = randomUUID();
 	ids.push(id);
-	await db
-		.insert(users)
-		.values({
-			id,
-			email: `auth-token-${id}@example.invalid`,
-			name: 'Disposable CI auth-token fixture',
-		});
+	await db.insert(users).values({
+		id,
+		email: `auth-token-${id}@example.invalid`,
+		name: 'Disposable CI auth-token fixture',
+	});
 	return id;
 }
 const caller = () =>
@@ -109,19 +111,107 @@ test('expired and wrong-purpose fixtures never verify a member or consume anothe
 	const expired = randomBytes(32).toString('base64url');
 	// Only this disposable CI fixture has a constructed past expiration.
 	// The real AgentMail natural-expiry fixture is never edited by these tests.
-	await db
-		.insert(authTokens)
-		.values({
-			userId: id,
-			purpose: 'email_verification',
-			tokenHash: hashAuthToken(expired),
-			expiresAt: new Date(Date.now() - 60_000),
-		});
+	await db.insert(authTokens).values({
+		userId: id,
+		purpose: 'email_verification',
+		tokenHash: hashAuthToken(expired),
+		expiresAt: new Date(Date.now() - 60_000),
+	});
 	const reset = await createAuthToken(id, 'password_reset');
 	await assert.rejects(caller().verifyEmail({ token: expired }), invalid);
 	await assert.rejects(caller().verifyEmail({ token: reset.token }), invalid);
 	const [unchanged] = await db.select().from(users).where(eq(users.id, id));
 	assert.equal(unchanged!.emailVerified, null);
+	assert.equal(
+		(await db.select().from(authTokens).where(eq(authTokens.userId, id)))
+			.length,
+		2,
+	);
+});
+
+test('concurrent password reset has one winner and revokes prior sessions exactly once', async () => {
+	const id = await member();
+	const oldPassword = randomBytes(24).toString('base64url');
+	const passwords = Array.from({ length: 2 }, () =>
+		randomBytes(24).toString('base64url'),
+	);
+	await db
+		.update(users)
+		.set({
+			hashedPassword: await hashPassword(oldPassword),
+			sessionVersion: 7,
+		})
+		.where(eq(users.id, id));
+	const verification = await createAuthToken(id, 'email_verification');
+	const { token } = await createAuthToken(id, 'password_reset');
+	const results = await Promise.allSettled(
+		passwords.map((password) =>
+			caller().resetPassword({ token, password }),
+		),
+	);
+	const winners = results.flatMap((result, index) =>
+		result.status === 'fulfilled' ? [index] : [],
+	);
+	assert.equal(winners.length, 1);
+	for (const result of results)
+		if (result.status === 'rejected') assert(invalid(result.reason));
+	const [updated] = await db.select().from(users).where(eq(users.id, id));
+	assert.equal(updated!.sessionVersion, 8);
+	assert.equal(updated!.emailVerified, null);
+	assert(
+		await verifyPassword(passwords[winners[0]!]!, updated!.hashedPassword!),
+	);
+	assert.equal(
+		await verifyPassword(oldPassword, updated!.hashedPassword!),
+		false,
+	);
+	await assert.rejects(
+		caller().resetPassword({ token, password: oldPassword }),
+		invalid,
+	);
+	const [unchanged] = await db.select().from(users).where(eq(users.id, id));
+	assert.equal(unchanged!.sessionVersion, 8);
+	assert(unchanged!.hashedPassword === updated!.hashedPassword);
+	const remaining = await db
+		.select()
+		.from(authTokens)
+		.where(eq(authTokens.userId, id));
+	assert.equal(remaining.length, 1);
+	assert(remaining[0]!.tokenHash === hashAuthToken(verification.token));
+});
+
+test('expired and verification-purpose reset attempts cannot change password or session version', async () => {
+	const id = await member();
+	const password = randomBytes(24).toString('base64url');
+	await db
+		.update(users)
+		.set({
+			hashedPassword: await hashPassword(password),
+			sessionVersion: 3,
+		})
+		.where(eq(users.id, id));
+	const expired = randomBytes(32).toString('base64url');
+	await db
+		.insert(authTokens)
+		.values({
+			userId: id,
+			purpose: 'password_reset',
+			tokenHash: hashAuthToken(expired),
+			expiresAt: new Date(Date.now() - 60_000),
+		});
+	const verification = await createAuthToken(id, 'email_verification');
+	await assert.rejects(
+		caller().resetPassword({ token: expired, password }),
+		invalid,
+	);
+	await assert.rejects(
+		caller().resetPassword({ token: verification.token, password }),
+		invalid,
+	);
+	const [unchanged] = await db.select().from(users).where(eq(users.id, id));
+	assert.equal(unchanged!.sessionVersion, 3);
+	assert.equal(unchanged!.emailVerified, null);
+	assert(await verifyPassword(password, unchanged!.hashedPassword!));
 	assert.equal(
 		(await db.select().from(authTokens).where(eq(authTokens.userId, id)))
 			.length,

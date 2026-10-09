@@ -1,5 +1,28 @@
 # Resume here: payments and simulation checkpoint
 
+## Recovery/identity regression pass (October 9)
+
+Hosted verification **37894588348** for `dbd33e5` reached **SUCCESS/terminal**.
+This includes the production build and public capture execution, but the
+credential-free workflow does not run database integrations or genuine payments.
+
+Current main `dbd33e5` passed **32** fresh isolated PostgreSQL checks across
+`payments-recovery`, `payments-races`, `fund-cancellation`, and `supporter-changes`
+(116.96 seconds, zero failures/skips). Stripe transport was explicitly stubbed;
+this is not sandbox acceptance. The pass covers oversubscription, goal/reservation
+races, cumulative refund/dispute reclamation, lost responses, interrupted fund
+allocation, immutable quotes, freezes at send boundaries, upgrade recovery/undo,
+scheduled downgrade/cancel/resume and safe cancellation with new-sale gates off.
+No production data, real provider mutation or original financial hold was touched.
+
+Two added real CI reset regressions also passed: concurrent consumption has one
+winner and session-version increment, rejects old password and token reuse, and
+retains independent verification tokens; expired/wrong-purpose reset attempts
+leave password/session version unchanged. The auth lifecycle file now has five
+passing tests; TypeScript and zero-warning scoped lint passed. All disposable
+members were cleaned up. Constructed CI expiry is not naturally expired AgentMail
+acceptance, and router calls are not hosted browser/request-handler acceptance.
+
 ## Concurrent auth-token replacement fixed (October 9)
 
 Fresh isolated CI evidence reproduced twelve concurrent token replacements leaving
