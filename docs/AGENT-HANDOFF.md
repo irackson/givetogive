@@ -1,5 +1,38 @@
 # Resume here: payments and simulation checkpoint
 
+## Fresh anonymous published walkthrough capture (October 9)
+
+At production app head `93a3a4c`, the read-only browser pass completed **40 PNG
+views** (20 paths each at 1440x1000 and 390x844), with zero console/page/HTTP errors
+and zero mutation attempts. The fresh manifest is in ignored private operational
+storage: `tmp/walkthrough-public-e654937e-d082-4023-bf8f-20ae456fcd09/production/manifest.json`.
+Captured interval: `2026-10-09T05:52:36.729Z` to `05:53:27.881Z`. It includes the
+actual public Ask/member linked from the board, including a historical published
+demonstration fixture; no new member, Ask, email, payment or login was created.
+Mobile verification recovery, Ask detail and member profile were visually inspected.
+The first attempt's failed 16-view manifest is NOT final evidence; the corrected
+runner recognizes the existing shared `/admin` sign-in callback for admin children.
+
+`scripts/capture-public-walkthrough.mjs --capture-readonly` is import-inert,
+fixed-origin and credential-free; blocks all non-GET/HEAD/OPTIONS requests, masks
+email text, uses fresh UUID capture folders, startup/running RAM floors and a
+10-minute owned-browser deadline. Four offline guard regressions, application
+TypeScript and zero-warning scoped lint passed. A post-capture public API GET at
+`05:53:41.852Z` confirmed production payment availability (Ask, subscriptions,
+funds and billing management) all false. This does not establish private environment
+gate values or a capture-time source binding: refresh deployment/gates before the
+final combined PDF and retain the explicit source/digest review.
+
+Protected route screenshots are anonymous sign-in boundaries, NOT authenticated
+admin/account acceptance. Recovery pages are tokenless views, NOT email delivery
+acceptance. Paid states, all modals, staging publication, native Stripe lifecycle
+and full simultaneous community acceptance remain unfinished. These PNGs are useful
+current reference evidence, not a completed goal PDF. Next: when the existing
+staging deployment quota opens, publish/review the pending email release, complete
+real AgentMail signup/verification/resend acceptance and the one unused financial
+candidate without replaying historical holds. Preserve the original immutable
+financial cohort and all outstanding source/closure gates.
+
 ## Native CURRENT decline finalization boundary implemented (October 9)
 
 Head `9fdf903` hosted verification **37888915487 SUCCESS/terminal** was observed.
