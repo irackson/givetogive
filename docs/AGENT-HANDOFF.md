@@ -1,5 +1,44 @@
 # Resume here: payments and simulation checkpoint
 
+## Current parent process owner implemented; native bootstrap/transport still open
+
+`654ac7d` hosted verification **37879397598 SUCCESS/terminal** confirms full app
+checks/build, 475 Linux simulator tests, public/intercepted browser checks, and
+credential-free native capability. The source preflight now accurately reports
+an unpublished-app mismatch without granting financial permission.
+
+`checkout-current-parent.ts` adds explicit prepare/run/close operations for the
+current ordinary member entry. Import is inert. Preparation validates sources,
+profile, startup RAM and exact four-variable child environment before a flushed,
+exclusive operation-scoped launch directory/lease and detached child launch.
+Only a public profile goes first. It independently samples kernel start ticks,
+group/session/ancestry and an exact installed Chromium executable twice before
+returning browser readiness. Worker claims alone cannot admit private input.
+
+Run rechecks browser/source/memory, validates fresh root input, durably records a
+non-secret transfer intent, then attaches the existing bounded phase IPC with
+source/process checks around every backend request. Private credential/provider
+input is not written to these journals. Handles cannot be cloned, reused or
+restarted in the same operation namespace. Closure separately checks protocol
+receipt, child exit and actual owned-group survivors; PID reuse never permits a
+signal to the replacement. Abort while idle triggers cleanup too. Native child
+receives no provider/SQL/admin/GitHub/encryption key. Runner source closure now
+includes this new parent module, so old runner digests must not be reused.
+
+Verification: **9 injected parent tests**, full simulator **484 tests / 483 pass /
+one Linux-only skip / zero failures**, types and explicit non-ignored ESLint pass.
+Tests cover no-browser/mismatched readiness, bad environments/source/memory,
+abort, backend failure, clone/retry, surviving browsers, PID reuse and stale input.
+These are explicitly offline/injected, NOT an actual native current-member run.
+No native launch, financial preparation, admission or submission occurred.
+
+Still required: native GitHub bootstrap/live-job binding, associated private draft
+discovery after readiness, root phase responder with ORIGINAL atomic budgets,
+encrypted final transport/retention and independent signed webhook/ledger review.
+This parent reports final retention/provider review still required and never
+claims payment accepted. Vercel deployment quota still prevents publishing the
+email app change; do not weaken the strict staged financial source binding.
+
 ## Deployment quota and credential-free capability separation
 
 Email commit `4160e62` hosted run **37878835417** passed the app units/types/build,
