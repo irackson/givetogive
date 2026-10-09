@@ -1,5 +1,30 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 18:00 UTC: verified tooling; handoff stopped before launch
+
+Signed `9daf659` full first-attempt verification `37968979205` PASSED: locked
+installs, application production build, unit/tool types, published browser smoke,
+desktop/mobile captures, synthetic DOM guards, and credential-free native browser
+capability. Native prepared handoff stopped BEFORE creating its namespace, lease,
+private draft or workflow; there was insufficient ten-minute startup headroom.
+Independent readback at 17:55:31 confirmed the old open/unpaid session, no notices,
+submissions, financial admission, invoices/subscriptions/coverage/ledger, and
+unchanged original holds. Let it expire; never reprepare or reset the operation.
+
+Fresh encrypted public capture `37969205085` PASSED at the same signed head;
+40 desktop/mobile PNGs were restored from authenticated ciphertext to
+`tmp/walkthrough-public-38273cdd-8105-4380-9101-6aa4518e6c89/production/manifest.json`.
+These have zero console/page/HTTP errors or mutations. Only selected images have
+been visually reviewed; they do not cover authenticated/admin/modal/paid views.
+The final PDF and full goal are NOT complete.
+
+Read-only provider audit at 17:55:32 confirms BOTH canonical READY Node 24 sites
+still run `c8044c1`, matching main's application bytes; root production link and
+staging protection are preserved. No further Vercel release was created. Keep
+tooling pushes deployment-free. A batched canonical Git source reader now verifies
+exact blob identity/framing and the SAME reviewed source digest in 178 ms using
+two Git reads. This removes per-file process startup, not any approval gate.
+
 ## October 9 17:33 UTC: normal Checkout prepared; opening exchange timed out
 
 Signed `b6e1b7b` verification `37964967309` passed. Actual native run

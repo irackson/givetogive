@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { releaseSourceDigest } from './release-rehearsal-fingerprint.mjs';
+import { batchedGitSourceFingerprint } from './git-batch-source.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const cli = 'C:/Users/Ian/AppData/Local/pnpm/global/v11/9538-1a03bddf05f-5e68638a8374958f/node_modules/vercel/dist/vc.js';
 const team = 'team_TXid48wU77cfhEg28L3EyLpn', projectId = 'prj_HvlFV1kKHVsML73nlsJAFQNA7grP';
@@ -86,18 +87,7 @@ async function inspectRelease(original) {
   // Different tooling commits may use the SAME authored application. Verify the
   // actual app bytes, not equality between the runner and deployed Git SHAs.
   guard(git(['diff','--name-only', appSha, head, '--', ...names]).toString().trim() === '');
-  const hash = createHash('sha256');
-  function visit(path) {
-   if (path === 'src/app/.well-known/workflow' || path.startsWith('src/app/.well-known/workflow/')) return;
-   const type = git(['cat-file','-t',`${head}:${path}`]).toString().trim();
-   if (type === 'tree') {
-    const rows = git(['ls-tree','-z',`${head}:${path}`]).toString().split('\0').filter(Boolean).map(row => {
-     const [metadata, name] = row.split('\t'); guard(!metadata.startsWith('120000 ')); return name; });
-    for (const name of rows.sort()) visit(`${path}/${name}`);
-   } else { guard(type === 'blob'); hash.update(path).update('\0').update(git(['show',`${head}:${path}`])).update('\0'); }
-  }
-  if (!original) for (const name of names) if (git(['ls-tree','--name-only',head,'--',name]).toString().trim()) visit(name);
-  const canonicalSourceDigest = original ? original.canonicalSourceDigest : hash.digest('hex');
+  const canonicalSourceDigest = original ? original.canonicalSourceDigest : batchedGitSourceFingerprint(root,head);
   const rootLockDigest = createHash('sha256').update(git(['show',`${head}:package-lock.json`])).digest('hex');
   guard(canonicalSourceDigest === checkoutReleaseBinding.canonicalSourceDigest &&
    rootLockDigest === checkoutReleaseBinding.lockDigest &&

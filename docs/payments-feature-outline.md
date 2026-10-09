@@ -21,6 +21,23 @@ Tags describe origin, not deployment or acceptance:
 
 ## Current reviewed checkpoint - October 9, 2026
 
+**18:00 UTC refresh:** Both canonical sites are READY on Node 24 at application
+source `c8044c1b9dae433b2d598f39f84e6897dd87c546`; independent provider readback
+confirms their application bytes match signed main `9daf659`. Production financial
+gates remain dark; protected staging exposes only test Supporter sales. The
+deployment-quota blocker is resolved. Tooling-only pushes do not create Vercel
+releases. Full verification `37968979205` passed, including the production build
+and published browser checks. Fresh encrypted public capture `37969205085`
+retained 40 desktop/mobile views, not authenticated/modal or paid-state acceptance.
+Hosted signup/resend and real received-link verification were separately tested;
+the older statements below remain historical observations, not current blockers.
+The current $5 Checkout remains unpaid: zero notices/submissions or new financial
+admission were observed. The prepared handoff stopped before launch on insufficient
+expiry headroom. No full 253-member continuous hour, genuine paid-tier population,
+Stripe lifecycle acceptance, or final all-view PDF is claimed.
+
+### Historical morning checkpoint
+
 This inventory is **not a completion claim**. At 06:11 UTC, canonical production
 deployment `dpl_CcXNsZLV8bWxe2yot9Qn4Yk4hCdZ` was READY on Node 24, with Git
 source `e83fed1cedf4121080e5c44a8c3f902c95f7d0c3`. Its application files matched
