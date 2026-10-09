@@ -1,5 +1,49 @@
 # Resume here: payments and simulation checkpoint
 
+## Current native bootstrap/workflow wired (October 9)
+
+Responder head `db41ebc` hosted verification **37882517267 SUCCESS/terminal**.
+New manual `.github/workflows/checkout-current-staging.yml` is separate from the
+consumed historical worker. It shares staging concurrency, uses pinned reviewed
+actions, Node24/locked tools/Chromium and passes only the existing transfer key and
+job-scoped GitHub token to bootstrap (no Stripe/SQL/admin credentials or artifacts).
+
+`checkout-current-bootstrap.ts` acquires the actual owned parent/browser before
+publishing readiness, downloads/decrypts one private member input, connects the
+current encrypted phase exchange and runs the ordinary member. Each exchange
+rechecks actual source, OS/browser ownership and exact live current workflow/job.
+`checkout-current-job.ts` verifies manual main attempt1, actor/triggering actor,
+public repository, exact source SHA/run/job/workflow and standard Ubuntu runner.
+Injected HTTP is always tagged offline. `inspectPreparedCurrentCheckoutParent`
+freshly observes actual owned process/browser state, not only a prior JSON claim.
+
+Final retention encrypts only fixed bootstrap/parent/exchange originals, excluding
+member home/tmp; unknown files, foreign directories, symlinks and oversized files
+reject. Original final ciphertext/one-shot intent precede upload. Exact private
+metadata/hash/readback and unchanged originals are checked; uncertain uploads
+cannot be repeated. Native bootstrap success still says independent closure and
+settlement required, paymentAccepted=false. Default command is actually inert.
+
+Verification: **531 simulator tests / 529 pass / two Linux-only skips / zero
+failures** locally, TypeScript and explicit zero-warning lint. Eleven bootstrap
+tests cover configuration/job rejection, public readiness policy, fixed encrypted
+final inventory, uncertain/foreign/changed final uploads and inert command/workflow.
+Provider/job HTTP and final transport tests are OFFLINE doubles; no actual new
+financial job was dispatched and no native payment/email/deployment occurred.
+
+Next: implement the CURRENT local operator assembly (independent staging source,
+restricted SELECTs, original unused budget, normal member preparation, exact draft
+association/readiness discovery, root provider+member+prepared-budget verifiers and
+current responder/final reconciliation). Do not run the historical operator.
+Initial draft association binds the initial public profile; refreshed private input
+may only update this same job's observedAt/freeBytes, not the association or source.
+Strict app binding still rejects unpublished pending email app code. Publish and
+review it after Vercel quota availability, then explicitly update CURRENT release
+binding; never append to or rewrite historical financial approvals.
+Runner fingerprints now include both workflows and the new bootstrap/job modules;
+previous fingerprints are obsolete. Real paid lifecycle/full-hour cohort/final PDF
+and email delivery acceptance remain open; goal active, production money gates off.
+
 ## Current encrypted root responder implemented (October 9)
 
 Prepared-budget head `c7207b3` hosted verification **37882074759 SUCCESS/terminal**.

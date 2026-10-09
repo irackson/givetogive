@@ -43,6 +43,7 @@ export const checkoutRunnerFiles = [
 	'checkout-current-provider.ts', 'checkout-current-root.ts', 'sandbox-ledger.ts',
 	'checkout-prepared-budget.ts', 'sandbox-plan.ts',
 	'checkout-current-responder.ts',
+	'checkout-current-job.ts', 'checkout-current-bootstrap.ts',
 	'checkout-root-responder.ts', 'checkout-provider-proof.ts', 'checkout-readiness-observer.ts', 'checkout-root-preparation.ts', 'checkout-original-budget.ts',
 ] as const;
 const base = fileURLToPath(new URL('../', import.meta.url));
@@ -76,6 +77,8 @@ export function checkoutParentSourceSnapshot(expectedHead: string) {
 	hash.update('package-lock.json').update('\0').update(readFileSync(join(base, 'package-lock.json'))).update('\0');
 	const workflowName = '.github/workflows/checkout-staging.yml';
 	hash.update(workflowName).update('\0').update(readFileSync(join(repositoryRoot, workflowName))).update('\0');
+	const currentWorkflow = '.github/workflows/checkout-current-staging.yml';
+	hash.update(currentWorkflow).update('\0').update(readFileSync(join(repositoryRoot, currentWorkflow))).update('\0');
 	return { canonicalSourceDigest, rootLockDigest, runnerDigest: hash.digest('hex') };
 }
 export function verifyCheckoutParentSources(manifest: Manifest) {

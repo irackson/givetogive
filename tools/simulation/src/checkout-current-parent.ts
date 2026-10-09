@@ -120,6 +120,11 @@ export async function prepareCurrentCheckoutParent(raw:unknown,head:string,sourc
  }catch{if(resource)await close(resource);else if(child?.connected)child.disconnect();throw fail();}
 }
 export async function closePreparedCurrentCheckoutParent(prepared:Prepared){const resource=resources.get(prepared);guard(resource);return close(resource);}
+/** Fresh local process/browser observation, not a serialized readiness assertion. */
+export function inspectPreparedCurrentCheckoutParent(prepared:Prepared){const resource=resources.get(prepared);guard(resource&&!resource.stopped);
+ browserObserved(resource);return Object.freeze({connectionNonce:prepared.ready.connectionNonce,profileDigest:prepared.ready.profileDigest,
+ observedAt:new Date(resource.runtime.now()).toISOString(),freeBytes:resource.runtime.freeBytes(),browserConnected:true as const,
+ executionEvidence:prepared.parentEvidence,paymentAccepted:false as const,retryAllowed:false as const});}
 /** Only the root's separately reviewed fresh private input is transferred. The
  * backend must make its own durable provider/admission decisions at every phase. */
 export async function runCurrentCheckoutParent(prepared:Prepared,raw:unknown,backend:CurrentMemberBroker){const resource=resources.get(prepared);guard(resource&&!resource.started&&!resource.stopped);resource.started=true;

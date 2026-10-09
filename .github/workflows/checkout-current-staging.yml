@@ -1,0 +1,54 @@
+name: Guarded current staging Checkout
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact reviewed main commit; one current decline operation only
+        required: true
+        type: string
+      release_id:
+        description: Exact unpublished current private draft; never reuse historical admission
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: givetogive-staging-community
+  cancel-in-progress: false
+jobs:
+  checkout-current-parent:
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      github.repository == 'irackson/givetogive' && github.actor == 'irackson' &&
+      github.triggering_actor == 'irackson' && github.run_attempt == 1 &&
+      inputs.expected_sha == github.sha
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      actions: read
+      checks: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # reviewed v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # reviewed v6
+        with:
+          node-version: 24.x
+          package-manager-cache: false
+      - name: Locked tools install without credentials
+        working-directory: tools/simulation
+        run: npm ci --ignore-scripts
+      - name: Locked Chromium and Linux dependencies without credentials
+        working-directory: tools/simulation
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Current native readiness and encrypted ordinary-member handoff
+        working-directory: tools/simulation
+        env:
+          CHECKOUT_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          CHECKOUT_RELEASE_ID: ${{ inputs.release_id }}
+          CHECKOUT_BUNDLE_KEY: ${{ secrets.CHECKOUT_STAGING_BUNDLE_KEY }}
+          CHECKOUT_GITHUB_TOKEN: ${{ github.token }}
+        run: node --experimental-strip-types src/checkout-current-bootstrap.ts --execute-current-native-bootstrap
+      # No cache/artifact/trace/HAR uploads; no provider/database/admin credentials.

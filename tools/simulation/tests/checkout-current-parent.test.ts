@@ -5,7 +5,7 @@ import { mkdtempSync,readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ChildProcess } from 'node:child_process';
-import { prepareCurrentCheckoutParent,runCurrentCheckoutParent,closePreparedCurrentCheckoutParent,type CurrentParentRuntime } from '../src/checkout-current-parent.ts';
+import { prepareCurrentCheckoutParent,inspectPreparedCurrentCheckoutParent,runCurrentCheckoutParent,closePreparedCurrentCheckoutParent,type CurrentParentRuntime } from '../src/checkout-current-parent.ts';
 import { createCurrentMemberClient } from '../src/checkout-current-ipc.ts';
 import type { CheckoutIpcPeer } from '../src/checkout-broker-ipc.ts';
 import { currentProfile,currentInput,head,source,now } from './fixtures/current-checkout.ts';
@@ -52,6 +52,8 @@ function harness(options:{browser?:boolean;wrongReady?:boolean;leak?:boolean;reu
 }
 test('ordinary member is launched once with public profile and independently observed browser before input',async()=>{
  const h=harness(),prepared=await h.prepare();assert.equal(prepared.parentEvidence,'injected-offline');assert.equal(prepared.browserExecutableObserved,true);
+ const live=inspectPreparedCurrentCheckoutParent(prepared);assert.equal(live.executionEvidence,'injected-offline');assert.equal(live.browserConnected,true);
+ assert.equal(live.connectionNonce,prepared.ready.connectionNonce);assert.equal(live.paymentAccepted,false);
  assert.equal(h.counters().transfers,0);const phases:string[]=[];
  const result=await runCurrentCheckoutParent(prepared,currentInput(),{phase:async phase=>{phases.push(phase);return {publicFixture:true};}});
  assert.equal(result.failed,false);assert.equal(result.paymentAccepted,false);assert.equal(result.privateFinalRetentionStillRequired,true);
@@ -60,6 +62,7 @@ test('ordinary member is launched once with public profile and independently obs
  const directory=join(h.root,`current-checkout-${h.profile.runId}-${h.profile.operationId}`);
  const intent=readFileSync(join(directory,'input-transfer-intent.json'),'utf8');assert.doesNotMatch(intent,/public-fixture-password|public-fixture-bypass|checkout\.stripe/);
  await assert.rejects(()=>runCurrentCheckoutParent(prepared,currentInput(),{phase:async()=>({})}));
+ assert.throws(()=>inspectPreparedCurrentCheckoutParent(prepared));
  await assert.rejects(()=>h.prepare());assert.equal(h.counters().launches,1);
 });
 test('protocol readiness without an actual owned browser rejects before private transfer',async()=>{
