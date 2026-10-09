@@ -233,7 +233,9 @@ export function validateChildEnvironment(raw: unknown): Record<string, string> {
 	return parse(z.object({ PATH: z.string().min(1), HOME: z.string().min(1), TMPDIR: z.string().min(1),
 		PLAYWRIGHT_BROWSERS_PATH: z.string().min(1) }).strict(), raw);
 }
-export type CheckoutAssetBinding = Pick<Manifest, 'releaseId' | 'operationId'> & { job: Pick<Manifest['job'], 'id' | 'nonce' | 'headSha'> };
+/** Naming/transport shape only. Financial scopes are validated separately by
+ * their strict legacy manifest or current profile, never by this structural type. */
+export type CheckoutAssetBinding = Pick<Manifest, 'releaseId'> & { operationId: string; job: Pick<Manifest['job'], 'id' | 'nonce' | 'headSha'> };
 export function assetName(manifest: CheckoutAssetBinding, phase: 'input' | 'open-proof' | 'submit-proof' | 'ack-intent' | 'submit-intent' | 'final') {
 	return `checkout-${manifest.operationId}-${manifest.job.id}-1-${manifest.job.nonce}-${phase}.g2genc`;
 }

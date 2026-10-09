@@ -33,6 +33,7 @@ export const checkoutRunnerFiles = [
 	'checkout-candidate-budget.ts',
 	'checkout-current-profile.ts',
 	'checkout-current-input.ts', 'sandbox-policy.ts',
+	'checkout-current-draft.ts',
 	'checkout-root-responder.ts', 'checkout-provider-proof.ts', 'checkout-readiness-observer.ts', 'checkout-root-preparation.ts', 'checkout-original-budget.ts',
 ] as const;
 const base = fileURLToPath(new URL('../', import.meta.url));

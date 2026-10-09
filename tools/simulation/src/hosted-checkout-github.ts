@@ -32,11 +32,13 @@ export function validateRetainedCheckoutAsset(raw:unknown):RetainedCheckoutAsset
   readbackVerified:z.literal(true),retryAllowed:z.literal(false),paymentAccepted:z.literal(false)}).strict().parse(raw);
  }catch{return fail();}
 }
-type Dependencies = { request?:typeof fetch; now?:()=>number;
+export type CheckoutDraftDependencies = { request?:typeof fetch; now?:()=>number;
  pause?:(milliseconds:number,signal:AbortSignal)=>Promise<unknown> };
+type Dependencies = CheckoutDraftDependencies;
+export type CheckoutDraftInventoryPolicy = Readonly<{tagName:string;validateAssociation(raw:unknown):void}>;
 
 /** No release/tag mutation APIs. Token stays in this broker-owned object, never in worker output. */
-class CheckoutDraftTransport {
+export class CheckoutDraftTransport {
  private binding: CheckoutAssetBinding;
  private allowed: readonly CheckoutAssetPhase[];
  private token: string;
@@ -45,11 +47,14 @@ class CheckoutDraftTransport {
  private pause: (milliseconds:number,signal:AbortSignal)=>Promise<unknown>;
  private downloads = new Set<CheckoutAssetPhase>();
  private uploads = new Set<CheckoutAssetPhase>();
- constructor(binding:CheckoutAssetBinding,token:string,dependencies:Dependencies,allowed:readonly CheckoutAssetPhase[]) {
+ private inventoryPolicy:CheckoutDraftInventoryPolicy|undefined;
+ protected constructor(binding:CheckoutAssetBinding,token:string,dependencies:Dependencies,allowed:readonly CheckoutAssetPhase[],
+  inventoryPolicy?:CheckoutDraftInventoryPolicy) {
   this.now=dependencies.now??Date.now;
   this.binding=structuredClone(binding);this.allowed=allowed;
   const freeze=(value:object)=>{for(const child of Object.values(value))if(child&&typeof child==='object')freeze(child);Object.freeze(value);};
   freeze(this.binding);
+  this.inventoryPolicy=inventoryPolicy?Object.freeze({...inventoryPolicy}):undefined;
   guard(typeof token==='string'&&token.length>=20&&token.length<=4096&&!/[\r\n]/.test(token));this.token=token;
   this.request=dependencies.request??fetch;
   this.pause=dependencies.pause??((milliseconds,signal)=>sleep(milliseconds,undefined,{signal}));
@@ -82,8 +87,11 @@ class CheckoutDraftTransport {
  }
  private inventory(raw:unknown):Release {
   const value=releaseSchema.parse(raw),m=this.binding;
-  guard(value.id===m.releaseId&&value.target_commitish===m.job.headSha&&value.tag_name===`checkout-acceptance-${m.operationId}`);
-  const association=bodySchema.parse(JSON.parse(value.body));guard(association.headSha===m.job.headSha);
+  guard(value.id===m.releaseId&&value.target_commitish===m.job.headSha&&
+   value.tag_name===(this.inventoryPolicy?.tagName??`checkout-acceptance-${m.operationId}`));
+  const rawAssociation:unknown=JSON.parse(value.body);
+  if(this.inventoryPolicy)this.inventoryPolicy.validateAssociation(rawAssociation);
+  else {const association=bodySchema.parse(rawAssociation);guard(association.headSha===m.job.headSha);}
   const names=this.allowed.map(phase=>assetName(m,phase));
   guard(value.assets.every(asset=>names.includes(asset.name))&&new Set(value.assets.map(asset=>asset.name)).size===value.assets.length
    &&new Set(value.assets.map(asset=>asset.id)).size===value.assets.length);

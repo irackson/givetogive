@@ -1,5 +1,51 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 UTC: current private-draft transport connected to profile
+
+Input-codec head `a0fd6cb9c5e20f435887779f3369d7b604cd6487` passed exact-head
+**37875464242 SUCCESS/terminal**, including full app build/checks, all 447 Linux
+simulator tests, public/intercepted browser checks and native source preflight.
+
+`CurrentCheckoutPrivateDraft` now connects the current profile to the existing
+encrypted asset implementation, not the historical consumed manifest. Its
+constructor is inert and validates exact current profile/head/source/startup
+observation and a finite release ID. Its distinct `checkout-current-<operation>`
+draft namespace and strict association bind cohort/operation, head, workflow run,
+job/nonce and complete profile digest. Historical `CheckoutPrivateDraft` and
+failure retention keep their original strict fixed-manifest association and
+namespace; no old approval tuple or consumed operation was extended.
+
+The shared protected-constructor transport supports an explicit inventory policy;
+the only new high-level policy is generated from the validated current profile.
+The asset-binding TypeScript shape is structural for naming only, not payment
+authority. Legacy runtime validators are unchanged. Current transport preserves
+exact unpublished draft metadata, anonymous-404 privacy checks before/after,
+finite six-phase inventory/final slot, one-shot download/upload, immutable upload
+snapshot, SHA-256/size/readback and CDN redirects without authorization forwarding.
+An ambiguous upload or selected download cannot be retried. Caller must persist
+its exclusive durable intent before invoking a write. Token stays in parent/root,
+never ordinary-member input or browser environment. Remote privacy/retention and
+live job/OS observation still need actual proof, not a transport constructor.
+
+All **13 historical transport regressions** still pass. Six new offline current-
+scope tests cover inert construction, exact association, wrong legacy/foreign/
+published/public scopes, one-shot private readback and CDN isolation, ambiguous
+write/read failures, selected download consumption and final receipt capacity.
+Local full simulator: **453 total, 452 pass, one Linux-only skip, no failures**;
+types and focused ESLint (`--no-ignore`) pass. These requests are injected offline
+fixtures, not real GitHub transfers or payment evidence. Current-head hosted
+verification must be observed after push before claiming native verification.
+
+Next: implement the current native waiting parent/member entrypoint and root
+phase broker using this profile/input/draft, the existing generic Stripe driver
+and original budget journals. The original root still independently verifies
+normal member identity, release/job/source, test-clock customer and provider
+session before each actionable phase; durably reserve/ack/submit once; reconcile
+actual signed hosted webhook/outcome afterwards. Never re-dispatch the historical
+fixed worker or recreate expired steps 0/1. No actual draft, member login, Checkout,
+acknowledgment or payment was initiated by this transport checkpoint. Full payment
+lifecycles, 253-member hour and final published paid-state PDF remain unfinished.
+
 ## October 9 UTC: current member-input codec; hosted profile correction passed
 
 Exact-head memory/profile correction `652fc9c81077df1b71c74540f95d9cc12c3ca310`
