@@ -43,6 +43,7 @@ export const checkoutRunnerFiles = [
 	'checkout-current-provider.ts', 'checkout-current-root.ts', 'sandbox-ledger.ts',
 	'checkout-prepared-budget.ts', 'sandbox-plan.ts',
 	'checkout-current-responder.ts',
+	'checkout-current-coordinate.ts',
 	'checkout-current-job.ts', 'checkout-current-bootstrap.ts',
 	'checkout-root-responder.ts', 'checkout-provider-proof.ts', 'checkout-readiness-observer.ts', 'checkout-root-preparation.ts', 'checkout-original-budget.ts',
 ] as const;

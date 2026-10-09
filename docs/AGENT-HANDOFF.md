@@ -1,5 +1,36 @@
 # Resume here: payments and simulation checkpoint
 
+## Current root phase coordination and real email evidence (October 9)
+
+Head `7627161` hosted verification **37883743488 SUCCESS/terminal** was checked
+directly. This supersedes the older pending-repair note below.
+
+`checkout-current-coordinate.ts` now watches the actual supplied private draft
+inventory and calls the supplied root responder once per ordered request. Notice
+is optional, never manufactured. Context checks run at every inventory observation
+and before final return; foreign responses, premature finals and out-of-order
+requests stop. Abort/deadline also interrupts hung callbacks and closes the root
+responder without replaying any admission. Final availability explicitly requires
+independent reconciliation and reports paymentAccepted=false. Tests use injected
+transport/context; no new native financial run or payment was performed.
+Local verification: eight new tests; full simulator **543 tests / 541 pass / two
+Linux-only skips / zero failures**, TypeScript and explicit zero-warning lint pass.
+The runner fingerprint includes the new coordinator; prior fingerprints are stale.
+
+Actual AgentMail delivery plus normal hosted reset/token-reuse rejection/login
+passed at **2026-10-09T04:32:33Z**. Read `staging-auth-email.md` for the exact scope:
+current router request ran locally against staging, not on the still-old canonical
+deployment. Owner account was untouched. Free inbox creation rejected on quota;
+fresh registration/verification/resend remain unproven. Do not unverify existing
+fixtures or assume aliases to claim acceptance.
+
+Next: assemble native CURRENT dispatch/readiness/private-input preparation and
+wire this coordinator with real source/job/member/provider/budget verifiers plus
+final provider/webhook/app reconciliation. Staging app binding still rejects the
+unpublished email update; publish only after quota availability and fresh review.
+Original expired/ambiguous holds remain spent; no historical operator replay.
+Full paid lifecycle, hour-long cohort and final PDF remain incomplete.
+
 ## Current local read-only prerequisites implemented and observed (October 9)
 
 `scripts/checkout-current-operator-inspect.mjs` is an inert-by-default Windows
