@@ -1,5 +1,30 @@
 # Resume here: payments and simulation checkpoint
 
+## Exact CURRENT decline graph observation implemented (October 9)
+
+Previous head `72e94e1` read-only hosted verification **37887191384 SUCCESS/terminal**
+was observed directly. The native operator now retains a one-observation intent
+after authenticated final-original validation and requires the original financial
+attempt to remain `submitted`. It reads the exact original test Checkout session,
+its invoice, the default InvoicePayment and its PaymentIntent, then brackets the
+observation with another session read. Customer/operation/session ownership,
+test mode, USD 500 cents, zero received/paid money, an unpaid open invoice and
+`requires_payment_method` / `card_declined` are required. Foreign/duplicate/truncated
+graphs, paid objects, mismatched amounts and graph changes reject. Missing exact
+links remain unresolved; no arbitrary customer-payment lookup is permitted.
+
+Reads are bounded and abortable; errors are redacted. The original budget hold
+and financial journal are never changed. Provider decline observation is NOT full
+acceptance: canonical customer/clock ownership, ordinary member entitlement,
+signed webhook/app ledger evidence and original submitted-state reconciliation
+still need independent post-submit verification. No actual Checkout was prepared,
+submitted or reconciled by this change. Pending staging publication remains a gate.
+
+Verification: seven offline injected-adapter tests; full simulator **583 tests /
+581 pass / two Linux-only skips / zero failures**; simulation TypeScript and native
+operator zero-warning lint passed. Root lint intentionally ignores simulator files.
+The runner closure includes the new module; old runner fingerprints are stale.
+
 ## Strict CURRENT final-original receipt validation implemented (October 9)
 
 Final-job head `6d69d9d` hosted verification **37886829671 SUCCESS/terminal** was

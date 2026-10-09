@@ -50,7 +50,7 @@ export async function executeCurrentNativeOperator() {
   maximumSubmissions: 1, noHistoryReset: true, paymentAccepted: false, retryAllowed: false });
  original('release.original.json', release); original('prerequisites.original.json', prerequisites.summary);
  const controller = new AbortController(), stop = () => controller.abort(), signal = AbortSignal.any([controller.signal, AbortSignal.timeout(1500000)]);
- let key, token, session, preparation, ledger, worker, broker, responder, input, failure = false;
+ let key, token, session, preparation, ledger, worker, broker, responder, input, stripe, failure = false;
  const { loadCheckoutTransferKey } = await import('../tools/simulation/scripts/provision-checkout-key.mjs');
  const { UiSession } = await import('../tools/simulation/src/ui-session.ts');
  const { UiCheckoutPreparation } = await import('../tools/simulation/src/ui-checkout-preparation.ts');
@@ -69,6 +69,7 @@ export async function executeCurrentNativeOperator() {
  const { stripeCheckoutReads } = await import('../tools/simulation/src/checkout-provider-proof.ts');
  const { unseal } = await import('../tools/simulation/src/hosted-community-bundle.ts');
  const { validateCurrentFinalEvidence } = await import('../tools/simulation/src/checkout-current-final-evidence.ts');
+ const { observeCurrentProviderDecline } = await import('../tools/simulation/src/checkout-current-decline.ts');
  const { currentProfileDigest } = await import('../tools/simulation/src/checkout-current-phase.ts');
  process.on('SIGINT', stop); process.on('SIGTERM', stop);
  const targetFor = () => ({ headSha: head, workflowRunId: worker.workflowRunId, jobId: worker.observation.readiness.profile.job.jobId });
@@ -99,7 +100,7 @@ export async function executeCurrentNativeOperator() {
   preparation = new UiCheckoutPreparation(join(run, 'financial-intents.sqlite'), plan);
   const { default: Stripe } = await import('stripe');
   guard(/^[sr]k_test_/.test(process.env.STRIPE_SECRET_KEY ?? ''));
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-08-26.dahlia', timeout: 15000, maxNetworkRetries: 0 });
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-08-26.dahlia', timeout: 15000, maxNetworkRetries: 0 });
   const reads = stripeCheckoutReads(stripe);
   const prepared = await prepareCurrentCheckoutInput(worker.observation.readiness, { root: directory, key, releaseId: worker.releaseId,
    account, stagingBypass: bypass, session, plan, preparation, draft: worker.draft, signal,
@@ -177,6 +178,16 @@ export async function executeCurrentNativeOperator() {
      const validated = validateCurrentFinalEvidence(decoded, { profile: initial, connectionNonce: worker.observation.readiness.connectionNonce,
       inputProfileDigest: input.profileDigest, inputCiphertextDigest: uploadIntent.ciphertextDigest, releaseId: worker.releaseId });
      original('final-evidence-validation.result.json', validated);
+     // Retain a read-only exact provider graph after authenticated final evidence.
+     // This never marks the original financial journal accepted or releases holds.
+     guard(stripe && ledger?.get(c.operationId)?.state === 'submitted');
+     original('provider-decline-observation.intent.json', { operationId: c.operationId, maximumObservations: 1, paymentAccepted: false, retryAllowed: false });
+     const decline = await observeCurrentProviderDecline({ operationId: c.operationId, sessionId: input.proof.checkout.sessionId,
+      customerAccountId: input.proof.customerAccountId, origin: c.origin }, {
+      checkout: id => stripe.checkout.sessions.retrieve(id), invoice: id => stripe.invoices.retrieve(id),
+      invoicePayments: id => stripe.invoicePayments.list({ invoice: id, limit: 10 }), paymentIntent: id => stripe.paymentIntents.retrieve(id),
+     }, AbortSignal.timeout(30000));
+     original('provider-decline-observation.result.json', decline);
      original('final-recovery.result.json', { originalRetained: true, authenticatedDecryption: true,
       ciphertextDigest: createHash('sha256').update(final).digest('hex'), paymentAccepted: false, independentClosureAndSettlementRequired: true, retryAllowed: false });
     } finally { final.fill(0); }
