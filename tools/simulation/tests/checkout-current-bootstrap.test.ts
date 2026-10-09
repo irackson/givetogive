@@ -67,13 +67,13 @@ test('aborted, oversized, unsuccessful and slow job observations fail without an
  assert.equal(calls,mode==='abort'?0:1);}
 });
 function evidenceFixture(){const directory=mkdtempSync(join(tmpdir(),'g2g-current-final-')),profile=currentProfile();
- writeFileSync(join(directory,'bootstrap-lease.json'),JSON.stringify({profile,releaseId:42}));writeFileSync(join(directory,'bootstrap-result.json'),'{"failed":false}');
+ writeFileSync(join(directory,'bootstrap-lease.json'),JSON.stringify({profile,releaseId:42}),{mode:0o600});writeFileSync(join(directory,'bootstrap-result.json'),'{"failed":false}',{mode:0o600});
  return {directory,profile,cleanup(){assert.ok(resolve(directory).startsWith(resolve(tmpdir())+sep));rmSync(directory,{recursive:true});}};}
 test('final evidence only includes fixed original files and excludes private member runtime directories',()=>{
  const f=evidenceFixture();try{mkdirSync(join(f.directory,'member-home'));writeFileSync(join(f.directory,'member-home','cookies'),'public-private-fixture');
- const parent=`current-checkout-${f.profile.runId}-${f.profile.operationId}`;mkdirSync(join(f.directory,parent));writeFileSync(join(f.directory,parent,'parent-receipt.json'),'{"failed":false}');
+ const parent=`current-checkout-${f.profile.runId}-${f.profile.operationId}`;mkdirSync(join(f.directory,parent));writeFileSync(join(f.directory,parent,'parent-receipt.json'),'{"failed":false}',{mode:0o600});
  const exchange=`current-checkout-exchange-${f.profile.operationId}-${f.profile.job.jobId}-${f.profile.job.jobNonce}`;
- mkdirSync(join(f.directory,exchange));writeFileSync(join(f.directory,exchange,'opening-request.g2genc'),Buffer.from('public-encrypted-fixture'));
+ mkdirSync(join(f.directory,exchange));writeFileSync(join(f.directory,exchange,'opening-request.g2genc'),Buffer.from('public-encrypted-fixture'),{mode:0o600});
  const files=collectCurrentBootstrapEvidence(f.directory,f.profile);assert.equal(files.length,4);assert.ok(files.some(file=>file.name===exchange+'/opening-request.g2genc'));
  assert.ok(!files.some(file=>file.name.includes('member-home')));for(const file of files)fileBytes(file).fill(0);
  }finally{f.cleanup();}

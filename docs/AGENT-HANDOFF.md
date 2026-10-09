@@ -1,5 +1,44 @@
 # Resume here: payments and simulation checkpoint
 
+## Current local read-only prerequisites implemented and observed (October 9)
+
+`scripts/checkout-current-operator-inspect.mjs` is an inert-by-default Windows
+Node24 CURRENT inspector, separate from the consumed historical operator. Explicit
+`--inspect-readonly` verifies the original unused or prepared budget, restricted
+staging database identity, all three exact synthetic members/customer mappings,
+canonical clock-operation/event bindings and unchanged unpaid app state. Provider
+GETs independently confirm the platform/test mode, ready frozen clock, all three
+Accounts v2 customer clocks, absent invoices/subscriptions and the two original
+expired unpaid sessions. Current prepared state requires the exact open unpaid
+500-cent candidate. Local original budget is rechecked after external observations.
+No credential is printed; SQL transactions are read-only, and no member login,
+Checkout creation, journal constructor/reset, grant or submission is performed.
+
+Actual native check at **2026-10-09T04:20:55Z passed**: current candidate UNUSED,
+three verified members, restricted role, all clock bindings, two prior sessions
+expired/unpaid, no subscriptions/coverage/ledger, zero DB writes/member actions.
+The default command was also executed and reported zero external requests/actions.
+This is real read-only evidence, NOT source approval or paid lifecycle acceptance.
+
+Bootstrap head `cabf015` hosted run **37883220043 FAILED/terminal**: three Linux
+final-retention fixture failures. The new test files had Linux default 0644 while
+the production original writer and collector require 0600. Fix only sets fixture
+file creation mode to 0600; the production private-file permission check remains
+unchanged. No native financial workflow ran. Do not call this hosted check green.
+
+Four new public-snapshot operator tests check foreign/settled/member/clock/mapping
+rejection and an actually inert subprocess command. Local complete simulator suite
+passed **535 tests / 533 pass / two Linux-only skips / zero failures** before the
+fixture mode repair; relevant repaired tests and TypeScript/zero-warning lint pass.
+Exact-head hosted verification of the repair is still required.
+
+Next: CURRENT operator orchestration, initial public readiness/draft association,
+normal-member one-shot preparation, root responder with real independent
+member/source/job/provider/prepared-budget checks and final provider/webhook/ledger
+reconciliation. Do not run the consumed historical operator or reset expired holds.
+Staging app/email source mismatch remains a financial execution prerequisite;
+publish after Vercel quota availability and review the CURRENT release binding.
+
 ## Current native bootstrap/workflow wired (October 9)
 
 Responder head `db41ebc` hosted verification **37882517267 SUCCESS/terminal**.
