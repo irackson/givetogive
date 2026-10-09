@@ -1,5 +1,39 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 late evening: hosted member SDK policy mismatch fixed
+
+Signed code head `ac182eab136250984a7e293c948ac705c0eb48dd` passed exact-head
+verification **37868078455 SUCCESS/terminal**, job **113619502076**: application
+and simulator tests/types, published public smoke, and 17 intercepted Chromium
+tests in both native TypeScript and tsx. Local simulator: 413 tests, 412 pass,
+one Linux-only skip; types/focused explicit lint pass.
+
+Observed before the fix: the same public Apple wallet module was allowed by the
+generic driver but denied by the hosted member's separate `requestAllowed`.
+Hosted member now uses the shared exact static-script allowlist only with a real
+script resource type, GET/HEAD, no request body, an owned Stripe frame and a valid
+execution phase. Its real route handler supplies `request.resourceType()`.
+Missing facts, foreign/staging frames, navigation, POST, query-bearing resources,
+unknown files and Apple merchant-status/wallet API endpoints remain denied.
+No source approval, original operation, budget or financial admission changed.
+
+Actual public SDK run **37868087510 SUCCESS/terminal** enforced BOTH generic
+and hosted-member request policies for every real Chromium asset request. All
+five vendor files loaded once; all expected Apple/Amazon registrations appeared;
+blocked requests, page errors, console errors and asset failures were all zero.
+Financial actions zero; paymentAccepted false. This proves real SDK loading with
+both policies, NOT execution of the private financial member worker or payment.
+
+RAM was 2381 MiB, still below the native 2.5 GiB startup guard. Largest processes
+were preserved Codex/ChatGPT/Chrome/VS Code or system components; none killed.
+No private financial operation was created/replayed; decline remains untouched.
+Next inspect the hosted worker's immediate `observeSurface` after
+`domcontentloaded`: unlike the generic driver it currently does not wait for a
+clean asynchronous renderer to become ready. Any fix must stay bounded, fail
+on unknown instructions/challenges/errors, preserve proof freshness and strict
+financial protocol shape, and must not revive the consumed old native approval.
+Full goal remains active/incomplete; production financial gates remain off.
+
 ## October 8 late evening: collapsed Card choice ordering fixed and browser-verified
 
 Signed code head `d9e4c14c26eaecdfd29063015e2af27ed454d111` passed exact-head
