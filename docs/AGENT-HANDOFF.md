@@ -1,5 +1,40 @@
 # Resume here: payments and simulation checkpoint
 
+## Active goal, real hosted auth, batched release (October 9, 15:21 UTC)
+
+The goal is observed **active** again. GiveToGive-only checkpoint pushes no
+longer create automatic Vercel deployments. Full hosted CI `37950227357` passed
+for signed main `c8044c1`, including production build, root/simulation tests/types,
+published public browser/capture checks and credential-free Checkout capability.
+One deliberate staging release is canonical READY: `dpl_BjjNh1yYuzNyXHLPhdja6k2xwS7X`.
+The corresponding production release `dpl_ARdrvbQntbLq8oacMdhKGRFyaM3w` was also
+reconciled canonical READY at 15:23 UTC, with exact retained upload/source/lock
+metadata and no retries. The shared lease is terminally reconciled. Both retain
+Node 24 and protection settings; live payment gates remain off. No unrelated
+project settings changed.
+
+Real hosted mobile signup/resend `37949225115` passed; AgentMail independently
+received both emails. Received-link verification `37949564862` observed the old
+and consumed link errors, successful replacement verification and normal sign-in,
+but retained a failed final HTTP-status assertion (the UI uses HTTP 200 JSONL for
+logical errors). Do not relabel or replay that receipt. The correction is covered
+by regression tests; separate verified-only sign-in `37950359051` passed with
+zero mutations and zero browser errors. Restricted readback confirms the same
+ordinary, unfrozen, non-synthetic member verified. Mailbox readback still has only
+the two original verification emails. Private originals remain under
+`tmp/hosted-agentmail-20261009*`; no tokens/passwords were published.
+
+The current native Checkout release binding is now reviewed against actual
+staged `c8044c1` app bytes, lock and controlled upload metadata. It retains all
+source/identity/budget gates, adds explicit canonical-source comparison and does
+not reuse historical approvals. Read-only prerequisites at 15:06 UTC found the
+original third decline candidate unused, three genuine verified synthetic members,
+all canonical clock mappings, two expired/unpaid prior sessions and no paid app
+entitlement/ledger. Native bounded execution and genuine payment acceptance are
+still outstanding; reobserve before action. Never reset/replay prior holds.
+The required hour/cross-tier/Connect/fund/final PDF acceptance remains unfinished.
+Natural AgentMail expiry still requires October 10 after 06:30:56 UTC.
+
 ## Publication blocker resolved and controlled releases (October 9, 14:22 UTC)
 
 Fresh readback confirmed both canonical releases READY at main `0d6d32f`:

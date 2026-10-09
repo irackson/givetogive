@@ -8,15 +8,15 @@ import { releaseSourceDigest } from './release-rehearsal-fingerprint.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const cli = 'C:/Users/Ian/AppData/Local/pnpm/global/v11/9538-1a03bddf05f-5e68638a8374958f/node_modules/vercel/dist/vc.js';
 const team = 'team_TXid48wU77cfhEg28L3EyLpn', projectId = 'prj_HvlFV1kKHVsML73nlsJAFQNA7grP';
-// Reviewed October 9 protected staging upload; old financial source approvals
+// Reviewed October 9 15:19 UTC controlled protected staging upload; old financial source approvals
 // remain historical. This read-only binding never authorizes a payment retry.
 export const checkoutReleaseBinding = Object.freeze({
- deploymentId: 'dpl_CN1fLhs5nKqXnPK7UMKxKZrQYn5z',
- appSha: 'f7301db9bf188374fbd0cff3e374e16ab11292c7',
- canonicalSourceDigest: 'decf53acf95f71d4805301fccb7aec1880fbd00e6ac403b6b0e85940201e0f1f',
- sourceDigest: '0f184a8fcceadd6611765449c145565cb392d962c2da7294c8261689497f3cd8',
+ deploymentId: 'dpl_BjjNh1yYuzNyXHLPhdja6k2xwS7X',
+ appSha: 'c8044c1b9dae433b2d598f39f84e6897dd87c546',
+ canonicalSourceDigest: 'caaf7bee5cee2467f3c7d4c0dc2ac7e717dbb544c7aedf09d3e4a5f82b63ad6e',
+ sourceDigest: '3be484ab5cb5a9e65cd7913397f0fd2df8702b9cbb269952b1e619e59642504f',
  lockDigest: '71ee2fb1a9ad63638e941cf94d51edc76265c964a9c7a686d07833f9c8f73def',
- uploadDigest: 'f74918568d9171c42c9d51472843ce2afef798d6c0a8550314c3f1f146f7e0cb',
+ uploadDigest: '25537c552a597bcd2323e2c292a705ece21ef7f05f75c64bdd447c161be65493',
 });
 const { deploymentId, appSha } = checkoutReleaseBinding;
 const origin = 'https://givetogive-staging.vercel.app';
@@ -78,7 +78,8 @@ async function inspectRelease(original) {
   if (!original) for (const name of names) if (git(['ls-tree','--name-only',head,'--',name]).toString().trim()) visit(name);
   const canonicalSourceDigest = original ? original.canonicalSourceDigest : hash.digest('hex');
   const rootLockDigest = createHash('sha256').update(git(['show',`${head}:package-lock.json`])).digest('hex');
-  guard(rootLockDigest === checkoutReleaseBinding.lockDigest &&
+  guard(canonicalSourceDigest === checkoutReleaseBinding.canonicalSourceDigest &&
+   rootLockDigest === checkoutReleaseBinding.lockDigest &&
    releaseSourceDigest(root) === checkoutReleaseBinding.sourceDigest);
   // Explicit context inspection; never rewrite the checkout's production link.
   phase = 'hosting-metadata';

@@ -16,6 +16,7 @@ test('reviewed staging metadata requires the complete new source/lock/upload tup
  }
  assert.equal(matchesReviewedCheckoutUpload(undefined), false);
  assert.equal(matchesReviewedCheckoutUpload({ ...valid, githubCommitSha: '8888877182d76c18de40a747fd573b3d04643006' }), false);
+ assert.equal(matchesReviewedCheckoutUpload({ ...valid, githubCommitSha: 'f7301db9bf188374fbd0cff3e374e16ab11292c7' }), false);
 });
 test('CLI 59.5 curl excludes the broken global flag; other commands stay explicitly non-interactive', async () => {
  const { releaseCliArguments } = await import('../../../scripts/checkout-release-inspect.mjs');
