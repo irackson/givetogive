@@ -10,18 +10,23 @@ export const ASK_TYPE_LABELS: Record<AskType, string> = {
 	resource: 'Resource',
 };
 
-export function getAskUnitLabel(type: AskType, currency = 'USD') {
+export function getAskUnitLabel(
+	type: AskType,
+	currency = 'USD',
+	amount?: number,
+) {
+	const singular = Math.abs(amount ?? 0) === 1;
 	switch (type) {
 		case 'time':
-			return 'minutes';
+			return singular ? 'minute' : 'minutes';
 		case 'task':
-			return 'tasks';
+			return singular ? 'task' : 'tasks';
 		case 'item':
-			return 'items';
+			return singular ? 'item' : 'items';
 		case 'money':
 			return currency.toUpperCase();
 		case 'resource':
-			return 'units';
+			return singular ? 'unit' : 'units';
 	}
 }
 
@@ -45,5 +50,5 @@ export function formatAskAmount(
 		}).format(fromStoredAmount(type, amount));
 	}
 
-	return `${amount.toLocaleString()} ${getAskUnitLabel(type, currency)}`;
+	return `${amount.toLocaleString()} ${getAskUnitLabel(type, currency, amount)}`;
 }

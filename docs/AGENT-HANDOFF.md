@@ -1,5 +1,29 @@
 # Resume here: payments and simulation checkpoint
 
+## Public visual review and quantity copy (October 9)
+
+Native Node 24 capture **37900425070 SUCCESS/terminal** at `548da2d` completed
+40 views, uploaded only ciphertext and had no check annotations. Its exact job
+provenance was verified before download; local DPAPI decryption/image hash checks
+passed. All 40 route/image pairs are byte-identical to the first retained capture.
+Second sources remain ignored at
+`tmp/walkthrough-public-17a4ba1a-71d7-411c-aa7d-021c537e4b8b/production`.
+
+The 26 unique images were visually inspected for overall desktop/mobile layout;
+the 14 identical protected-route images were covered by exact hash equivalence
+to the inspected sign-in screens. The very long mobile Ask list was inspected
+as an overview, not full-size text-legibility acceptance. This is public-layout
+review, not authenticated modals, keyboard/interactions or final PDF acceptance.
+The screenshots exposed singular counts displayed as `1 asks posted` and
+`1 tasks`. The shared Ask formatter now uses singular count nouns for one,
+while generic goal/amount form labels remain plural and money formatting is
+unchanged. Profile completed/posted/pending counts also singularize one; card
+remaining text uses quantity-neutral `remaining.`. No stored records, quantities,
+statuses or contribution/financial behavior changed. Full units **163/163**,
+types and scoped zero-warning lint passed. Actual post-publication rendered
+verification and refreshed affected screenshots remain pending; both retained
+capture sets are BEFORE these copy fixes and must not be relabeled current.
+
 ## Encrypted public capture retention (October 9)
 
 The manual `public-walkthrough.yml` workflow reuses the fixed-origin anonymous

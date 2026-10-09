@@ -401,7 +401,7 @@ export function RenderAsksIndex({
 												'This goal has been completed.'
 											:	'The goal is fully pledged. Help is on its way.'
 
-										:	`${formatAskAmount(ask.type, remaining, ask.currency ?? 'USD')} still makes a difference.`
+										:	`${formatAskAmount(ask.type, remaining, ask.currency ?? 'USD')} remaining.`
 										}
 									</p>
 									{ask.paymentEnabled &&

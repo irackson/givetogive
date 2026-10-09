@@ -275,17 +275,27 @@ export default async function MemberProfilePage({
 						)}
 						<li>
 							<strong>{profile.stats.completed}</strong>
-							<span>completed contributions</span>
+							<span>
+								{profile.stats.completed === 1 ?
+									'completed contribution'
+								:	'completed contributions'}
+							</span>
 						</li>
 						<li>
 							<strong>{profile.stats.asksPosted}</strong>
-							<span>asks posted</span>
+							<span>
+								{profile.stats.asksPosted === 1 ?
+									'ask posted'
+								:	'asks posted'}
+							</span>
 						</li>
 						{profile.isOwner && (
 							<li>
 								<strong>{profile.stats.pledged}</strong>
 								<span>
-									pending offers
+									{profile.stats.pledged === 1 ?
+										'pending offer'
+									:	'pending offers'}
 									<small>Only visible to you</small>
 								</span>
 							</li>
