@@ -10,7 +10,7 @@ import { currentCheckoutSourceEvidence } from './checkout-current-preflight.ts';
 import { checkoutResponseBytes } from './checkout-input-mailbox.ts';
 import { writeBootstrapOriginal } from './checkout-bootstrap-retention.ts';
 import { observeCurrentCheckoutReadiness } from './checkout-current-readiness.ts';
-import { CurrentCheckoutPrivateDraft } from './checkout-current-draft.ts';
+import { CurrentCheckoutPrivateDraft, currentCheckoutDraftTag } from './checkout-current-draft.ts';
 const fail = (): never => { throw Error('Current native dispatch unresolved; originals retained; no automatic retry; private details withheld.'); };
 function guard(value: unknown): asserts value { if (!value) fail(); }
 export function currentCheckoutRepositoryUrl(path: string) {
@@ -51,7 +51,7 @@ export async function dispatchCurrentCheckoutWorker(options: {
     headers: { Accept: 'application/vnd.github+json', ...(authenticated ? { Authorization: `Bearer ${options.token}` } : {}) } });
    try { guard(response.status === 404); } finally { void response.body?.cancel().catch(() => undefined); }
   };
-  const tag = `checkout-current-${c.operationId}`, pending = { protocol: 1, purpose: 'current-cohort-private-checkout-pending',
+  const tag = currentCheckoutDraftTag(c.operationId), pending = { protocol: 1, purpose: 'current-cohort-private-checkout-pending',
    repository: 'irackson/givetogive', runId: c.runId, operationId: c.operationId, headSha: options.headSha };
   record('dispatch-lease.json', { headSha: options.headSha, operationId: c.operationId, maximumDispatches: 1,
    maximumDraftCreates: 1, maximumAssociationWrites: 1, paymentAccepted: false, retryAllowed: false });

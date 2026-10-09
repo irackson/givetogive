@@ -17,6 +17,9 @@ export const currentCheckoutAssetPhases=['input','opening-request','opening-resp
  'notice-request','notice-response','submission-request','submission-response','final'] as const;
 const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const fail=():never=>{throw Error('Current Checkout private draft rejected; no admission or retry.');};
+// Separate reviewed transport namespace: the failed readiness draft remains
+// immutable and can never be rebound to this source or receive member input.
+export const currentCheckoutDraftTag=(operationId:string)=>`checkout-current-${z.uuid().parse(operationId)}-readiness-recovery-v1`;
 export class CurrentCheckoutPrivateDraft extends CheckoutDraftTransport {
  readonly profile:ReturnType<typeof validateCurrentCheckoutProfile>;
  readonly association:Readonly<z.infer<typeof associationSchema>>;
@@ -28,7 +31,7 @@ export class CurrentCheckoutPrivateDraft extends CheckoutDraftTransport {
    repository:profile.job.repository,runId:profile.runId,operationId:profile.operationId,headSha:profile.job.headSha,
    workflowRunId:profile.job.workflowRunId,jobId:profile.job.jobId,jobNonce:profile.job.jobNonce,profileDigest:hash(profile)}));
   super({releaseId,operationId:profile.operationId,job:{id:profile.job.jobId,nonce:profile.job.jobNonce,headSha:reviewedHead}},
-   token,dependencies,currentCheckoutAssetPhases,{tagName:`checkout-current-${profile.operationId}`,maximumAssets:10,validateAssociation(raw) {
+   token,dependencies,currentCheckoutAssetPhases,{tagName:currentCheckoutDraftTag(profile.operationId),maximumAssets:10,validateAssociation(raw) {
     const value=associationSchema.parse(raw);
     if(Object.keys(association).some(key=>value[key as keyof typeof value]!==association[key as keyof typeof association]))fail();
    }});

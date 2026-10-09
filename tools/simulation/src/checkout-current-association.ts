@@ -4,7 +4,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { z } from 'zod';
 import { checkoutResponseBytes } from './checkout-input-mailbox.ts';
-import type { CurrentCheckoutPrivateDraft } from './checkout-current-draft.ts';
+import { currentCheckoutDraftTag, type CurrentCheckoutPrivateDraft } from './checkout-current-draft.ts';
 const fail = (): never => { throw Error('Current private draft association unconfirmed; no member action or retry; private details withheld.'); };
 function guard(value: unknown): asserts value { if (!value) fail(); }
 export function currentPendingDraftBody(draft: Pick<CurrentCheckoutPrivateDraft, 'association'>) {
@@ -38,7 +38,7 @@ export async function awaitCurrentDraftAssociation(draft: Pick<CurrentCheckoutPr
    const bytes = await checkoutResponseBytes(response, 262144, signal); let raw: unknown;
    try { raw = JSON.parse(bytes.toString()); } finally { bytes.fill(0); }
    const release = z.object({ id: z.literal(releaseId), draft: z.literal(true), prerelease: z.literal(false), published_at: z.null(),
-    target_commitish: z.literal(draft.association.headSha), tag_name: z.literal(`checkout-current-${draft.association.operationId}`),
+    target_commitish: z.literal(draft.association.headSha), tag_name: z.literal(currentCheckoutDraftTag(draft.association.operationId)),
     body: z.string().max(16384), assets: z.array(z.unknown()).max(10) }).parse(raw);
    const body: unknown = JSON.parse(release.body);
    if (same(body, draft.association)) {

@@ -1,5 +1,23 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 16:21 UTC: genuine Chromium readiness and shutdown passed
+
+Signed `b7cb0c8` full verification `37957565355` passed. Separate native
+readiness-only run `37958435355` passed real Chromium launch/ownership and clean
+shutdown. It published no financial readiness, transferred no private input,
+performed zero member sign-ins, prepared no Checkout and attempted no submission.
+The detached-group fix is now natively verified, not just an offline fixture.
+
+A separate explicit `--execute-reviewed-readiness-recovery` is being prepared.
+It requires the immutable hashed original pre-dispatch-recovery tree, the exact
+failed first-attempt native job, the successful diagnostic, the unchanged browser
+ownership implementation, and an authenticated still-pending/empty private draft.
+Fresh source/provider/SQL/original-budget checks remain required. Any association,
+input, preparation or submission evidence makes it ineligible. Its root and draft
+namespaces are distinct; it never rebinds the original draft, resets holds, or
+replays a previous financial attempt. Verify and sign before executing once.
+No actual decline/payment acceptance is claimed yet. No Vercel deployment needed.
+
 ## October 9 16:08 UTC: browser-group mismatch confirmed and narrowly corrected
 
 Signed `7c4e33d` full hosted verification `37956160986` passed. Separate

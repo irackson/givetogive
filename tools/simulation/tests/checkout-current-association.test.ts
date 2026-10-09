@@ -9,7 +9,7 @@ function fixture(mode = 'pending') {
  let authenticated = 0, anonymous = 0, verified = 0;
  const release: { id: number; draft: boolean; prerelease: boolean; published_at: null; target_commitish: string;
   tag_name: string; body: string; assets: unknown[] } = { id: 42, draft: true, prerelease: false, published_at: null,
-  target_commitish: head, tag_name: `checkout-current-${draft.association.operationId}`,
+  target_commitish: head, tag_name: `checkout-current-${draft.association.operationId}-readiness-recovery-v1`,
   body: JSON.stringify(currentPendingDraftBody(draft)), assets: [] };
  const request: typeof fetch = async (url, init) => {
   assert.equal(String(url), 'https://api.github.com/repos/irackson/givetogive/releases/42'); assert.equal(init?.method, 'GET');
