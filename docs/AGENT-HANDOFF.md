@@ -1,5 +1,40 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 UTC: bounded hosted Checkout renderer wait
+
+Signed code head `0ab44ea9ccee7add4499d44b7b952a25ecf4fc35` is pushed.
+The actual hosted worker now waits at most 15 seconds for clean asynchronous
+rendering, with a hard timer even if a DOM read hangs. Unknown instructions,
+challenges, browser errors, stale surfaces and changed/duplicate notices stop
+immediately. A known notice can fade after its one admitted acknowledgment;
+there is no additional click, timestamp rewrite or financial admission.
+The original provider proof is revalidated after rendering and after notice
+transition; waiting cannot revive an expired opening approval.
+
+Local simulator suite is terminal: 420 tests, 419 pass, one Linux-only skip,
+zero failures. Simulator types and focused lint pass. Hosted exact-head run
+**37869159191 SUCCESS/terminal**, job **113622951816**, passes application and
+simulator tests/types, published public smoke and all 19 intercepted Chromium
+regressions under both native TypeScript and tsx. The new regressions exercise
+delayed clean rendering without input/clicks and immediate rejection of an
+unknown alert before a later healthy-looking state. These synthetic browser
+fixtures do not prove actual private Checkout rendering or paid acceptance.
+
+Current owner-auth follow-up: read-only staging SQL confirms `inasusr@gmail.com`
+verified and unfrozen. AgentMail readback confirms registration and replacement
+messages contain complete token links; normal password login of the existing
+AgentMail fixture succeeds with a genuine session. No owner password changed,
+no SQL verification bypass and no repeat email sent. This is not automatic
+staging email delivery or authenticated Ian/iPhone dashboard proof.
+
+Next work: legacy hosted worker still does not reveal a collapsed Card selector,
+though the generic driver does. Resolve the actual executable financial path,
+not merely its fixtures. Its historical approval remains consumed; do not
+rewrite its fixed identities/source tuples or replay expired original operations.
+Fresh cohort steps 0/1 remain consumed/expired and step 2 decline remains untouched.
+Actual paid lifecycle acceptance, all-member hour soak, final paid-state PDF and
+dependency branch cleanup remain unfinished. Production financial gates stay off.
+
 ## October 8 late evening: hosted member SDK policy mismatch fixed
 
 Signed code head `ac182eab136250984a7e293c948ac705c0eb48dd` passed exact-head
