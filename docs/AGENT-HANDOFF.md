@@ -1,5 +1,42 @@
 # Resume here: payments and simulation checkpoint
 
+## Latest publication and hosted-auth preparation (October 9, 07:25 UTC)
+
+Read-only canonical provider/source audit at **07:23:09 UTC** supersedes older
+publication snapshots below. Production is READY at `311dc34`
+(`dpl_7P6CJ2bDp8wxjpCzasUTSazb5Noq`), so the auth-token race fix is published.
+Only the three new member-pagination/search application files differ from main
+`7b55371`. Protected staging remains READY at `f7301db`
+(`dpl_CN1fLhs5nKqXnPK7UMKxKZrQYn5z`), ten application files behind.
+Both projects use Node 24; staging protection remains `all`. GitHub's latest
+Vercel status for `7b55371` still says **deployment rate limited, retry in 24
+hours**. No new deployment attempt was made. Hosted read-only verification
+**37897272038 SUCCESS/terminal** passed, including the build and 40 anonymous
+public capture executions. This does not verify authenticated pagination or
+the unpublished staging handler.
+
+A fresh unique tagged address actually received a routing nonce in an existing
+AgentMail inbox. Staging's exact sensitive recipient allowlist was independently
+confirmed unchanged since its original creation, then updated through the native
+CLI with explicit staging project/team targeting. All four original approved
+addresses were preserved and exactly one proven recipient added. Metadata
+readback verified the update and unchanged other settings; the root production
+link was preserved. No production configuration, account grant, new mailbox,
+email credential, registration or payment was changed. Private intent/proof and
+result receipts are ignored under `tmp/hosted-agentmail-recipient-*` and
+`tmp/agentmail-hosted-route-*`; do not publish recipient credentials or auth links.
+
+**The allowlist update is not active on the existing deployment.** It invalidates
+earlier environment-metadata preflights. After the provider backoff, perform a
+fresh source/environment/upload review before one guarded staging publication;
+then exercise normal hosted signup, resend, received-link verification and login
+with this fresh fixture. Do not repeat the once-only configuration update or
+reuse stale fingerprints. Natural-expiry acceptance remains due after October 10
+06:30:56 UTC; its separate token must remain unconsumed and must not be resent.
+Original financial operations/holds remain immutable and must not be replayed.
+Full genuine payment lifecycles, 253-member community hour, owner dashboard access,
+fresh all-view/modal captures and the final PDF remain incomplete.
+
 ## Mobile simulation member navigation bounded (October 9)
 
 Hosted verification **37896426951** for `311dc34` reached SUCCESS/terminal.
