@@ -1,0 +1,64 @@
+name: Owned AgentMail hosted auth
+
+on:
+    workflow_dispatch:
+        inputs:
+            expected_sha:
+                description: Exact reviewed main SHA
+                type: string
+                required: true
+            nonce:
+                description: Exact fresh owned fixture UUID
+                type: string
+                required: true
+            release_id:
+                description: Exact PRIVATE draft release ID
+                type: string
+                required: true
+            phase:
+                description: One-time phase; never rerun
+                type: choice
+                required: true
+                options: [signup-resend, verify-signin]
+
+permissions:
+    contents: read
+
+concurrency:
+    group: givetogive-owned-hosted-auth
+    cancel-in-progress: false
+
+jobs:
+    auth-email:
+        if: >-
+            github.repository == 'irackson/givetogive' && github.ref == 'refs/heads/main' &&
+            github.event_name == 'workflow_dispatch' && github.actor == 'irackson' &&
+            github.triggering_actor == 'irackson' && github.run_attempt == 1 &&
+            inputs.expected_sha == github.sha
+        runs-on: ubuntu-24.04
+        timeout-minutes: 15
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+              with:
+                  ref: ${{ github.sha }}
+                  persist-credentials: false
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version: 24.x
+                  package-manager-cache: false
+            - name: Locked application test install without credentials
+              run: npm ci --ignore-scripts --include=dev
+            - name: Install locked Chromium without credentials
+              run: npx --no-install playwright install --with-deps chromium
+            - name: Normal hosted auth for one owned AgentMail fixture
+              env:
+                  AUTH_EXPECTED_SHA: ${{ inputs.expected_sha }}
+                  AUTH_NONCE: ${{ inputs.nonce }}
+                  AUTH_RELEASE_ID: ${{ inputs.release_id }}
+                  AUTH_PHASE: ${{ inputs.phase }}
+                  AUTH_BUNDLE_KEY: ${{ secrets.COMMUNITY_STAGING_BUNDLE_KEY }}
+                  AUTH_RECOVERY_TOKEN: ${{ github.token }}
+              run: node scripts/auth-email-hosted.ts --execute-hosted
+            # No cache, raw artifact, screenshots, auth URLs, database/provider keys.

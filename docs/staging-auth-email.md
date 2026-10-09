@@ -1,5 +1,18 @@
 # Staging authentication email
 
+## Bounded hosted AgentMail acceptance
+
+The manually dispatched `auth-email-staging.yml` workflow tests one specifically
+owned, allowlisted tagged AgentMail fixture through the real hosted UI. Its two
+one-time phases cover signup/resend and received-link verification/sign-in. It
+uses the existing approved encrypted private-draft transport/key, not new remote
+credentials. Inputs and results are authenticated-encrypted and private; no raw
+artifact, screenshot, DOM dump, password or auth URL is logged or uploaded.
+Install steps run without credentials. The worker is exact-main/owner/first-
+attempt gated and permits only the phase's bounded normal tRPC mutations.
+The receipt and independent SQL identity readback are acceptance evidence only
+after execution; the harness itself and its unit tests are not delivery proof.
+
 Staging captures authentication links by default. To exercise real delivery,
 set the **server-only** `AUTH_EMAIL_STAGING_RECIPIENTS` to a comma-separated list
 of exact approved email addresses in the separate staging Vercel project.
