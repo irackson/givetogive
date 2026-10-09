@@ -1,5 +1,39 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 UTC: simulator dependency integration and branch cleanup
+
+Signed `05e990c8101acb12f87849c45abae215f7619af0` integrates Dependabot PR 36's
+exact two-file simulator-only MCP SDK update, 1.30.1 to 1.32.1. npm registry
+readback confirms the version and Node >=18 requirement; locked `npm ci
+--ignore-scripts --include=dev --prefix tools/simulation` installs successfully
+and reports zero vulnerabilities. Installed simulator/Strands SDK dependency
+deduplicates to 1.32.1. Types pass; complete local suite is terminal with
+422 tests, 421 pass, one Linux-only skip and zero failures.
+Hosted exact-head verification **37869995222 SUCCESS/terminal**, job
+**113625804100**, passes application/simulator tests/types, published public smoke
+and all 21 intercepted Chromium tests under both native TypeScript and tsx.
+PR 36 is closed after direct integration on main; its exact remote branch
+`dependabot/npm_and_yarn/tools/simulation/modelcontextprotocol/sdk-1.32.1` is
+deleted and the absence is confirmed by `git ls-remote --heads`. Its original
+commit `65bb538713df76173b7d7f4326a65c964bb47831` remains identified for recovery;
+no feature work was discarded.
+
+Root application dependency/lock, application bytes, database, payment gates,
+original financial plan and historical approval tuples are unchanged. The
+simulator lock changes its runner source digest, so this is NOT permission to
+mix old approved source tuples or reuse consumed hosted operations. Preserve
+original evidence; next financial execution needs its own reviewed exact source
+and original durable budget/operation bindings.
+
+Remaining remote PR branches: 37 sharp, 38 source-map-js, 39 Next. All were
+confirmed dependency-only, not missing feature branches. A new Dependabot group
+branch `dependabot/npm_and_yarn/multi-d49ef80a9c` appeared during cleanup and needs
+its own review. Review/test these before cleanup; main-only remote is not
+complete yet. Local remains main-only.
+RAM observed 2263 MiB; largest processes are preserved active work/security/system
+components. No browser launched, financial preparation/attempt admitted, or
+unused decline operation consumed. Full goal remains active/incomplete.
+
 ## October 9 UTC: hosted collapsed Card interaction implemented
 
 Signed code head `5f67db497a8245bd2f90226639801c50bd667793` is pushed. The actual
