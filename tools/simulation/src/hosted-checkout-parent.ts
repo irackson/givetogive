@@ -31,6 +31,7 @@ export const checkoutRunnerFiles = [
 	'checkout-bootstrap-retention.ts',
 	'checkout-current-preflight.ts',
 	'checkout-candidate-budget.ts',
+	'checkout-current-profile.ts',
 	'checkout-root-responder.ts', 'checkout-provider-proof.ts', 'checkout-readiness-observer.ts', 'checkout-root-preparation.ts', 'checkout-original-budget.ts',
 ] as const;
 const base = fileURLToPath(new URL('../', import.meta.url));

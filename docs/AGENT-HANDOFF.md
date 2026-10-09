@@ -1,5 +1,58 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 UTC: current decline execution profile and original budget readback
+
+Previous exact-head run **37873915945 SUCCESS/terminal**, head
+`7b69c1c9efb5303ff2b9daa45c4938907619c61a`, passes the full application build/
+checks, all **432 Linux simulator tests**, public browser smoke, intercepted
+Checkout regressions and native current-source preflight. The actual native
+fixture had approximately **14.14 GiB** minimum free memory and closed its
+browser/context/server. Canonical app and root lock remain as recorded below;
+that head's runner closure is
+`31b5c16bbade6756f009cff0f970e4347b4b79c8a3a505a0abb27804c7fefacc`.
+It proves capability, not a live waiting financial parent or a paid operation.
+
+`checkout-current-profile.ts` now supplies a distinct, strict current-cohort
+profile for untouched decline step 2. It binds the original run, agent, operation,
+plan hash, database, canonical protected deployment, exact reviewed source tuple,
+500-cent Supporter decline/Neighbor result, original 2500/1500-cent caps and
+one-launch/one-submit/no-retry constraints. Only fresh first-attempt, running,
+owner-dispatched main Linux/Node 24 jobs with sufficient memory pass validation.
+Phase rechecks preserve job/run/nonce/head/source and reject backwards observations.
+Nested profiles are frozen; credentials and unknown fields are rejected. Historical
+fixed approvals and worker are unchanged. **This is pure validation, not native
+job authentication or financial permission.** The live adapter must independently
+obtain source/job/OS/provider/member evidence and durable original admission.
+Including this module in the runner closure changes its digest; do not reuse the
+previous digest for the new code.
+
+Local verification: **437 simulator tests, 436 pass, one Linux-only skip, no
+failures**; types and focused ESLint with `--no-ignore` pass. Five new policy tests
+cover identity/budget/fixture substitutions, stale/completed/retried jobs, mixed
+source, credential fields and phase identity changes. Current-head hosted tests
+must be observed after push before claiming hosted verification of this module.
+
+Actual SELECT-only original-journal check passed: immutable plan SHA remains
+`e36e25e6e4e49e662a2343b15230c0d3dd1717637ca5eabfc4c342f8da8d1e1a`;
+decline candidate unused; UI holds **2000 cents**, financial-attempt holds
+**500 cents**, candidate actor holds zero in each, original caps unchanged.
+These journals describe separate admission stages, not additive spending.
+Expired/ambiguous earlier holds remain counted. No ledger reset, new preparation,
+notice, provider request or payment occurred. The ignored local operator
+`tmp/fresh-ui-financial-acceptance.mjs` now calls the native budget checker before
+purchase or `inspect 2`; this ignored integration is not transferred by Git.
+The read-only operator is `tmp/inspect-fresh-candidate-budget.mjs`.
+
+Next: wire the current profile into a separately bound native waiting parent and
+encrypted live-job handoff; reuse the generic Checkout executor/driver and original
+root journals, rather than extending/re-dispatching the historical consumed
+fixed worker. Native laptop startup remains unavailable at the observed **2.32
+GiB** free versus the unchanged **2.5 GiB** threshold. Actual paid lifecycles,
+253-member hour and final paid-state PDF remain incomplete. Owner SQL readback
+confirms verified/unfrozen/nonsynthetic; AgentMail fixture normal login succeeds.
+No independent authenticated Ian/iPhone dashboard proof or automatic staging
+email delivery is claimed.
+
 ## October 9 UTC: current hosted source/browser preflight verified
 
 Signed `f8ccf15fdb101c45b888ee5fa1b551dc5bde1877` adds a credential-free
