@@ -1,5 +1,35 @@
 # Resume here: payments and simulation checkpoint
 
+## Publication blocker resolved and controlled releases (October 9, 14:22 UTC)
+
+Fresh readback confirmed both canonical releases READY at main `0d6d32f`:
+production `dpl_62Qz2a8rpLEbHKrsk21epqQ6g5q5`, protected staging
+`dpl_4eHp143qiqC6wshD64Ty9VRZRpUQ`. Both use Node 24; staging protection
+remains `all`; production payment gates remain disabled. Read-only HTTP smoke
+passed `/`, `/asks`, `/signin`, `/support`, `/funds`, and anonymous `/admin`
+redirected to sign-in. This supersedes the older publication-blocked snapshots;
+it is not authenticated browser, real Stripe or final PDF acceptance.
+
+Ian authorized lower-frequency deployment for **GiveToGive only**. Repository
+`git.deploymentEnabled=false` stops automatic Git releases while checkpoint CI
+continues. `scripts/controlled-release.ts` performs deliberate exact-main,
+signed/clean/CI-success/app-change releases, validates target/protection/private
+upload exclusions and serializes submission using retained private leases.
+Tooling-only changes skip submission; uncertain/rejected submissions never
+automatically retry. Separate reconciliation confirms canonical provider truth.
+See `docs/controlled-releases.md`. No unrelated project settings or hosted
+deployment credentials are changed. Publication/negative-push observation of
+this configuration remains pending until the signed checkpoint is pushed.
+
+Existing financial intents/holds and stopped community runs are untouched.
+Re-review the new staging source/upload binding before executing native
+financial operators; never merely waive their old-source checks. Natural
+AgentMail expiry remains due after October 10 06:30:56 UTC. Remaining genuine
+payment lifecycles, cross-tier/hour evidence and final all-view/modal PDF are
+still required. The app's goal controls do not expose a resume action; Ian's
+explicit continue request authorizes current work, but app automatic goal
+continuation requires its Resume control rather than creating a duplicate goal.
+
 ## Public visual review and quantity copy (October 9)
 
 Native Node 24 capture **37900425070 SUCCESS/terminal** at `548da2d` completed
