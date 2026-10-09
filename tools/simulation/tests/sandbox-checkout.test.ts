@@ -50,6 +50,8 @@ test('network diagnostics discard private URLs, resource names and unknown failu
     ['https://checkout.stripe.com/private-sentinel?secret=private-sentinel', 'stripe-owned'],
     ['https://fonts.googleapis.com/private-sentinel', 'google-fonts'],
     ['https://m.stripe.network/private-sentinel', 'stripe-network'],
+    ['https://d37ugbyn3rpeym.cloudfront.net/private-sentinel', 'stripe-public-checkout-cdn'],
+    ['https://js.klarna.com/private-sentinel', 'klarna-script'],
     ['https://newassets.hcaptcha.com/private-sentinel', 'hcaptcha'],
     [`${sandboxOrigin}/private-sentinel`, 'staging'],
     ['https://private-sentinel.example.invalid/private-sentinel', 'other-https'],
@@ -70,6 +72,7 @@ test('network diagnostics discard private URLs, resource names and unknown failu
   assert.equal(checkoutFailureCategory('private-sentinel https://private-sentinel.invalid'), 'other');
   const { boundary, context } = fixture();
   assert.equal(allowedCheckoutRequest('https://fonts.googleapis.com/private-sentinel', false, validateCheckoutContext(context, boundary)), false);
+  assert.equal(allowedCheckoutRequest('https://d37ugbyn3rpeym.cloudfront.net/private-sentinel', false, validateCheckoutContext(context, boundary)), false);
 });
 test('read-only frame observation may reread a transient tree without performing a control action', async () => {
   const observed = new StripeCheckoutDriver('public-fixture-bypass'.repeat(2), 'readonly@givetogive.invalid');

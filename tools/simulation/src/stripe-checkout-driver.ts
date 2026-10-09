@@ -20,11 +20,15 @@ const fixtureCards = { success: '4242424242424242', decline: '4000000000000002',
 
 /** Diagnostic classification only; never grants request admission or retains URL bytes. */
 export function checkoutRequestCategory(rawUrl: string, resourceType: string, topNavigation: boolean) {
-  let destination: 'stripe-owned' | 'stripe-network' | 'hcaptcha' | 'staging' | 'google-fonts' | 'google-maps' | 'paypal' | 'link' | 'google-script' | 'cloudflare-challenge' | 'other-https' | 'unsafe-or-non-https' = 'unsafe-or-non-https';
+  let destination: 'stripe-owned' | 'stripe-network' | 'stripe-public-checkout-cdn' | 'klarna-script' | 'hcaptcha' | 'staging' | 'google-fonts' | 'google-maps' | 'paypal' | 'link' | 'google-script' | 'cloudflare-challenge' | 'other-https' | 'unsafe-or-non-https' = 'unsafe-or-non-https';
   try {
     const url = new URL(rawUrl);
     if (url.protocol === 'https:' && !url.username && !url.password && (!url.port || url.port === '443')) {
       if (stripeOwnedOrigin(url)) destination = 'stripe-owned';
+      // Exact literal from Stripe's anonymously readable Checkout bootstrap.
+      // This is observation only; it does not permit any CloudFront request.
+      else if (url.hostname === 'd37ugbyn3rpeym.cloudfront.net') destination = 'stripe-public-checkout-cdn';
+      else if (['js.klarna.com', 'js.playground.klarna.com'].includes(url.hostname)) destination = 'klarna-script';
       else if (url.hostname === 'stripe.network' || url.hostname.endsWith('.stripe.network')) destination = 'stripe-network';
       else if (url.hostname === 'hcaptcha.com' || url.hostname.endsWith('.hcaptcha.com')) destination = 'hcaptcha';
       else if (url.origin === sandboxOrigin) destination = 'staging';
