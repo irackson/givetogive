@@ -1,4 +1,8 @@
 export function releaseCliArguments(args: string[]): string[];
+export const checkoutReleaseBinding: Readonly<{
+ deploymentId: string; appSha: string; sourceDigest: string; lockDigest: string; uploadDigest: string;
+}>;
+export function matchesReviewedCheckoutUpload(metadata: unknown): boolean;
 export interface CheckoutReleaseSnapshot {
  observedAt: string; sourceObservedAt: string; headSha: string; deploymentId: string; deployedAppSha: string;
  canonicalSourceDigest: string; rootLockDigest: string; sourceDigest: string;
