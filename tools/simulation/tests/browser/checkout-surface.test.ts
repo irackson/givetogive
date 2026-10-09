@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { chromium, type Browser, type Page } from 'playwright';
-import { observeSurface, waitForHostedCheckoutSurface, SurfaceReadUnavailable, validateNativeSurface, validateAcknowledgmentSurface, validateCardSelectionSurface, type Counters } from '../../src/hosted-checkout-worker.ts';
+import { observeSurface, waitForHostedCheckoutSurface, prepareHostedCheckoutSurface, OneNativeClick, SurfaceReadUnavailable, validateNativeSurface, validateAcknowledgmentSurface, validateCardSelectionSurface, type Counters } from '../../src/hosted-checkout-worker.ts';
 import { StripeCheckoutDriver, checkoutBrowserEnvironment } from '../../src/stripe-checkout-driver.ts';
 import { allowedPassiveCheckoutWalletScript } from '../../src/sandbox-policy.ts';
 import { requestAllowed } from '../../src/hosted-checkout-policy.ts';
@@ -169,6 +169,32 @@ test('actual Chromium admits only intercepted official wallet SDK script loads w
   } finally { await browser.close(); }
 });
 
+test('actual hosted adapter reveals Card once without filling/submitting and preserves strict native protocol shape', async () => {
+  const html = '<p>Test mode</p><button type="button" onclick="window.cardSelections=(window.cardSelections||0)+1;document.querySelector(\'#fields\').hidden=false">Card</button>' +
+    '<div id="fields" hidden><input name="cardNumber"><input name="cardExpiry"><input name="cardCvc"></div>';
+  await fixture(html, async page => {
+    const selection = new OneNativeClick(); let proofs = 0;
+    const options = { signal: new AbortController().signal, now: Date.now, selection, beforeSelection: () => { proofs++; } };
+    const surface = await prepareHostedCheckoutSurface(page, counters(), options);
+    assert.doesNotThrow(() => validateNativeSurface(surface, Date.now()));
+    assert.equal('cardChoiceCount' in surface, false);
+    assert.equal(await page.locator('input[name="cardNumber"]').inputValue(), '');
+    assert.equal(selection.attempts, 1); assert.equal(proofs, 3);
+    await prepareHostedCheckoutSurface(page, counters(), options);
+    assert.equal(selection.attempts, 1);
+    assert.equal(await page.evaluate(() => (window as unknown as { cardSelections: number }).cardSelections), 1);
+  });
+});
+
+test('actual hosted adapter rejects a changed original approval before selecting Card', async () => {
+  await fixture('<p>Test mode</p><button>Card</button>', async page => {
+    const selection = new OneNativeClick();
+    await assert.rejects(prepareHostedCheckoutSurface(page, counters(), { signal: new AbortController().signal, now: Date.now,
+      selection, beforeSelection: () => { throw Error('offline-original-proof-rejected'); } }));
+    assert.equal(selection.attempts, 0);
+  });
+});
+
 test('actual driver reveals a collapsed Card section once before fixture entry, never submits or collapses it again', async () => {
   const html = '<p>Test mode</p><button type="button" onclick="window.cardSelections=(window.cardSelections||0)+1;document.querySelector(\'#fields\').hidden=false">Card</button>' +
     '<div id="fields" hidden><input name="cardNumber"><input name="cardExpiry"><input name="cardCvc"></div>';
@@ -202,5 +228,9 @@ for (const [name, html] of [
     await assert.rejects(driver.fillFixture('success'));
     assert.equal(driver.diagnostics().cardSelectionClickAttempts, 0);
     assert.equal(driver.diagnostics().noticeClickAttempts, 0);
+    const selection = new OneNativeClick();
+    await assert.rejects(prepareHostedCheckoutSurface(page, counters(), { signal: new AbortController().signal,
+      now: Date.now, selection, beforeSelection: () => {} }));
+    assert.equal(selection.attempts, 0);
   });
 });

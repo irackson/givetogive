@@ -119,9 +119,11 @@ test('durable wait does not grandfather a changed/stale acknowledgment panel', (
 });
 
 function fakeExecution(settings: { panel?: boolean; badDurable?: boolean; badAsset?: boolean; staleAsset?: boolean;
-	badSession?: boolean; abortAtAsset?: boolean; lateLaunch?: boolean; blockedNavigation?: boolean; staleOpenAfterNavigation?: boolean } = {}) {
+	badSession?: boolean; abortAtAsset?: boolean; lateLaunch?: boolean; blockedNavigation?: boolean; staleOpenAfterNavigation?: boolean;
+	collapsedCard?: boolean; failedCardClick?: boolean; staleAfterCardClick?: boolean } = {}) {
 	const abort = new AbortController(), value = input(), order: string[] = [], fills: string[] = [];
 	let time = NOW, panel = settings.panel ?? false, connected = true, auth = 0, queries = 0;
+	let collapsed = settings.collapsedCard ?? false;
 	let route: ((route: unknown, request: unknown) => Promise<void>) | undefined;
 	let release: (() => void) | undefined;
 	const rawResponse = (raw: unknown) => ({ status: () => 200, url: () => approved.origin, headers: () => ({}),
@@ -140,14 +142,18 @@ function fakeExecution(settings: { panel?: boolean; badDurable?: boolean; badAss
 		return rawResponse({ result: { data: superjson.serialize(result) } });
 	}, dispose: async () => { order.push('api-close'); } };
 	const locator = (__selector: string, type?: string) => ({
-		count: async () => panel && !type ? 0 : 1, nth() { return this; },
-		isVisible: async () => type === 'checkbox' ? panel : !panel,
+		count: async () => type === 'card' ? Number(collapsed) : panel && !type ? 0 : 1, nth() { return this; },
+		isVisible: async () => type === 'checkbox' ? panel : type === 'card' ? !panel && collapsed : !panel && !collapsed,
 		isEnabled: async () => true, isEditable: async () => true, isChecked: async () => false,
 		getAttribute: async () => 'submit', fill: async (text: string) => { fills.push(text); },
-		click: async () => { order.push(type === 'checkbox' ? 'ack-native' : 'subscribe-native'); if (type === 'checkbox') panel = false; },
+		click: async () => {
+			order.push(type === 'checkbox' ? 'ack-native' : type === 'card' ? 'card-native' : 'subscribe-native');
+			if (type === 'checkbox') panel = false;
+			if (type === 'card') { if (settings.failedCardClick) throw Error('private-failed-card'); collapsed = false; if (settings.staleAfterCardClick) time += 30001; }
+		},
 	});
 	const frame = { url: () => value.proof.url, parentFrame: () => null,
-		locator: (selector: string) => locator(selector), getByRole: (role: string) => locator('', role === 'checkbox' ? 'checkbox' : 'submit'),
+		locator: (selector: string) => locator(selector), getByRole: (role: string, options?: { name?: string }) => locator('', role === 'checkbox' ? 'checkbox' : options?.name === 'Card' ? 'card' : 'submit'),
 		evaluate: async () => ({ panels: Number(panel), hash: panel ? approved.panelDigest : null, controls: Number(panel),
 			label: panel ? approved.controlName : '', enabledControl: panel, uncheckedControl: panel, testMode: !panel, unknown: false, needsChallenge: false }) };
 	const page = { frames: () => [frame], mainFrame: () => frame, goto: async () => {
@@ -203,6 +209,27 @@ test('a fresh rendered surface cannot revive an opening provider proof that aged
 	assert.equal(result.failed, true); assert.equal(result.submitClickAttempts, 0);
 	assert.equal(fake.fills.length, 0); assert.equal(fake.order.includes('submit-intent'), false);
 	assert.equal(result.browserDisconnected, true);
+});
+
+test('actual worker adapter reveals Card once, including after the one reviewed notice, without weakening submit admission', async () => {
+	for (const panel of [false, true]) {
+		const fake = fakeExecution({ collapsedCard: true, panel });
+		const result = await runHostedCheckoutMember(fake.value, HEAD, { broker: fake.broker, runtime: fake.runtime });
+		assert.equal(result.failed, false); assert.equal(result.submitClickAttempts, 1);
+		assert.equal(fake.order.filter(value => value === 'card-native').length, 1);
+		assert.ok(fake.order.indexOf('card-native') < fake.order.indexOf('submit-intent'));
+		if (panel) assert.ok(fake.order.indexOf('ack-native') < fake.order.indexOf('card-native'));
+	}
+});
+
+test('failed Card click or proof aging during selection closes the actual worker before fill or submit, without retry', async () => {
+	for (const settings of [{ failedCardClick: true }, { staleAfterCardClick: true }]) {
+		const fake = fakeExecution({ collapsedCard: true, ...settings });
+		const result = await runHostedCheckoutMember(fake.value, HEAD, { broker: fake.broker, runtime: fake.runtime });
+		assert.equal(result.failed, true); assert.equal(result.submitClickAttempts, 0);
+		assert.equal(fake.order.filter(value => value === 'card-native').length, 1);
+		assert.equal(fake.fills.length, 0); assert.equal(result.browserDisconnected, true);
+	}
 });
 test('reviewed panel gets one durable acknowledgment before native transition; card/submit happen only afterward', async () => {
 	const fake = fakeExecution({ panel: true }); const result = await runHostedCheckoutMember(fake.value, HEAD, { broker: fake.broker, runtime: fake.runtime });

@@ -274,7 +274,7 @@ async function boundedClose(action: () => Promise<void>): Promise<boolean> {
  * browser reads, timestamp rewriting or financial admission. A hard timer also
  * fences a hung read, rather than bounding only the gaps between reads. */
 export async function waitForHostedCheckoutSurface(read: () => Promise<CheckoutSurface>, options: {
-	signal: AbortSignal; now: () => number; timeoutMs?: number; afterNotice?: boolean; pause?: () => Promise<void>;
+	signal: AbortSignal; now: () => number; timeoutMs?: number; afterNotice?: boolean; allowCardChoice?: boolean; pause?: () => Promise<void>;
 }): Promise<CheckoutSurface> {
 	const timeout = options.timeoutMs ?? 15000;
 	requirePolicy(Number.isInteger(timeout) && timeout >= 1 && timeout <= 15000 && !options.signal.aborted);
@@ -306,12 +306,49 @@ export async function waitForHostedCheckoutSurface(read: () => Promise<CheckoutS
 				requirePolicy(surface.panelDigest === null && surface.controlCount === 0 && surface.controlName === ''
 					&& !surface.visible && !surface.enabled && !surface.unchecked && surface.optionalLinkDeferred === true);
 				if (surface.testModeLabel && surface.visibleCard) { validateNativeSurface(surface, now); return surface; }
+				if (options.allowCardChoice && surface.cardChoiceCount) { validateCardSelectionSurface(surface, now); return surface; }
 			}
 			await (options.pause?.() ?? delay(200, undefined, { signal: waiting.signal }));
 		}
 	};
 	try { return await Promise.race([observe(), stoppedPromise]); }
 	finally { stopped = true; clearTimeout(timer); options.signal.removeEventListener('abort', stop); waiting.abort(); }
+}
+
+/** Reveal only an exact, enabled test-mode Card choice. This does not fill or
+ * submit a payment, acknowledge a notice, or confer financial permission. The
+ * caller owns the one-shot control and revalidates its original approval. */
+export async function prepareHostedCheckoutSurface(page: Page, counters: Counters, options: {
+	signal: AbortSignal; now: () => number; selection: OneNativeClick; beforeSelection: () => void; afterNotice?: boolean;
+}): Promise<CheckoutSurface> {
+	const read = () => observeSurface(page, counters, options.now(), { cardChoice: true });
+	let surface = await waitForHostedCheckoutSurface(read, { ...options, allowCardChoice: true });
+	if (!surface.panelCount && !surface.visibleCard) {
+		validateCardSelectionSurface(surface, options.now()); options.beforeSelection();
+		let selected: Locator | undefined;
+		for (const frame of await visibleFrames(page)) {
+			const choices = frame.getByRole('button', { name: 'Card', exact: true });
+			const count = await choices.count(); requirePolicy(count <= 16);
+			for (let index = 0; index < count; index++) {
+				const candidate = choices.nth(index);
+				if (await candidate.isVisible()) {
+					requirePolicy(!selected && await candidate.isEnabled()); selected = candidate;
+				}
+			}
+		}
+		requirePolicy(selected); validateCardSelectionSurface(await read(), options.now());
+		options.beforeSelection();
+		await options.selection.perform(true, options.signal, () => selected!.click({ timeout: 5000 }));
+		// No second selection or readiness fabrication: actual editable fields
+		// must appear, with all existing health checks still in force.
+		surface = await waitForHostedCheckoutSurface(read, { signal: options.signal, now: options.now });
+		validateNativeSurface(surface, options.now());
+		options.beforeSelection();
+	}
+	// The financial protocol keeps its strict original shape. Card-choice
+	// observations are adapter-only evidence, never native-field readiness.
+	const { cardChoiceCount: __count, cardChoiceVisible: __visible, cardChoiceEnabled: __enabled, ...native } = surface;
+	return native;
 }
 
 export async function runHostedCheckoutMember(raw: unknown, expectedHead: string,
@@ -325,7 +362,7 @@ export async function runHostedCheckoutMember(raw: unknown, expectedHead: string
 	let api: APIRequestContext | undefined, page: Page | undefined, phase: Phase = 'sign-in';
 	let launchPending = false, contextPending = false, failed = false, browserClosed = false, contextClosed = false, apiDisposed = false;
 	const counters: Counters = { consoleErrors: 0, pageErrors: 0, httpErrors: 0, blockedRequests: 0, failedRequests: 0, unexpectedPages: 0 };
-	const ackClick = new OneNativeClick(), submitClick = new OneNativeClick(), listeners: (() => void | Promise<void>)[] = [];
+	const ackClick = new OneNativeClick(), cardSelection = new OneNativeClick(), submitClick = new OneNativeClick(), listeners: (() => void | Promise<void>)[] = [];
 	let browserClosing: Promise<boolean> | undefined, contextClosing: Promise<boolean> | undefined, apiClosing: Promise<boolean> | undefined;
 	const closeApi = (owned: APIRequestContext) => apiClosing ??= boundedClose(() => owned.dispose());
 	const closeContext = (owned: BrowserContext) => contextClosing ??= boundedClose(() => owned.close());
@@ -406,7 +443,8 @@ export async function runHostedCheckoutMember(raw: unknown, expectedHead: string
 		context.on('page', onPage); context.on('console', onConsole); context.on('weberror', onError); context.on('response', onResponse); context.on('requestfailed', onFailedRequest);
 		listeners.push(() => { context?.off('page', onPage); context?.off('console', onConsole); context?.off('weberror', onError); context?.off('response', onResponse); context?.off('requestfailed', onFailedRequest); });
 		await run.wait(page.goto(input.proof.url, { waitUntil: 'domcontentloaded', timeout: 30000 }));
-		const surface = await run.wait(waitForHostedCheckoutSurface(() => observeSurface(page!, counters, runtime.now()), { signal, now: runtime.now }));
+		const beforeSelection = () => { run.check(); checkMemory(runtime.freeBytes(), false); validateProof(input.proof, protocol!.manifest, 'open', runtime.now()); };
+		const surface = await run.wait(prepareHostedCheckoutSurface(page, counters, { signal, now: runtime.now, selection: cardSelection, beforeSelection }));
 		validateProof(input.proof, protocol.manifest, 'open', runtime.now());
 		protocol.observeSurface(surface, runtime.now());
 		if (protocol.state === 'ack-required') {
@@ -424,7 +462,7 @@ export async function runHostedCheckoutMember(raw: unknown, expectedHead: string
 			validateProof(input.proof, protocol.manifest, 'open', runtime.now());
 			validateAcknowledgmentSurface(await run.wait(observeSurface(page, counters, runtime.now())), runtime.now());
 			await run.wait(ackClick.perform(String(protocol.state) === 'ack-intent-written', signal, () => checkbox!.click({ timeout: 10000 })));
-			const post = await run.wait(waitForHostedCheckoutSurface(() => observeSurface(page!, counters, runtime.now()), { signal, now: runtime.now, afterNotice: true }));
+			const post = await run.wait(prepareHostedCheckoutSurface(page, counters, { signal, now: runtime.now, selection: cardSelection, beforeSelection, afterNotice: true }));
 			validateProof(input.proof, protocol.manifest, 'open', runtime.now());
 			protocol.recordAcknowledgment('transition-observed', post, runtime.now());
 		}
