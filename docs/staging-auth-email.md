@@ -101,3 +101,24 @@ final all-view/modal evidence. The current hosted verification/sign-in procedure
 were exercised on the older published staging release, not a new deployment.
 No protection setting was disabled, no financial action ran, and auth URLs,
 passwords, raw provider responses, DOM dumps and network traces were not published.
+
+## Natural-expiry fixture prepared, not yet passed
+
+On October 9, a second fresh tagged address was independently proved to route
+to an existing AgentMail inbox. The normal current registration router sent a
+real verification email, and AgentMail confirmed actual receipt. A guarded
+read-only transaction at **06:34:04 UTC** confirmed the exact normal member is
+unverified/unfrozen and has one matching, unconsumed verification token.
+Its database expiration is **October 10 at 06:29:56 UTC**; check after
+**06:30:56 UTC** (02:30:56 Eastern). No token was consumed, no timestamp changed,
+and no direct verification grant or second inbox was created. This is preparation,
+not expired-link acceptance. Keep the ignored private expiry fixture files and
+do not resend, replace, or consume this token before its real expiration.
+
+Separately, hosted verification run **37893510093** for main **c58ed5b** finished
+successfully. Its anonymous public capture executed all **40 desktop/mobile
+views**, with zero attempted mutation requests, no recorded errors, and no
+failure phase. Those images remained only on the ephemeral runner: this proves
+capture execution, not retained/visually reviewed final PDF inputs, authenticated
+views, email delivery, payments, or simulation acceptance. Earlier incomplete
+capture receipts remain failed; they were not relabeled by this later success.
