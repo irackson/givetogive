@@ -52,6 +52,7 @@ export const checkoutRunnerFiles = [
 	'checkout-current-final-evidence.ts',
 	'checkout-current-decline.ts',
 	'checkout-current-app-decline.ts',
+	'checkout-current-failure-event.ts',
 	'checkout-current-job.ts', 'checkout-current-bootstrap.ts',
 	'checkout-root-responder.ts', 'checkout-provider-proof.ts', 'checkout-readiness-observer.ts', 'checkout-root-preparation.ts', 'checkout-original-budget.ts',
 ] as const;

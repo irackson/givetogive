@@ -1,5 +1,27 @@
 # Resume here: payments and simulation checkpoint
 
+## CURRENT processed failure-event correlation implemented (October 9)
+
+Head `45a6285` hosted verification **37888590977 SUCCESS/terminal** was observed.
+The native root now reads failure event IDs/object IDs from the isolated DB and
+retrieves only the exact processed `payment_intent.payment_failed` or
+`invoice.payment_failed` Stripe events after fresh native platform/test balance,
+canonical Accounts v2 customer and unchanged ready/frozen clock checks. Correlation
+requires the exact original invoice/PaymentIntent, same customer/platform, USD 500,
+zero paid/received money and actual declined PI or open unpaid invoice snapshot.
+Foreign/duplicate/ambiguous/live/paid events reject; missing/unprocessed events
+remain unresolved. At most two processed event GETs, bounded abortable observation,
+no provider payload logging or financial journal update. Signature verification
+remains the application's actual webhook ingress gate, not arbitrary JSON supplied
+to this pure/injected observer. Native root obtains real DB/provider inputs only.
+
+Five injected-adapter tests, full simulator **593 tests / 591 pass / two Linux-only
+skips / zero failures**, TypeScript and native-script zero-warning lint passed.
+No real financial preparation/submission or native failure-event inspection ran.
+Next: recheck original/provider/app evidence at the exact terminal job/source
+boundary and finalize only the admitted original decline when every native gate
+passes. Pending staging publication and full lifecycle/cohort/PDF acceptance remain.
+
 ## CURRENT ordinary-member / isolated DB decline checks wired (October 9)
 
 Previous head `3f6833c` hosted verification **37888117221 SUCCESS/terminal** was

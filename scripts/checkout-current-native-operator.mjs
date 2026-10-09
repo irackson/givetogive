@@ -71,6 +71,7 @@ export async function executeCurrentNativeOperator() {
  const { validateCurrentFinalEvidence } = await import('../tools/simulation/src/checkout-current-final-evidence.ts');
  const { observeCurrentProviderDecline } = await import('../tools/simulation/src/checkout-current-decline.ts');
  const { verifyCurrentDeclineAppSnapshot } = await import('../tools/simulation/src/checkout-current-app-decline.ts');
+ const { observeCurrentFailureEvents } = await import('../tools/simulation/src/checkout-current-failure-event.ts');
  const { inspectCurrentDeclineApp } = await import('./checkout-current-app-inspect.mjs');
  const { inspectPreparedCheckoutCandidateBudget } = await import('../tools/simulation/src/checkout-prepared-budget.ts');
  const { currentProfileDigest } = await import('../tools/simulation/src/checkout-current-phase.ts');
@@ -207,6 +208,20 @@ export async function executeCurrentNativeOperator() {
      const budget = inspectPreparedCheckoutCandidateBudget(run, c.planDigest, credentials, c.operationId,
       { headSha: head, financialState: 'submitted', noticeConsumed: validated.noticeRequests === 1 });
      original('app-decline-observation.result.json', app); original('original-submitted-budget.result.json', budget);
+     if (decline.providerDeclineObserved) {
+      original('failure-event-observation.intent.json', { maximumObservations: 1, paymentAccepted: false, retryAllowed: false });
+      // Root-only fresh native identity/clock reads; these are never worker keys.
+      const nativeReads = stripeCheckoutReads(stripe), platform = await nativeReads.platform(), balance = await nativeReads.balance(),
+       customer = await nativeReads.customer(input.proof.customerAccountId), clock = await nativeReads.clock(prerequisites.target.clockId);
+      guard(platform.id === process.env.STRIPE_PLATFORM_ACCOUNT_ID && balance.livemode === false && customer.id === input.proof.customerAccountId &&
+       customer.livemode === false && customer.configuration?.customer?.test_clock === prerequisites.target.clockId &&
+       clock.id === prerequisites.target.clockId && clock.name === `givetogive:${c.runId}` && clock.livemode === false &&
+       clock.status === 'ready' && clock.frozen_time === prerequisites.target.frozenTime);
+      const events = await observeCurrentFailureEvents({ platformAccountId: platform.id, customerAccountId: customer.id,
+       invoiceId: decline.invoiceId, paymentIntentId: decline.paymentIntentId }, database.failureEvents,
+       id => stripe.events.retrieve(id), AbortSignal.timeout(30000));
+      original('failure-event-observation.result.json', events);
+     }
      original('final-recovery.result.json', { originalRetained: true, authenticatedDecryption: true,
       ciphertextDigest: createHash('sha256').update(final).digest('hex'), paymentAccepted: false, independentClosureAndSettlementRequired: true, retryAllowed: false });
     } finally { final.fill(0); }

@@ -28,12 +28,14 @@ export async function inspectCurrentDeclineApp(target) {
    const [counts] = await tx.unsafe('SELECT (SELECT count(*)::int FROM givetogive_supporter_paid_coverage c JOIN givetogive_payment_subscription s ON s.id=c.subscription_id WHERE s.actor_id=$1) AS coverage,(SELECT count(*)::int FROM givetogive_payment_ledger l JOIN givetogive_payment p ON p.id=l.payment_id WHERE p.actor_id=$1) AS ledger,(SELECT count(*)::int FROM givetogive_payment WHERE actor_id=$1 AND (paid_at IS NOT NULL OR status IN (\'succeeded\',\'refunded\',\'partially_refunded\'))) AS paid', [c.memberId]);
    guard(counts.coverage === 0 && counts.ledger === 0 && counts.paid === 0);
    const ids = [target.sessionId, target.invoiceId, target.paymentIntentId].filter(Boolean);
-   const hooks = await tx.unsafe('SELECT type,status,processed_at FROM givetogive_payment_webhook_inbox WHERE object_id=ANY($1::text[]) AND stripe_account_id=$2 AND livemode=false LIMIT 101', [ids, process.env.STRIPE_PLATFORM_ACCOUNT_ID]);
+   const hooks = await tx.unsafe('SELECT stripe_event_id,object_id,type,status,processed_at FROM givetogive_payment_webhook_inbox WHERE object_id=ANY($1::text[]) AND stripe_account_id=$2 AND livemode=false LIMIT 101', [ids, process.env.STRIPE_PLATFORM_ACCOUNT_ID]);
    guard(hooks.length <= 100);
    return { readOnly: true, databaseIdentity: c.databaseIdentity, actorId: c.memberId, operationId: c.operationId,
     canonicalCustomerVerified: true, memberVerifiedAndActive: true, paymentStatus: p.status,
     paidCoverageCount: 0, paymentLedgerCount: 0, paidPaymentCount: 0,
     subscriptions: subscriptions.map(sub => ({ id: sub.id, kind: sub.kind, status: sub.status, tier: null, paidThrough: sub.paidThrough })),
+    failureEvents: hooks.filter(h => ['payment_intent.payment_failed','invoice.payment_failed'].includes(h.type)).map(h => ({
+     eventId: h.stripe_event_id, objectId: h.object_id, type: h.type, status: h.status, processedAt: h.processed_at })),
     processedFailureWebhookObserved: hooks.some(h => ['payment_intent.payment_failed','invoice.payment_failed','checkout.session.async_payment_failed'].includes(h.type) && h.status === 'processed' && h.processed_at),
     pendingOrFailedWebhookObserved: hooks.some(h => ['pending','failed'].includes(h.status)) };
   });
