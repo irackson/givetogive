@@ -1,5 +1,36 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 late evening: public SDK dependency source narrowed
+
+Anonymous GETs of Apple's public `jsapi/1.latest/apple-pay-sdk.js` confirmed its
+default dynamic imports: `apple-pay-button.js` and `apple-wallet-sdk.js` in the
+same version directory. Both public resources returned JavaScript HTTP 200.
+Amazon's public `/checkout.js` identifies `cPSPcheckout.js` for its Stripe
+integration; the exact regional public script also returned JavaScript HTTP 200.
+The browser policy now allows only these additional exact static JavaScript
+paths, non-navigation GET/HEAD, no query/hash/userinfo/non-default ports. It does
+not allow arbitrary CDN files, Apple wallet frames, Amazon session APIs, login,
+payment requests or merchant validation.
+
+Apple's public SDK also contains a POST to
+`smp-paymentservices.apple.com/paymentservices/v3/checkStatus/merchant/...`.
+This remains DENIED. The earlier private Checkout's Apple fetch could be this
+endpoint, but that exact correspondence is NOT yet observed. Added fixed
+endpoint-family, method-bucket and query-presence diagnostics so a future
+authorized inspection can distinguish static-module query mismatches from
+merchant status without exposing paths, IDs, query values or request bodies.
+Diagnostics never grant admission.
+
+Local full simulator suite: 408 tests, 407 pass, one Linux-only skip; types pass.
+Expanded the real-Chromium intercepted fixture from two to five dummy SDK
+requests. This is policy/callback verification, NOT an actual SDK execution or
+private Checkout/payment acceptance claim. Local RAM was below the 2.5 GiB
+browser-start threshold, so actual Chromium verification belongs on the existing
+hosted runner. Both prepared operations below remain expired and preserved;
+untouched decline admission remains untouched. Do not create another Checkout
+merely to diagnose public scripts. Genuine payment/lifecycle and full-cohort
+acceptance remain unfinished; production financial gates remain off.
+
 ## October 8 evening: hosted read-only inspection works; passive wallet dependencies remain
 
 Signed code head `1ef4211f9a8b255a231082462c1bee97b1c7bbbc` passed exact-head

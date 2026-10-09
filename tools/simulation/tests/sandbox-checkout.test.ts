@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { allowedCheckoutRequest, allowedPassiveCheckoutWalletScript, sandboxOrigin, validateCheckoutContext, type SandboxBoundary, type CheckoutScenario } from '../src/sandbox-policy.ts';
 import { SandboxLedger } from '../src/sandbox-ledger.ts';
 import { SandboxCheckoutExecutor } from '../src/sandbox-checkout.ts';
-import { StripeCheckoutDriver, checkoutBrowserEnvironment, checkoutRequestCategory, checkoutFailureCategory, checkoutDependencySuffix, type CheckoutDriver } from '../src/stripe-checkout-driver.ts';
+import { StripeCheckoutDriver, checkoutBrowserEnvironment, checkoutRequestCategory, checkoutFailureCategory, checkoutDependencySuffix, checkoutWalletDependency, type CheckoutDriver } from '../src/stripe-checkout-driver.ts';
 import { SurfaceReadUnavailable } from '../src/hosted-checkout-worker.ts';
 
 function fixture() {
@@ -84,6 +84,8 @@ test('dependency suffix diagnostics strip private subdomains, credentials, paths
 test('only official passive Apple/Amazon SDK scripts are allowed, never wallet login/navigation/payment or arbitrary CDN assets', () => {
   for (const url of ['https://applepay.cdn-apple.com/jsapi/v1/apple-pay-sdk.js',
     'https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js', 'https://applepay.cdn-apple.com/jsapi/v1.3.8/apple-pay-sdk.js',
+    'https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-button.js', 'https://applepay.cdn-apple.com/jsapi/1.latest/apple-wallet-sdk.js',
+    'https://static-na.payments-amazon.com/cPSPcheckout.js',
     'https://static-na.payments-amazon.com/checkout.js', 'https://static-eu.payments-amazon.com/checkout.js', 'https://static-fe.payments-amazon.com/checkout.js']) {
     assert.equal(allowedPassiveCheckoutWalletScript(url, false, 'script', 'GET'), true);
     assert.equal(allowedPassiveCheckoutWalletScript(url, false, 'script', 'HEAD'), true);
@@ -97,7 +99,24 @@ test('only official passive Apple/Amazon SDK scripts are allowed, never wallet l
     'https://private-user@static-na.payments-amazon.com/checkout.js', 'https://static-na.payments-amazon.com:444/checkout.js',
     'https://static-na.payments-amazon.com/login', 'https://static-na.payments-amazon.com/pay',
     'https://applepay.cdn-apple.com/jsapi/v1/arbitrary.js', 'https://other.cdn-apple.com/jsapi/v1/apple-pay-sdk.js',
+    'https://smp-paymentservices.apple.com/paymentservices/v3/checkStatus/merchant/publicfixture',
+    'https://pay.apple.com', 'https://static-na.payments-amazon.com/cPSPcheckout.js/extra',
     'https://d37ugbyn3rpeym.cloudfront.net/checkout.js']) assert.equal(allowedPassiveCheckoutWalletScript(url, false, 'script', 'GET'), false);
+});
+test('wallet endpoint diagnostics distinguish public modules from merchant status without exposing private identifiers or admitting requests', () => {
+  const marker = 'private-fixture-do-not-retain';
+  const apple = `https://smp-paymentservices.apple.com/paymentservices/v3/checkStatus/merchant/${marker}?secret=${marker}`;
+  assert.deepEqual(checkoutWalletDependency(apple, 'POST'), { endpoint: 'apple-merchant-status', method: 'POST', hasQuery: true });
+  assert.equal(allowedPassiveCheckoutWalletScript(apple, false, 'fetch', 'POST'), false);
+  assert.deepEqual(checkoutWalletDependency('https://applepay.cdn-apple.com/jsapi/1.latest/apple-wallet-sdk.js', 'GET'), { endpoint: 'apple-static-module', method: 'GET', hasQuery: false });
+  assert.deepEqual(checkoutWalletDependency('https://static-na.payments-amazon.com/cPSPcheckout.js', 'GET'), { endpoint: 'amazon-static-sdk', method: 'GET', hasQuery: false });
+  for (const url of [`https://${marker}@smp-paymentservices.apple.com/paymentservices/v3/checkStatus/merchant/id`,
+    `https://smp-paymentservices.apple.com.evil.invalid/paymentservices/v3/checkStatus/merchant/${marker}`, `bad-${marker}`]) {
+    const diagnostic = checkoutWalletDependency(url, marker);
+    assert.equal(diagnostic.endpoint, 'unclassified');
+    assert.equal(diagnostic.method, 'other');
+    assert.equal(JSON.stringify(diagnostic).includes(marker), false);
+  }
 });
 test('read-only frame observation may reread a transient tree without performing a control action', async () => {
   const observed = new StripeCheckoutDriver('public-fixture-bypass'.repeat(2), 'readonly@givetogive.invalid');

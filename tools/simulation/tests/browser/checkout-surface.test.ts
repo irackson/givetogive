@@ -2,7 +2,7 @@
  * No provider contact, accounts, keys, Checkout creation or payment actions. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { chromium } from 'playwright';
+import { chromium, type Browser, type Page } from 'playwright';
 import { observeSurface, SurfaceReadUnavailable, validateNativeSurface, validateAcknowledgmentSurface, type Counters } from '../../src/hosted-checkout-worker.ts';
 import { StripeCheckoutDriver, checkoutBrowserEnvironment } from '../../src/stripe-checkout-driver.ts';
 import { allowedPassiveCheckoutWalletScript } from '../../src/sandbox-policy.ts';
@@ -14,7 +14,7 @@ test('real secret-free Chromium can be acquired and closed before any Checkout o
   const driver = new StripeCheckoutDriver('public-fixture-bypass'.repeat(2), 'resource-fixture@givetogive.invalid');
   try {
     await driver.prepareBrowser();
-    const owned = (driver as unknown as { browser: import('playwright').Browser }).browser;
+    const owned = (driver as unknown as { browser: Browser }).browser;
     assert.equal(owned.isConnected(), true);
     await driver.prepareBrowser();
     assert.equal((driver as unknown as { browser: unknown }).browser, owned);
@@ -25,7 +25,7 @@ test('real secret-free Chromium can be acquired and closed before any Checkout o
     assert.equal((driver as unknown as { browser?: unknown }).browser, undefined);
   } finally { await driver.close(); }
 });
-async function fixture(html: string, inspect: (page: import('playwright').Page) => Promise<void>) {
+async function fixture(html: string, inspect: (page: Page) => Promise<void>) {
   const browser = await chromium.launch({ headless: true });
   try {
     const context = await browser.newContext({ acceptDownloads: false, serviceWorkers: 'block' });
@@ -120,7 +120,10 @@ test('actual Chromium error counters prevent native admission on an otherwise va
 test('actual Chromium admits only intercepted official wallet SDK script loads while card-only controls remain readable', async () => {
   const browser = await chromium.launch({ headless: true, env: checkoutBrowserEnvironment() });
   const main = 'https://checkout.stripe.com/synthetic-offline-wallet-fixture';
-  const scripts = ['https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js', 'https://static-na.payments-amazon.com/checkout.js'];
+  const scripts = ['https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js',
+    'https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-button.js',
+    'https://applepay.cdn-apple.com/jsapi/1.latest/apple-wallet-sdk.js',
+    'https://static-na.payments-amazon.com/checkout.js', 'https://static-na.payments-amazon.com/cPSPcheckout.js'];
   let requests = 0;
   try {
     const context = await browser.newContext({ acceptDownloads: false, serviceWorkers: 'block' });
@@ -137,8 +140,8 @@ test('actual Chromium admits only intercepted official wallet SDK script loads w
     const page = await context.newPage();
     const errors: string[] = []; page.on('pageerror', () => { errors.push('page-error'); });
     await page.goto(main);
-    assert.equal(await page.evaluate(() => (window as unknown as { fixtureWalletSdkLoads: number }).fixtureWalletSdkLoads), 2);
-    assert.equal(requests, 3, 'Only intercepted fixture and SDK requests, never provider contact.');
+    assert.equal(await page.evaluate(() => (window as unknown as { fixtureWalletSdkLoads: number }).fixtureWalletSdkLoads), scripts.length);
+    assert.equal(requests, scripts.length + 1, 'Only intercepted fixture and SDK requests, never provider contact.');
     assert.equal(errors.length, 0);
     const surface = await observeSurface(page, counters(), Date.now());
     assert.doesNotThrow(() => validateNativeSurface(surface, Date.now()));

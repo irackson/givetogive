@@ -57,8 +57,13 @@ export function allowedPassiveCheckoutWalletScript(rawUrl: string, topLevelNavig
   let url: URL; try { url = new URL(rawUrl); } catch { return false; }
   if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') || url.search || url.hash) return false;
   if (url.hostname === 'applepay.cdn-apple.com')
-    return /^\/jsapi\/(?:v?1(?:\.\d+\.\d+)?|1\.latest)\/apple-pay-sdk\.js$/.test(url.pathname);
-  return ['static-na.payments-amazon.com', 'static-eu.payments-amazon.com', 'static-fe.payments-amazon.com'].includes(url.hostname) && url.pathname === '/checkout.js';
+    // The public SDK dynamically imports these two default components from its
+    // own version directory. This does not admit merchant status/validation,
+    // wallet frames, authentication or payment requests to Apple services.
+    return /^\/jsapi\/(?:v?1(?:\.\d+\.\d+)?|1\.latest)\/(?:apple-pay-sdk|apple-pay-button|apple-wallet-sdk)\.js$/.test(url.pathname);
+  // Amazon's public bootstrap also identifies cPSPcheckout.js for its Stripe
+  // integration. Both are static JavaScript; no Amazon checkout/session APIs.
+  return ['static-na.payments-amazon.com', 'static-eu.payments-amazon.com', 'static-fe.payments-amazon.com'].includes(url.hostname) && ['/checkout.js', '/cPSPcheckout.js'].includes(url.pathname);
 }
 
 export const checkoutOutcomeSchema = z.object({

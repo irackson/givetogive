@@ -61,6 +61,22 @@ export function checkoutDependencySuffix(rawUrl: string) {
     return /^[a-z](?:[a-z-]{0,30}[a-z])?\.[a-z]{2,12}$/.test(suffix) ? suffix : 'withheld';
   } catch { return 'withheld'; }
 }
+/** Fixed public SDK endpoint families only. Never retain merchant IDs, full
+ * paths, query values or request bodies, and never grant network admission. */
+export function checkoutWalletDependency(rawUrl: string, method: string) {
+  let endpoint: 'apple-static-module' | 'amazon-static-sdk' | 'apple-merchant-status' | 'unclassified' = 'unclassified';
+  let hasQuery = false;
+  try {
+    const url = new URL(rawUrl);
+    if (url.protocol === 'https:' && !url.username && !url.password && (!url.port || url.port === '443')) {
+      hasQuery = Boolean(url.search);
+      if (url.hostname === 'applepay.cdn-apple.com' && /^\/jsapi\/(?:v?1(?:\.\d+\.\d+)?|1\.latest)\/(?:apple-pay-sdk|apple-pay-button|apple-wallet-sdk)\.js$/.test(url.pathname)) endpoint = 'apple-static-module';
+      else if (['static-na.payments-amazon.com', 'static-eu.payments-amazon.com', 'static-fe.payments-amazon.com'].includes(url.hostname) && ['/checkout.js', '/cPSPcheckout.js'].includes(url.pathname)) endpoint = 'amazon-static-sdk';
+      else if (url.hostname === 'smp-paymentservices.apple.com' && url.pathname.startsWith('/paymentservices/v3/checkStatus/merchant/')) endpoint = 'apple-merchant-status';
+    }
+  } catch { /* Unknown URLs never become diagnostic strings. */ }
+  return { endpoint, method: ['GET', 'HEAD', 'POST', 'OPTIONS'].includes(method) ? method : 'other', hasQuery };
+}
 
 /** Chromium must never inherit the root observer's provider/database/auth secrets. */
 export function checkoutBrowserEnvironment(environment: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform): Record<string, string> {
@@ -82,7 +98,7 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   private observedFreeBytes?: number;
   private surfaceReadFailure?: 'policy_rejected' | 'dom_read_unavailable';
   private surfaceReadPhase?: SurfaceReadPhase;
-  private readonly blockedRequestCategories = new Map<string, { category: ReturnType<typeof checkoutRequestCategory>; reason: 'destination-policy' | 'staging-write'; domainSuffix: string; count: number }>();
+  private readonly blockedRequestCategories = new Map<string, { category: ReturnType<typeof checkoutRequestCategory>; reason: 'destination-policy' | 'staging-write'; domainSuffix: string; walletDependency: ReturnType<typeof checkoutWalletDependency>; count: number }>();
   private readonly failedRequestCategories = new Map<string, { category: ReturnType<typeof checkoutRequestCategory>; failure: ReturnType<typeof checkoutFailureCategory>; count: number }>();
   private readonly admitNotice?: () => Promise<void>;
   constructor(bypass: string, syntheticEmail: string, admitNotice?: () => Promise<void>) {
@@ -121,9 +137,10 @@ export class StripeCheckoutDriver implements CheckoutDriver {
         const category = checkoutRequestCategory(request.url(), request.resourceType(), top);
         // Keep dynamic suffix storage bounded even on a hostile provider page.
         const domainSuffix = this.blockedRequestCategories.size < 32 ? checkoutDependencySuffix(request.url()) : 'withheld';
-        const reason = destinationRejected ? 'destination-policy' : 'staging-write', key = JSON.stringify({ category, reason, domainSuffix });
+        const walletDependency = checkoutWalletDependency(request.url(), request.method());
+        const reason = destinationRejected ? 'destination-policy' : 'staging-write', key = JSON.stringify({ category, reason, domainSuffix, walletDependency });
         const previous = this.blockedRequestCategories.get(key);
-        this.blockedRequestCategories.set(key, { category, reason, domainSuffix, count: (previous?.count ?? 0) + 1 });
+        this.blockedRequestCategories.set(key, { category, reason, domainSuffix, walletDependency, count: (previous?.count ?? 0) + 1 });
         await route.abort(); return;
       }
       // The deployment bypass never travels to Stripe or any other external host.
