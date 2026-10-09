@@ -216,11 +216,49 @@ test('actual driver reveals a collapsed Card section once before fixture entry, 
   });
 });
 
+test('actual Chromium recognizes one visible Sandbox badge and selects one unselected Card radio without submission', async () => {
+  const html = '<span>Sandbox</span><label><input type="radio" name="method" onclick="window.cardSelections=(window.cardSelections||0)+1;document.querySelector(\'#fields\').hidden=false">Card</label>' +
+    '<div id="fields" hidden><input name="cardNumber"><input name="cardExpiry"><input name="cardCvc"></div>';
+  await fixture(html, async page => {
+    const before=await observeSurface(page,counters(),Date.now(),{cardChoice:true});
+    assert.equal(before.testModeLabel,true);assert.equal(before.cardChoiceKind,'radio');assert.equal(before.cardChoiceUnchecked,true);
+    assert.doesNotThrow(()=>validateCardSelectionSurface(before,Date.now()));
+    const driver=new StripeCheckoutDriver('','radio-card-fixture@givetogive.invalid');Object.assign(driver,{page});
+    await driver.fillFixture('success');
+    assert.equal(await page.evaluate(()=>(window as unknown as {cardSelections:number}).cardSelections),1);
+    assert.equal(driver.diagnostics().cardSelectionClickAttempts,1);
+    assert.equal(driver.diagnostics().noticeClickAttempts,0);
+    const after=await observeSurface(page,counters(),Date.now());
+    assert.doesNotThrow(()=>validateNativeSurface(after,Date.now()));
+    assert.equal((await page.locator('input[name="cardNumber"]').inputValue()).length,16);
+  });
+});
+
+test('actual hosted adapter selects the Sandbox Card radio once and removes adapter-only observations', async () => {
+  const html = '<span>Sandbox</span><label><input type="radio" onclick="document.querySelector(\'#fields\').hidden=false">Card</label>' +
+    '<div id="fields" hidden><input name="cardNumber"><input name="cardExpiry"><input name="cardCvc"></div>';
+  await fixture(html, async page => {
+    const selection = new OneNativeClick();
+    const surface = await prepareHostedCheckoutSurface(page, counters(), {
+      signal: new AbortController().signal, now: Date.now, selection, beforeSelection: () => {},
+    });
+    assert.doesNotThrow(() => validateNativeSurface(surface, Date.now()));
+    for (const field of ['cardChoiceCount', 'cardChoiceKind', 'cardChoiceUnchecked']) assert.equal(field in surface, false);
+    assert.equal(selection.attempts, 1);
+    assert.equal(await page.locator('input[name="cardNumber"]').inputValue(), '');
+  });
+});
+
 for (const [name, html] of [
   ['duplicate Card options', '<p>Test mode</p><button>Card</button><button>Card</button>'],
   ['disabled Card option', '<p>Test mode</p><button disabled>Card</button>'],
   ['non-test page', '<p>Payment</p><button>Card</button>'],
   ['unknown alert', '<p>Test mode</p><button>Card</button><div role="alert">Unreviewed condition</div>'],
+  ['hidden Sandbox label', '<span hidden>Sandbox</span><button>Card</button>'],
+  ['merchant-name Sandbox substring', '<p>Merchant Sandbox Store</p><button>Card</button>'],
+  ['already selected hidden-field Card radio', '<span>Sandbox</span><label><input type="radio" checked>Card</label>'],
+  ['duplicate Card radios', '<span>Sandbox</span><label><input type="radio">Card</label><label><input type="radio">Card</label>'],
+  ['duplicate visible Sandbox labels', '<span>Sandbox</span><span>Sandbox</span><button>Card</button>'],
 ]) test(`actual driver refuses card selection on ${name}`, async () => {
   await fixture(html, async page => {
     const driver = new StripeCheckoutDriver('', 'refused-card-fixture@givetogive.invalid');

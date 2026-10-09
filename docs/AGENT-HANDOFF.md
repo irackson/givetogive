@@ -1,5 +1,45 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 18:39 UTC: native Sandbox/Card controls corrected; no paid acceptance yet
+
+Signed `71f7353` full verification `37970445127` passed. The fresh isolated
+three-member cohort `d55a7bc3-31db-48c7-8877-52fa4328b76e` has real password
+accounts, normal member authentication and canonical Accounts v2 customers bound
+to one genuine test clock. All are still Neighbor: persona labels are not tiers.
+No clock advancement or manufactured paid coverage has occurred.
+
+Its first $5 case stopped before fixture entry, notice acknowledgment or submit.
+The once-only preparation and original 500-cent ambiguous financial hold remain
+immutable. Never repeat case 1, reset its budget or reclassify it as a decline.
+Case 2 ($15 success) and case 3 ($5 decline) are unused. Their reviewed local
+operator is `tmp/checkout-local-20261009.mjs`; review its source-head binding and
+fresh release gates before execution. Private originals are in its per-run
+directory, never committed. Actual read-only screenshots revealed the current
+Stripe **Sandbox** badge and **Card radio**, not the older Test mode/button pair.
+
+The harness now recognizes one visible exact Sandbox label and one enabled,
+unselected Card radio, preserving provider/test ownership, fresh approvals and
+once-only controls. A specifically canceled hCaptcha background GET remains in
+raw diagnostics but is not an HTTP failure. This grants no network permission,
+does not solve a challenge and never exempts POSTs, navigation, blocked requests
+or real errors. Visible CAPTCHA, wallet, attestation and unknown notices still
+stop execution. No application bytes or production gates changed.
+
+Local verification: 181 application unit tests and 614 simulation tests passed
+(three opt-in skips); application/tool types and explicit lint passed. The first
+27 native synthetic DOM tests passed; the expanded tsx suite passed 27/28, with
+only browser startup correctly refused when RAM fell below 2.5 GiB. This is not
+provider acceptance; hosted verification must confirm the final expanded suite.
+Preserve active user tasks and never lower the memory floor to force a test.
+
+Temporary card-test configuration disabled Apple Pay, Amazon Pay and Link only
+on the dedicated Development **test** payment-method configuration. Original
+preferences and verified readbacks are retained in
+`tmp/stripe-test-wallet-configuration-20261009.json`. Restore exactly once using
+its reviewed operator after this card-test lane, and verify readback. No live
+wallet or production setting was changed. No Vercel release is needed for this
+tooling-only fix: batch pushes/CI without redundant deployments.
+
 ## October 9 18:00 UTC: verified tooling; handoff stopped before launch
 
 Signed `9daf659` full first-attempt verification `37968979205` PASSED: locked

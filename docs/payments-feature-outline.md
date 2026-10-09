@@ -21,6 +21,16 @@ Tags describe origin, not deployment or acceptance:
 
 ## Current reviewed checkpoint - October 9, 2026
 
+**18:39 UTC refresh:** A fresh three-member test cohort now has real authenticated
+accounts and canonical Accounts v2 customers on one test clock. All remain
+Neighbor. Its first Checkout stopped before card entry or submission; its
+original budget hold is preserved. Native screenshots exposed a harness mismatch
+with Stripe's Sandbox badge and Card radio; the harness has been corrected and
+offline/native synthetic guards tested. Genuine paid tiers, lifecycle acceptance,
+the continuous community hour and final all-view PDF remain unfinished. Only
+test wallet preferences were temporarily changed, with original values retained
+for verified restoration. No further Vercel deployment was needed.
+
 **18:00 UTC refresh:** Both canonical sites are READY on Node 24 at application
 source `c8044c1b9dae433b2d598f39f84e6897dd87c546`; independent provider readback
 confirms their application bytes match signed main `9daf659`. Production financial

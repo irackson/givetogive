@@ -59,6 +59,19 @@ export function checkoutFailureCategory(errorText: string | undefined) {
   if (['net::ERR_CONNECTION_RESET', 'net::ERR_CONNECTION_CLOSED', 'net::ERR_CONNECTION_REFUSED', 'net::ERR_NAME_NOT_RESOLVED'].includes(errorText ?? '')) return 'connection';
   return 'other';
 }
+
+/** Genuine hosted Checkout cancels an invisible hCaptcha background GET while
+ * its ordinary card selector renders. A canceled GET has no response/token to
+ * use. Never exempt a POST, document, blocked/failed/timeout, wallet/provider
+ * payment request, or visible challenge; surface challenge guards still apply. */
+export function checkoutNonBlockingAbort(rawUrl: string, resourceType: string, method: string, topNavigation: boolean, errorText: string | undefined) {
+  if (topNavigation || method !== 'GET' || !['fetch', 'xhr'].includes(resourceType) || errorText !== 'net::ERR_ABORTED') return false;
+  try {
+    const url = new URL(rawUrl);
+    return url.protocol === 'https:' && !url.username && !url.password && (!url.port || url.port === '443') &&
+      (url.hostname === 'hcaptcha.com' || url.hostname.endsWith('.hcaptcha.com'));
+  } catch { return false; }
+}
 /** Only a short alphabetic DNS suffix, never a subdomain, URL or identifier.
  * Not a public-suffix/ownership assertion and never a request-admission rule. */
 export function checkoutDependencySuffix(rawUrl: string) {
@@ -144,6 +157,8 @@ export class StripeCheckoutDriver implements CheckoutDriver {
     this.context.on('response', response => { if (response.status() >= 400) { this.failedStatuses.push(response.status()); this.counters.httpErrors++; } });
     this.context.on('requestfailed', request => {
       this.counters.failedRequests++;
+      if (checkoutNonBlockingAbort(request.url(), request.resourceType(), request.method(), request.isNavigationRequest(), request.failure()?.errorText))
+        this.counters.nonBlockingRequestAborts = (this.counters.nonBlockingRequestAborts ?? 0) + 1;
       const category = checkoutRequestCategory(request.url(), request.resourceType(), request.isNavigationRequest() && request.frame().parentFrame() === null);
       const failure = checkoutFailureCategory(request.failure()?.errorText), key = JSON.stringify({ category, failure });
       const previous = this.failedRequestCategories.get(key);
@@ -300,19 +315,20 @@ export class StripeCheckoutDriver implements CheckoutDriver {
         validateCardSelectionSurface(surface, Date.now());
         let choice: Locator | undefined;
         for (const frame of this.frames()) {
-          const choices = frame.getByRole('button', { name: 'Card', exact: true });
+          const choices = frame.getByRole(surface.cardChoiceKind ?? 'button', { name: 'Card', exact: true });
           const count = await choices.count();
           if (count > 16) throw new Error('Card choice bound exceeded.');
           for (let index = 0; index < count; index++) {
             const candidate = choices.nth(index);
             if (await candidate.isVisible()) {
-              if (choice || !await candidate.isEnabled()) throw new Error('Card choice changed.');
+              if (choice || !await candidate.isEnabled() || (surface.cardChoiceKind === 'radio' && await candidate.isChecked())) throw new Error('Card choice changed.');
               choice = candidate;
             }
           }
         }
         if (!choice) throw new Error('Card choice disappeared.');
-        validateCardSelectionSurface(await this.readSurface(), Date.now());
+        const beforeClick = await this.readSurface(); validateCardSelectionSurface(beforeClick, Date.now());
+        if (beforeClick.cardChoiceKind !== surface.cardChoiceKind) throw new Error('Card choice changed.');
         await this.cardSelectionClick.perform(true, new AbortController().signal, async () => { await choice!.click({ timeout: 5000 }); });
       } else if (surface.requiresCaptchaOrWalletOrAttestation || surface.unknownInstructions || surface.consoleErrors || surface.pageErrors || surface.httpErrors) {
         throw new Error('Unreviewed or unhealthy Checkout surface.');

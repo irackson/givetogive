@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import superjson from 'superjson';
 import type { BrowserType } from 'playwright';
 import { approved, limits, digest, assetName, memberQueryRequestAllowed, type Manifest, type Proof } from '../src/hosted-checkout-policy.ts';
-import { deriveMemberIdentity, queryAddress, scopedHeaders, OneNativeClick, validateNativeSurface, validateAcknowledgmentSurface, validateCardSelectionSurface,
+import { deriveMemberIdentity, queryAddress, scopedHeaders, OneNativeClick, validateNativeSurface, validateAcknowledgmentSurface, validateCardSelectionSurface, checkoutSurfaceHttpErrors,
 	runHostedCheckoutMember, type CheckoutMemberBroker, type CheckoutWorkerRuntime } from '../src/hosted-checkout-worker.ts';
 
 // Pure public synthetic fixtures. Every browser, auth, response and broker below is an in-memory fake.
@@ -59,6 +59,18 @@ test('revealing a Card choice requires fresh healthy test-mode evidence and neve
 		{ controlCount: 1 }, { requiresCaptchaOrWalletOrAttestation: true }, { unknownInstructions: true },
 		{ consoleErrors: 1 }, { pageErrors: 1 }, { httpErrors: 1 }, { observedAt: new Date(NOW - 5001).toISOString() }])
 		assert.throws(() => validateCardSelectionSurface({ ...selection, ...change }, NOW));
+});
+
+test('Card radios must be unselected and malformed passive-abort accounting fails closed', () => {
+  const selection = { ...cardSurface, visibleCard: false, cardChoiceCount: 1, cardChoiceVisible: true, cardChoiceEnabled: true, cardChoiceKind: 'radio', cardChoiceUnchecked: true };
+  assert.doesNotThrow(() => validateCardSelectionSurface(selection, NOW));
+  for (const patch of [{ cardChoiceUnchecked: false },{cardChoiceUnchecked:undefined},{cardChoiceKind:'checkbox'}]) assert.throws(()=>validateCardSelectionSurface({...selection,...patch},NOW));
+  const counters={consoleErrors:0,pageErrors:0,httpErrors:0,blockedRequests:0,failedRequests:1,unexpectedPages:0,nonBlockingRequestAborts:1};
+  assert.equal(checkoutSurfaceHttpErrors(counters),0);
+  assert.equal(checkoutSurfaceHttpErrors({...counters,blockedRequests:1}),1);
+  assert.equal(checkoutSurfaceHttpErrors({...counters,httpErrors:1}),1);
+  assert.equal(checkoutSurfaceHttpErrors({...counters,failedRequests:2}),1);
+  for(const patch of [{nonBlockingRequestAborts:2},{nonBlockingRequestAborts:-1},{failedRequests:NaN},{nonBlockingRequestAborts:0.5}]) assert.throws(()=>checkoutSurfaceHttpErrors({...counters,...patch}));
 });
 
 test('actual session and billing-management response shape derives exact neighbor identity, including SuperJSON Date', () => {
@@ -142,7 +154,7 @@ function fakeExecution(settings: { panel?: boolean; badDurable?: boolean; badAss
 		return rawResponse({ result: { data: superjson.serialize(result) } });
 	}, dispose: async () => { order.push('api-close'); } };
 	const locator = (__selector: string, type?: string) => ({
-		count: async () => type === 'card' ? Number(collapsed) : panel && !type ? 0 : 1, nth() { return this; },
+		count: async () => type === 'absent' ? 0 : type === 'card' ? Number(collapsed) : panel && !type ? 0 : 1, nth() { return this; },
 		isVisible: async () => type === 'checkbox' ? panel : type === 'card' ? !panel && collapsed : !panel && !collapsed,
 		isEnabled: async () => true, isEditable: async () => true, isChecked: async () => false,
 		getAttribute: async () => 'submit', fill: async (text: string) => { fills.push(text); },
@@ -153,7 +165,9 @@ function fakeExecution(settings: { panel?: boolean; badDurable?: boolean; badAss
 		},
 	});
 	const frame = { url: () => value.proof.url, parentFrame: () => null,
-		locator: (selector: string) => locator(selector), getByRole: (role: string, options?: { name?: string }) => locator('', role === 'checkbox' ? 'checkbox' : options?.name === 'Card' ? 'card' : 'submit'),
+		locator: (selector: string) => locator(selector),
+		getByText: () => locator('', 'absent'),
+		getByRole: (role: string, options?: { name?: string }) => locator('', role === 'radio' ? 'absent' : role === 'checkbox' ? 'checkbox' : options?.name === 'Card' ? 'card' : 'submit'),
 		evaluate: async () => ({ panels: Number(panel), hash: panel ? approved.panelDigest : null, controls: Number(panel),
 			label: panel ? approved.controlName : '', enabledControl: panel, uncheckedControl: panel, testMode: !panel, unknown: false, needsChallenge: false }) };
 	const page = { frames: () => [frame], mainFrame: () => frame, goto: async () => {

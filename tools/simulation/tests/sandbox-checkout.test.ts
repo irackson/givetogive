@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { allowedCheckoutRequest, allowedPassiveCheckoutWalletScript, sandboxOrigin, validateCheckoutContext, type SandboxBoundary, type CheckoutScenario } from '../src/sandbox-policy.ts';
 import { SandboxLedger } from '../src/sandbox-ledger.ts';
 import { SandboxCheckoutExecutor } from '../src/sandbox-checkout.ts';
-import { StripeCheckoutDriver, checkoutBrowserEnvironment, checkoutRequestCategory, checkoutFailureCategory, checkoutDependencySuffix, checkoutWalletDependency, type CheckoutDriver } from '../src/stripe-checkout-driver.ts';
+import { StripeCheckoutDriver, checkoutBrowserEnvironment, checkoutRequestCategory, checkoutFailureCategory, checkoutNonBlockingAbort, checkoutDependencySuffix, checkoutWalletDependency, type CheckoutDriver } from '../src/stripe-checkout-driver.ts';
 import { SurfaceReadUnavailable } from '../src/hosted-checkout-worker.ts';
 
 function fixture() {
@@ -80,6 +80,16 @@ test('dependency suffix diagnostics strip private subdomains, credentials, paths
   for (const value of ['https://private-user:private-password@stripe.com/private-path', 'http://private.example.invalid/private-path',
     'https://127.0.0.1/private-path', `https://${'a'.repeat(64)}.com/private-path`, 'https://cs_test_secret.com/private-path',
     'https://provider123.com/private-path', 'private-url']) assert.equal(checkoutDependencySuffix(value), 'withheld');
+});
+
+test('only canceled invisible hCaptcha GET fetch/XHR is nonblocking, never request permission or challenge completion', () => {
+  const url = 'https://api.hcaptcha.com/public-fixture';
+  assert.equal(checkoutNonBlockingAbort(url, 'fetch', 'GET', false, 'net::ERR_ABORTED'), true);
+  assert.equal(checkoutNonBlockingAbort(url, 'xhr', 'GET', false, 'net::ERR_ABORTED'), true);
+  for (const other of ['https://api.hcaptcha.com.evil.invalid/path','https://private:secret@api.hcaptcha.com/path','http://api.hcaptcha.com/path','https://api.hcaptcha.com:444/path','https://api.stripe.com/payment_intents/fixture','https://apple.com/path','not-a-url'])
+    assert.equal(checkoutNonBlockingAbort(other, 'fetch', 'GET', false, 'net::ERR_ABORTED'), false);
+  for (const [resource,method,top,error] of [['document','GET',false,'net::ERR_ABORTED'],['fetch','POST',false,'net::ERR_ABORTED'],['fetch','GET',true,'net::ERR_ABORTED'],['fetch','GET',false,'net::ERR_BLOCKED_BY_CLIENT'],['fetch','GET',false,'net::ERR_TIMED_OUT'],['fetch','GET',false,'net::ERR_FAILED']] as const)
+    assert.equal(checkoutNonBlockingAbort(url,resource,method,top,error),false);
 });
 test('only official passive Apple/Amazon SDK scripts are allowed, never wallet login/navigation/payment or arbitrary CDN assets', () => {
   for (const url of ['https://applepay.cdn-apple.com/jsapi/v1/apple-pay-sdk.js',

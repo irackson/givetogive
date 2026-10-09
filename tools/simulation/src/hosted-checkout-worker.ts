@@ -33,9 +33,19 @@ export interface CheckoutSurface {
 	enabled: boolean; unchecked: boolean; optionalLinkDeferred: true;
 	requiresCaptchaOrWalletOrAttestation: boolean; unknownInstructions: boolean;
 	cardChoiceCount?: number; cardChoiceVisible?: boolean; cardChoiceEnabled?: boolean;
+	cardChoiceKind?: 'button' | 'radio'; cardChoiceUnchecked?: boolean;
 	consoleErrors: number; pageErrors: number; httpErrors: number;
 }
-export type Counters = { consoleErrors: number; pageErrors: number; httpErrors: number; blockedRequests: number; failedRequests: number; unexpectedPages: number };
+export type Counters = { consoleErrors: number; pageErrors: number; httpErrors: number; blockedRequests: number; failedRequests: number; unexpectedPages: number; nonBlockingRequestAborts?: number };
+
+/** Keep every failure in diagnostics. Only a native, specifically classified
+ * passive-request cancellation is separate from transport/HTTP errors. This
+ * does not admit any request, dismiss a challenge or authorize an action. */
+export function checkoutSurfaceHttpErrors(counters: Counters) {
+	const nonBlocking = counters.nonBlockingRequestAborts ?? 0;
+	requirePolicy(Object.values(counters).every(value => Number.isSafeInteger(value) && value >= 0) && nonBlocking <= counters.failedRequests);
+	return counters.httpErrors + counters.blockedRequests + counters.failedRequests - nonBlocking + counters.unexpectedPages;
+}
 const cardFields = {
 	number: 'input[name="cardNumber"],input[autocomplete="cc-number"]',
 	expiry: 'input[name="cardExpiry"],input[autocomplete="cc-exp"]',
@@ -121,6 +131,8 @@ export function validateCardSelectionSurface(raw: unknown, now: number): void {
 		&& value.optionalLinkDeferred === true && value.requiresCaptchaOrWalletOrAttestation === false && value.unknownInstructions === false
 		&& value.consoleErrors === 0 && value.pageErrors === 0 && value.httpErrors === 0
 		&& value.cardChoiceCount === 1 && value.cardChoiceVisible === true && value.cardChoiceEnabled === true);
+	requirePolicy(value.cardChoiceKind === undefined || value.cardChoiceKind === 'button' ||
+		(value.cardChoiceKind === 'radio' && value.cardChoiceUnchecked === true));
 }
 function ownedProvider(raw: string): boolean {
 	try { const url = new URL(raw); return url.protocol === 'https:' && !url.username && !url.password
@@ -172,7 +184,7 @@ export class SurfaceReadUnavailable extends Error {
 }
 async function observeSurfaceBody(page: Page, counters: Counters, now: number, observation: { phase: SurfaceReadPhase }, options: { cardChoice?: boolean }): Promise<CheckoutSurface> {
 	const frames = await visibleFrames(page);
-	let panelCount = 0, controlCount = 0, panelDigest: string | null = null;
+	let panelCount = 0, controlCount = 0, visibleSandboxLabels = 0, panelDigest: string | null = null;
 	let testModeLabel = false, unknownInstructions = false, challenge = false, visible = false, enabled = false, unchecked = false, controlName = '';
 	for (const frame of frames) {
 		observation.phase = 'panel-dom';
@@ -214,9 +226,16 @@ async function observeSurfaceBody(page: Page, counters: Counters, now: number, o
 				testMode: /test[\s-]*mode/i.test(body), unknown, needsChallenge };
 		});
 		panelCount += read.panels; controlCount += read.controls; testModeLabel ||= read.testMode;
+		// Current genuine hosted Checkout labels sandbox sessions "Sandbox".
+		// Require one exact visible label, not a merchant-name substring or a
+		// hidden node. Independent provider livemode/ownership proof is still required.
+		const sandboxLabels = frame.getByText('Sandbox', { exact: true });
+		const sandboxCount = await sandboxLabels.count(); requirePolicy(sandboxCount <= 16);
+		for (let index = 0; index < sandboxCount; index++) if (await sandboxLabels.nth(index).isVisible()) visibleSandboxLabels++;
 		unknownInstructions ||= read.unknown; challenge ||= read.needsChallenge;
 		if (read.panels === 1) { panelDigest = read.hash; controlName = read.label; visible = read.controls === 1; enabled = read.enabledControl; unchecked = read.uncheckedControl; }
 	}
+	testModeLabel ||= visibleSandboxLabels === 1;
 	// A notice can visibly disable the underlying card fields. Observe its own
 	// controls first; editable/unique card controls become mandatory only after
 	// that notice is absent. Unknown or duplicate notices still fail validation.
@@ -224,21 +243,24 @@ async function observeSurfaceBody(page: Page, counters: Counters, now: number, o
 	const cards = panelCount ? undefined : await uniqueVisible(frames, cardFields.number, true);
 	const expiry = panelCount ? undefined : await uniqueVisible(frames, cardFields.expiry, true);
 	const cvc = panelCount ? undefined : await uniqueVisible(frames, cardFields.cvc, true);
-	let cardChoiceCount = 0, cardChoiceEnabled = false;
+	let cardChoiceCount = 0, cardChoiceEnabled = false, cardChoiceKind: 'button' | 'radio' | undefined, cardChoiceUnchecked = false;
 	for (const frame of options.cardChoice ? frames : []) {
-		const choices = frame.getByRole('button', { name: 'Card', exact: true });
-		const count = await choices.count(); requirePolicy(count <= 16);
-		for (let index = 0; index < count; index++) {
-			const choice = choices.nth(index);
-			if (await choice.isVisible()) { cardChoiceCount++; cardChoiceEnabled = await choice.isEnabled(); }
+		for (const kind of ['button', 'radio'] as const) {
+			const choices = frame.getByRole(kind, { name: 'Card', exact: true });
+			const count = await choices.count(); requirePolicy(count <= 16);
+			for (let index = 0; index < count; index++) {
+				const choice = choices.nth(index);
+				if (await choice.isVisible()) { cardChoiceCount++; cardChoiceEnabled = await choice.isEnabled(); cardChoiceKind = kind; cardChoiceUnchecked = kind === 'button' || !await choice.isChecked(); }
+			}
 		}
 	}
 	return { observedAt: new Date(now).toISOString(), testModeLabel, visibleCard: !!cards && !!expiry && !!cvc,
-		...(options.cardChoice ? { cardChoiceCount, cardChoiceVisible: cardChoiceCount > 0, cardChoiceEnabled } : {}),
+		...(options.cardChoice ? { cardChoiceCount, cardChoiceVisible: cardChoiceCount > 0, cardChoiceEnabled,
+			...(cardChoiceKind ? { cardChoiceKind, cardChoiceUnchecked } : {}) } : {}),
 		panelCount, panelDigest, controlName, controlCount, visible, enabled, unchecked, optionalLinkDeferred: true,
 		requiresCaptchaOrWalletOrAttestation: challenge, unknownInstructions,
 		consoleErrors: counters.consoleErrors, pageErrors: counters.pageErrors,
-		httpErrors: counters.httpErrors + counters.blockedRequests + counters.failedRequests + counters.unexpectedPages };
+		httpErrors: checkoutSurfaceHttpErrors(counters) };
 }
 
 /** Every operation and late-created resource is fenced by the same abort/deadline. */
@@ -327,16 +349,17 @@ export async function prepareHostedCheckoutSurface(page: Page, counters: Counter
 		validateCardSelectionSurface(surface, options.now()); options.beforeSelection();
 		let selected: Locator | undefined;
 		for (const frame of await visibleFrames(page)) {
-			const choices = frame.getByRole('button', { name: 'Card', exact: true });
+			const choices = frame.getByRole(surface.cardChoiceKind ?? 'button', { name: 'Card', exact: true });
 			const count = await choices.count(); requirePolicy(count <= 16);
 			for (let index = 0; index < count; index++) {
 				const candidate = choices.nth(index);
 				if (await candidate.isVisible()) {
-					requirePolicy(!selected && await candidate.isEnabled()); selected = candidate;
+					requirePolicy(!selected && await candidate.isEnabled() && (surface.cardChoiceKind !== 'radio' || !await candidate.isChecked())); selected = candidate;
 				}
 			}
 		}
-		requirePolicy(selected); validateCardSelectionSurface(await read(), options.now());
+		requirePolicy(selected); const beforeClick = await read(); validateCardSelectionSurface(beforeClick, options.now());
+		requirePolicy(beforeClick.cardChoiceKind === surface.cardChoiceKind);
 		options.beforeSelection();
 		await options.selection.perform(true, options.signal, () => selected!.click({ timeout: 5000 }));
 		// No second selection or readiness fabrication: actual editable fields
@@ -347,7 +370,8 @@ export async function prepareHostedCheckoutSurface(page: Page, counters: Counter
 	}
 	// The financial protocol keeps its strict original shape. Card-choice
 	// observations are adapter-only evidence, never native-field readiness.
-	const { cardChoiceCount: __count, cardChoiceVisible: __visible, cardChoiceEnabled: __enabled, ...native } = surface;
+	const { cardChoiceCount: __count, cardChoiceVisible: __visible, cardChoiceEnabled: __enabled,
+		cardChoiceKind: __kind, cardChoiceUnchecked: __unchecked, ...native } = surface;
 	return native;
 }
 
