@@ -55,6 +55,21 @@ actual context/browser close results separately and retains failed-close handles
 instead of silently claiming success. OS cleanup remains independent. Explicit
 resource close/abort stops later member phases and shares one cleanup promise.
 
+Follow-up: the generic driver's ordinary `close()` now also rejects unconfirmed
+protocol cleanup with a fixed private-safe error; it no longer silently resolves
+when either native close failed. Existing paid/provider ledger state is not reset
+or made retryable by this cleanup error. A synthetic regression verifies one
+close attempt and retained failed browser handle. After this follow-up, local full
+suite is **474 total, 473 pass, one Linux-only skip, zero failures**, with types
+and focused ESLint passing. This is not OS-close or payment evidence.
+
+Adapter/entry head `96cda3a880d5fd1afce39c18c17eaef4829efc1b` passed exact-head
+**37877656770 SUCCESS/terminal**, job **113649829899**: full application build/
+checks, simulator tests/types, public browser smoke, intercepted Checkout guards
+and native current-source/browser preflight. The generic-close follow-up still
+needs its own exact-head hosted verification after push. This run did not start
+the new native financial parent or transfer any member credentials.
+
 Local full suite **473 total, 472 pass, one Linux-only skip, zero failures**;
 types and focused ESLint (`--no-ignore`) pass. New tests cover injected sequencing,
 all phase/identity/root/driver failures, cancellation/resource disposal, stale

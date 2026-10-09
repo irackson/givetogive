@@ -342,5 +342,9 @@ export class StripeCheckoutDriver implements CheckoutDriver {
     if(contextClosed&&browserClosed)this.page=undefined;
     return {contextClosed,browserClosed,independentOsClosureRequired:true as const,paymentAccepted:false as const};
   }
-  async close() { await this.closeConfirmed(); }
+  async close() {
+    const result=await this.closeConfirmed();
+    if(!result.contextClosed||!result.browserClosed)
+      throw new Error('Checkout protocol closure is unconfirmed; independent cleanup required.');
+  }
 }

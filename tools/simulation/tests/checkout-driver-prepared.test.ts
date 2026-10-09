@@ -21,3 +21,9 @@ test('close confirmation reflects both actual protocol calls and retains failed-
   assert.equal(retained.context,fail==='context'?context:undefined);assert.equal(retained.browser,fail==='browser'?browser:undefined);
  }
 });
+test('generic executor close also rejects unconfirmed cleanup instead of silently returning success',async()=>{
+ const driver=new StripeCheckoutDriver('',email);let calls=0;
+ const browser={async close(){calls++;throw Error('private-close-error');}};Object.assign(driver,{browser});
+ await assert.rejects(driver.close(),/protocol closure is unconfirmed/);assert.equal(calls,1);
+ assert.equal((driver as unknown as {browser:unknown}).browser,browser);
+});
