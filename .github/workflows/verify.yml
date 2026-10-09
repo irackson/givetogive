@@ -73,3 +73,6 @@ jobs:
                   # The private acceptance operator uses tsx; verify its actual
                   # callback serialization too, without any credentials/provider contact.
                   node --import tsx --test --test-concurrency=1 tests/browser/*.test.ts
+            - name: Current Checkout sources and credential-free native browser capability (no financial approval)
+              working-directory: tools/simulation
+              run: node src/checkout-current-preflight.ts --execute-credential-free

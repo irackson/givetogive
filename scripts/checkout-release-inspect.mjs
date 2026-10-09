@@ -13,6 +13,7 @@ const team = 'team_TXid48wU77cfhEg28L3EyLpn', projectId = 'prj_HvlFV1kKHVsML73nl
 export const checkoutReleaseBinding = Object.freeze({
  deploymentId: 'dpl_CN1fLhs5nKqXnPK7UMKxKZrQYn5z',
  appSha: 'f7301db9bf188374fbd0cff3e374e16ab11292c7',
+ canonicalSourceDigest: 'decf53acf95f71d4805301fccb7aec1880fbd00e6ac403b6b0e85940201e0f1f',
  sourceDigest: '0f184a8fcceadd6611765449c145565cb392d962c2da7294c8261689497f3cd8',
  lockDigest: '71ee2fb1a9ad63638e941cf94d51edc76265c964a9c7a686d07833f9c8f73def',
  uploadDigest: 'f74918568d9171c42c9d51472843ce2afef798d6c0a8550314c3f1f146f7e0cb',
