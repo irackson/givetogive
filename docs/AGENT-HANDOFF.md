@@ -1,5 +1,33 @@
 # Resume here: payments and simulation checkpoint
 
+## CURRENT root dispatch and one-shot association implemented (October 9)
+
+`checkout-current-dispatch.ts` now assembles the private root dispatch path:
+independent caller source/budget verification, exclusive operation-scoped lease,
+absent-tag and terminal-only prior workflow inventory, ONE empty private draft
+creation, anonymous 404, ONE exact-main/head dispatch, returned exact run ID,
+bounded live readiness discovery, ONE exact initial-profile association PATCH,
+strict private draft/readiness/context readback. Intents precede each remote
+write. Uncertain create/dispatch/PATCH or readback cannot replay, including a
+new invocation/head in the same operation namespace. It returns a still-private
+draft/readiness handle requiring normal member input, not payment acceptance.
+Imports perform no actions; no provider or member keys go to the workflow.
+
+Four tests use real temporary original-file retention and injected GitHub HTTP;
+**561 simulator tests / 559 pass / two Linux-only skips / zero failures**,
+TypeScript and explicit zero-warning lint pass. No actual remote draft/dispatch,
+financial preparation or payment occurred. Bootstrap-head hosted verification
+**37885834154** was still **in_progress** at last direct observation; keep
+observing the same run. Runner fingerprint includes the dispatch module.
+
+Next: implement the native CURRENT local entry point with real reviewed release
+and original budget, ordinary member sign-in, original intent file, current
+dispatch/input-preparation/root-responder/coordinator, provider opening observation
+and final evidence recovery/reconciliation. Caller verifyCurrent is a mandatory
+independent observation, not permission derived from this module's supplied data.
+Execution remains fail-closed on unpublished pending staging app/email source;
+historical financial operators and journals must not be reset or replayed.
+
 ## Fixed CURRENT dispatch-to-association startup race (October 9)
 
 Readiness head `6d8f71e` hosted verification **37885558926 SUCCESS/terminal**
