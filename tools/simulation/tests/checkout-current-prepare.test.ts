@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
-import { prepareCurrentCheckoutInput } from '../src/checkout-current-prepare.ts';
+import { prepareCurrentCheckoutInput, handoffPreparedCurrentCheckoutInput } from '../src/checkout-current-prepare.ts';
 import { UiCheckoutPreparation } from '../src/ui-checkout-preparation.ts';
 import { currentCheckoutCandidate as c } from '../src/checkout-current-profile.ts';
 import { assetName } from '../src/hosted-checkout-policy.ts';
@@ -101,4 +101,28 @@ test('original run intent retention occurs after unused observation and failure 
   await assert.rejects(() => prepareCurrentCheckoutInput(f.ready, f.options));
   assert.deepEqual(f.calls, ['unused']); assert.equal(f.options.preparation.state(c.operationId), undefined);
  } finally { f.cleanup(); }
+});
+
+test('explicit existing preparation handoff preserves all holds and performs zero new mutations or intent rewrites', async () => {
+ const f = await fixture(); try {
+  await f.options.preparation.prepare(f.options.session, c.memberId, f.options.plan.steps[2]!);
+  f.calls.length = 0;
+  f.options.retainOriginalRunIntent = async () => { throw Error('Must never rewrite the original intent'); };
+  const result = await handoffPreparedCurrentCheckoutInput(f.ready, f.options);
+  assert.equal(result.privateInputRetained, true); assert.equal(result.paymentAccepted, false);
+  assert.deepEqual(f.calls, ['prepared','prepared','provider','prepared','upload']);
+  const directory = join(f.root, readdirSync(f.root).find(name => name.startsWith('current-root-input-'))!);
+  assert.equal(JSON.parse(readFileSync(join(directory,'preparation-lease.json'),'utf8')).maximumPreparations,0);
+  assert.ok(readdirSync(directory).includes('existing-preparation-observation.result.json'));
+  assert.ok(!readdirSync(directory).includes('normal-preparation.intent.json'));
+  await assert.rejects(() => handoffPreparedCurrentCheckoutInput(f.ready,f.options));
+  assert.equal(f.calls.includes('prepare'),false);
+ } finally { f.cleanup(); }
+});
+
+test('existing handoff refuses unused, unresolved and rejected preparation states before any provider or transport action', async () => {
+ for (const state of [undefined,'unresolved','rejected']) { const f=await fixture(); try {
+  await assert.rejects(() => handoffPreparedCurrentCheckoutInput(f.ready,{...f.options,preparation:{state:()=>state,prepare:async()=>{throw Error('Forbidden mutation');}}}));
+  assert.deepEqual(f.calls,[]);
+ } finally { f.cleanup(); } }
 });

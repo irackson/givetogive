@@ -72,6 +72,16 @@ test('root reserves/acknowledges/submits once in the supplied ledger and preserv
   for(const file of readdirSync(h.directory))if(file.endsWith('.json'))assert.doesNotMatch(readFileSync(join(h.directory,file),'utf8'),/public-fixture-password|public-fixture-bypass|checkout\.stripe/);
  }finally{h.broker.close();h.ledger.close();}
 });
+
+test('lightweight read context never replaces the fresh financial admission gate',async()=>{
+ const h=rootFixture();try{
+  Object.assign(h.options,{verifyReadContext:async()=>{h.calls.push('read-context');}});
+  h.options.verifyCurrent=async()=>{h.calls.push('financial-context');throw Error('Offline changed hosting gate');};
+  await assert.rejects(()=>h.broker.phase('opening',identity,new AbortController().signal));
+  assert.deepEqual(h.calls,['read-context','budget:opening','financial-context']);
+  assert.equal(h.f.calls.length,7);assert.equal(h.ledger.get(input.profile.operationId),undefined);
+ }finally{h.broker.close();h.ledger.close();}
+});
 test('budget exhaustion never releases prior holds or makes a failed phase retryable',async()=>{
  const h=rootFixture(500);try{await assert.rejects(()=>h.broker.phase('opening',identity,new AbortController().signal));assert.equal(h.ledger.report().length,1);
   assert.equal(h.ledger.get(input.profile.operationId),undefined);assert.ok(existsSync(join(h.directory,'opening-admission-intent.json')));

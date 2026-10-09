@@ -2,14 +2,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { awaitCurrentDraftAssociation, currentPendingDraftBody } from '../src/checkout-current-association.ts';
-import { CurrentCheckoutPrivateDraft } from '../src/checkout-current-draft.ts';
+import { CurrentCheckoutPrivateDraft,currentCheckoutDraftTag } from '../src/checkout-current-draft.ts';
 import { currentProfile, head, source, now } from './fixtures/current-checkout.ts';
 function fixture(mode = 'pending') {
  const draft = new CurrentCheckoutPrivateDraft(currentProfile(), head, source, 42, 'public-fixture-token-only', { now: () => now });
  let authenticated = 0, anonymous = 0, verified = 0;
  const release: { id: number; draft: boolean; prerelease: boolean; published_at: null; target_commitish: string;
   tag_name: string; body: string; assets: unknown[] } = { id: 42, draft: true, prerelease: false, published_at: null,
-  target_commitish: head, tag_name: `checkout-current-${draft.association.operationId}-association-recovery-v1`,
+  target_commitish: head, tag_name: currentCheckoutDraftTag(draft.association.operationId),
   body: JSON.stringify(currentPendingDraftBody(draft)), assets: [] };
  const request: typeof fetch = async (url, init) => {
   assert.equal(String(url), 'https://api.github.com/repos/irackson/givetogive/releases/42'); assert.equal(init?.method, 'GET');

@@ -91,7 +91,7 @@ function stop(resource:Resource){if(resource.stopped)return;resource.stopped=tru
  try{const current=resource.runtime.processes().find(row=>row.pid===resource.root.pid);if(current?.startTicks===resource.root.startTicks&&live(current))resource.child.kill('SIGTERM');else if(resource.child.connected)resource.child.disconnect();}catch{/* Never signal an unobserved/reused PID. */}}
 function close(resource:Resource){resource.cleanup??=(async()=>{resource.removeAbort();if(resource.interval)clearInterval(resource.interval);stop(resource);const until=resource.runtime.now()+35000;
  let closure:ReturnType<CheckoutProcessObservation['inspect']>|undefined;
- do{try{closure=sample(resource).closure;if(closure.ownedGroupClosed)break;}catch{resource.failed=true;break;}await resource.runtime.pause(25);}while(resource.runtime.now()<until);
+ do{try{closure=sample(resource).closure;if(closure.ownedGroupClosed&&resource.exited)break;}catch{resource.failed=true;break;}await resource.runtime.pause(25);}while(resource.runtime.now()<until);
  resource.removeAbort();resource.child.removeListener('message',resource.message);
  return {ownedGroupClosed:closure?.ownedGroupClosed===true,exitObserved:resource.exited,exitCode:resource.exitCode,publicOutputBytes:resource.outputBytes,
     escapedDescendantObserved:closure?.escapedDescendantObserved??true,paymentAccepted:false as const,retryAllowed:false as const};})();return resource.cleanup;}

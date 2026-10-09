@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash,randomBytes } from 'node:crypto';
-import { CurrentCheckoutPrivateDraft,currentCheckoutAssetPhases } from '../src/checkout-current-draft.ts';
+import { CurrentCheckoutPrivateDraft,currentCheckoutAssetPhases,currentCheckoutDraftTag } from '../src/checkout-current-draft.ts';
 import { currentCheckoutCandidate as c,validateCurrentCheckoutProfile } from '../src/checkout-current-profile.ts';
 import { checkoutReleaseBinding } from '../../../scripts/checkout-release-inspect.mjs';
 import { CheckoutPrivateDraft,type CheckoutAssetPhase } from '../src/hosted-checkout-github.ts';
@@ -25,7 +25,7 @@ function fixture(){
  const p=profile(),binding={releaseId:123,operationId:p.operationId,job:{id:p.job.jobId,nonce:p.job.jobNonce,headSha:head}};
  const rows:Row[]=[],bytes=new Map<number,Buffer>(),calls:Call[]=[];let nextId=10;
  const release={id:123,draft:true,prerelease:false,published_at:null,target_commitish:head,
-  tag_name:`checkout-current-${p.operationId}-association-recovery-v1`,body:'',assets:rows};
+  tag_name:currentCheckoutDraftTag(p.operationId),body:'',assets:rows};
  const controls:{publiclyVisible?:boolean;failPost?:boolean;corruptReadback?:boolean}={};
  const request=(async(input:RequestInfo|URL,init?:RequestInit)=>{
   const call={url:String(input),method:init?.method??'GET',headers:new Headers(init?.headers),body:init?.body};calls.push(call);
@@ -74,9 +74,10 @@ test('association is exact across cohort, operation, source head, live run/job/n
  }
 });
 test('legacy namespace, published/anonymous access and foreign assets cannot enter current transport',async()=>{
- for(const kind of ['tag','original-readiness-tag','head','public','asset','published']){const f=fixture();try{
+ for(const kind of ['tag','original-readiness-tag','old-associated-tag','head','public','asset','published']){const f=fixture();try{
   if(kind==='tag')f.release.tag_name=`checkout-acceptance-${c.operationId}`;
   if(kind==='original-readiness-tag')f.release.tag_name=`checkout-current-${c.operationId}`;
+  if(kind==='old-associated-tag')f.release.tag_name=`checkout-current-${c.operationId}-association-recovery-v1`;
   if(kind==='head')f.release.target_commitish='e'.repeat(40);
   if(kind==='public')f.controls.publiclyVisible=true;
   if(kind==='published')f.release.draft=false;

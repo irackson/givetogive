@@ -21,7 +21,7 @@ const hash = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
 const fail = (): never => { throw Error('Current input preparation unresolved; originals and holds retained; no retry; private details withheld.'); };
 function guard(value: unknown): asserts value { if (!value) fail(); }
 
-export async function prepareCurrentCheckoutInput(rawReady: unknown, options: {
+type Options = {
  root: string; key: Buffer; releaseId: number; account: UiAccount; session: UiApi;
  stagingBypass: string; plan: SandboxPlan;
  preparation: Pick<UiCheckoutPreparation, 'state' | 'prepare'>;
@@ -30,7 +30,18 @@ export async function prepareCurrentCheckoutInput(rawReady: unknown, options: {
  observeOpening(profile: Readonly<CurrentCheckoutProfile>, signal: AbortSignal): Promise<CurrentCheckoutProof>;
  retainOriginalRunIntent(signal: AbortSignal): Promise<void>;
  signal: AbortSignal; now?: () => number;
-}) {
+};
+export function prepareCurrentCheckoutInput(rawReady: unknown, options: Options) {
+ return transferCurrentCheckoutInput(rawReady, options, false);
+}
+/** Explicit handoff of an independently reconciled EXISTING preparation. Never
+ * calls prepare or rewrites the original run intent. Native caller must prove
+ * the previous worker terminal, no submission/admission, exact open provider
+ * session and unchanged original budget before supplying this callback. */
+export function handoffPreparedCurrentCheckoutInput(rawReady: unknown, options: Options) {
+ return transferCurrentCheckoutInput(rawReady, options, true);
+}
+async function transferCurrentCheckoutInput(rawReady: unknown, options: Options, existingPrepared: boolean) {
  let key: Buffer | undefined, ciphertext: Buffer | undefined;
  const now = options.now ?? Date.now, signal = AbortSignal.any([options.signal, AbortSignal.timeout(180000)]);
  const bounded = async <T>(action: () => Promise<T>): Promise<T> => {
@@ -54,7 +65,7 @@ export async function prepareCurrentCheckoutInput(rawReady: unknown, options: {
   guard(step.agentId === c.agentId && step.scenario === c.scenario && step.maximumAmountCents === 500 && step.expectedTier === 'neighbor' &&
    Object.keys(step.checkout).sort().join(',') === 'kind,recurring,tier' && step.checkout.kind === 'supporter' &&
    step.checkout.tier === 'supporter' && step.checkout.recurring === true &&
-   options.preparation.state(c.operationId) === undefined);
+   options.preparation.state(c.operationId) === (existingPrepared ? 'prepared' : undefined));
   const root = resolve(options.root);
   for (let path = root;; path = dirname(path)) {
    guard(!lstatSync(path).isSymbolicLink() && realpathSync(path) === path); if (dirname(path) === path) break;
@@ -66,10 +77,15 @@ export async function prepareCurrentCheckoutInput(rawReady: unknown, options: {
    const bytes = Buffer.from(JSON.stringify(value)); try { writeBootstrapOriginal(directory, name, bytes); } finally { bytes.fill(0); }
   };
   record('preparation-lease.json', { profileDigest: ready.profileDigest, connectionNonce: ready.connectionNonce,
-   maximumPreparations: 1, maximumInputUploads: 1, paymentAccepted: false, retryAllowed: false });
+   maximumPreparations: existingPrepared ? 0 : 1, maximumInputUploads: 1, paymentAccepted: false, retryAllowed: false });
   record('readiness.original.json', ready);
-  const before = recheckCurrentCheckoutProfile(await bounded(() => options.observeCurrent('unused', signal)), initial, now());
+  const before = recheckCurrentCheckoutProfile(await bounded(() => options.observeCurrent(existingPrepared ? 'prepared' : 'unused', signal)), initial, now());
   validateCurrentBootstrapReadiness(ready, now());
+  if (existingPrepared) {
+   record('existing-preparation-observation.result.json', { operationId: c.operationId, state: 'prepared',
+    profileDigest: currentProfileDigest(before), newPreparationPerformed: false, originalRunIntentUnchanged: true,
+    paymentAccepted: false, retryAllowed: false });
+  } else {
   record('normal-preparation.intent.json', { operationId: c.operationId, actorId: c.memberId, maximumAmountCents: 500,
    profileDigest: currentProfileDigest(before), paymentAccepted: false, retryAllowed: false });
   // Unused inspection must precede the original run intent: its presence marks
@@ -79,6 +95,7 @@ export async function prepareCurrentCheckoutInput(rawReady: unknown, options: {
   await options.preparation.prepare(options.session, c.memberId, step);
   signal.throwIfAborted(); guard(options.preparation.state(c.operationId) === 'prepared');
   record('normal-preparation.result.json', { operationId: c.operationId, state: 'prepared', paymentAccepted: false, retryAllowed: false });
+  }
   const profile = recheckCurrentCheckoutProfile(await bounded(() => options.observeCurrent('prepared', signal)), initial, now());
   const proof = validateCurrentCheckoutProof(await bounded(() => options.observeOpening(profile, signal)), profile, now());
   const input = validateCurrentCheckoutInput({ protocol: 1, purpose: 'current-cohort-private-member-input', profile,

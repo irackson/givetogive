@@ -14,3 +14,4 @@ export interface CheckoutReleaseSnapshot {
 }
 export function inspectLocalCheckoutRelease(): Promise<Readonly<CheckoutReleaseSnapshot>>;
 export function recheckLocalCheckoutRelease(original: Readonly<CheckoutReleaseSnapshot>): Promise<Readonly<CheckoutReleaseSnapshot>>;
+export function assertLocalCheckoutSourceUnchanged(original: Readonly<CheckoutReleaseSnapshot>): void;

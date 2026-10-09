@@ -20,6 +20,7 @@ function next(previous:CurrentCheckoutPhase|undefined,phase:CurrentCheckoutPhase
 type Options={root:string;key:Buffer;ledger:Pick<SandboxLedger,'get'|'reserve'|'acknowledgeAgentNotice'|'update'>;
  reader:Pick<CurrentCheckoutProofReader,'read'|'close'>;
  verifyCurrent:(phase:CurrentCheckoutPhase,signal:AbortSignal)=>Promise<void>;
+ verifyReadContext?:(phase:CurrentCheckoutPhase,signal:AbortSignal)=>Promise<void>;
  verifyOriginalBudget:(phase:CurrentCheckoutPhase,signal:AbortSignal,noticeAlreadyAdmitted:boolean)=>Promise<void>;
  readMember:(proof:CurrentCheckoutProof,signal:AbortSignal)=>Promise<CurrentMemberIdentity>;now?:()=>number};
 export class CurrentCheckoutRootBroker implements CurrentMemberBroker {
@@ -45,7 +46,7 @@ export class CurrentCheckoutRootBroker implements CurrentMemberBroker {
    guard(identity.userId===this.input.member.userId&&age>=-5000&&age<=30000&&(this.sessionVersion===undefined||this.sessionVersion===identity.sessionVersion));this.sessionVersion=identity.sessionVersion;
    if(!this.initialized){this.contained();guard(lstatSync(dirname(this.directory)).isDirectory());mkdirSync(this.directory,{mode:0o700});this.flush(dirname(this.directory));this.initialized=true;
     this.retain('root-lease.json',Buffer.from(JSON.stringify({profileDigest:this.input.profileDigest,noHistoryReset:true,maximumSubmissions:1,paymentAccepted:false,retryAllowed:false})));}
-   await this.options.verifyCurrent(phase,bounded);this.active(bounded);await this.options.verifyOriginalBudget(phase,bounded,this.noticeAlreadyAdmitted);this.active(bounded);
+   await (this.options.verifyReadContext ?? this.options.verifyCurrent)(phase,bounded);this.active(bounded);await this.options.verifyOriginalBudget(phase,bounded,this.noticeAlreadyAdmitted);this.active(bounded);
    this.retain(`${phase}-provider-intent.json`,Buffer.from(JSON.stringify({phase,maximumReads:1,paymentAccepted:false,retryAllowed:false})));
    const proof=await this.options.reader.read(phase,bounded);this.active(bounded);
    const member=identitySchema.parse(await this.options.readMember(proof,bounded));this.active(bounded);const memberAge=this.now()-Date.parse(member.observedAt);

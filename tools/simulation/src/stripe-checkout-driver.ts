@@ -18,6 +18,14 @@ export interface CheckoutDriver {
 // Official public Stripe test fixtures. Never configurable by personas, model output, or CLI PAN input.
 const fixtureCards = { success: '4242424242424242', decline: '4000000000000002', three_ds_success: '4000000000003220', three_ds_failure: '4000000000003220' } as const;
 
+/** Pure DOM-wait accounting. This never refreshes a surface or provider proof. */
+export function noticeObservationDeadline(deadline: number, started: number, finished: number) {
+  const wait = finished - started;
+  if (![deadline, started, finished, deadline + wait].every(Number.isFinite) || wait < 0 || wait > 60000)
+    throw new Error('Agent notice authorization deadline exceeded.');
+  return deadline + wait;
+}
+
 /** Diagnostic classification only; never grants request admission or retains URL bytes. */
 export function checkoutRequestCategory(rawUrl: string, resourceType: string, topNavigation: boolean) {
   let destination: 'stripe-owned' | 'stripe-network' | 'stripe-public-checkout-cdn' | 'klarna-script' | 'hcaptcha' | 'staging' | 'google-fonts' | 'google-maps' | 'paypal' | 'link' | 'google-script' | 'cloudflare-challenge' | 'other-https' | 'unsafe-or-non-https' = 'unsafe-or-non-https';
@@ -269,14 +277,18 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   private async prepareReviewedSurface() {
     this.memoryFloor();
     if (!this.page) throw new Error('Checkout is not open.');
-    const deadline = Date.now() + 15000;
+    let deadline = Date.now() + 15000;
     while (Date.now() < deadline) {
       this.memoryFloor();
       const surface = await this.readSurface();
       if (surface.panelCount) {
         validateAcknowledgmentSurface(surface, Date.now());
         if (!this.admitNotice) throw new Error('Agent notice requires durable member-owned permission.');
+        const authorizationStarted = Date.now();
         await this.admitNotice();
+        // The root authorization has its own deadline and fresh proof. It is
+        // not DOM settling time; reobserve the real surface before one click.
+        deadline = noticeObservationDeadline(deadline, authorizationStarted, Date.now());
         validateAcknowledgmentSurface(await this.readSurface(), Date.now());
         const control = this.page.getByRole('checkbox', { name: approved.controlName, exact: true });
         if (await control.count() !== 1 || !await control.isVisible() || !await control.isEnabled() || await control.isChecked()) throw new Error('Agent notice control changed.');

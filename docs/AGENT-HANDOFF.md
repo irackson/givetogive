@@ -1,5 +1,43 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 17:33 UTC: normal Checkout prepared; opening exchange timed out
+
+Signed `b6e1b7b` verification `37964967309` passed. Actual native run
+`37965625759` FAILED during opening, not a payment success. The tag-pinning
+fix passed actual private association; the normal member UI API prepared the
+one $5 decline Checkout and private input was retained. Authenticated originals
+prove one member sign-in, ZERO notices/submissions, disposed API and closed
+browser/OS group. The original Node exit event was not observed; this gap is
+preserved, not replaced by a successful receipt. Root never reserved this
+operation; provider/SQL readback has open/unpaid Checkout, no invoices,
+subscriptions, paid coverage or ledger. UI holds are now all 2500 cents;
+financial holds remain the original 500 cents. Never prepare again or reset.
+
+Native timing confirms repeated full hosting reads consumed the opening exchange
+deadline. Read-only transport now independently checks local source/link, member
+and exact live job; the financial broker STILL performs every fresh hosting,
+provider, member and original-budget gate before each admission. No 30-second
+freshness/request/phase limit is raised. Cleanup now waits for BOTH native group
+closure and the child exit event. DOM settling excludes a separately bounded
+authorization wait, then reobserves the actual surface before any notice click.
+
+`--execute-reviewed-prepared-handoff` is a separate one-shot handoff of the
+EXISTING operation, not a new Checkout or financial retry. It requires the exact
+hashed old root, authenticated failure originals, exact terminal first-attempt
+job, unchanged private three-asset draft and fresh open/unpaid provider/SQL and
+original-budget observations. The original preparation SHA remains immutable;
+new source is reviewed separately. No original draft is rebound, no old financial
+intent is rewritten, no new preparation occurs. Verify/sign first; invoke only
+while the existing provider session is still open with at least ten minutes of
+startup headroom. The latest session expires October 9 18:03:49 UTC. If clean,
+signed source and first-attempt CI cannot be ready within that window, let it
+expire unpaid; do not bypass CI, extend the session, reset the holds, or prepare
+this operation again. Local verification: 179 root unit tests passed; 612
+simulation tests passed, three opt-in tests skipped; root/tool types and explicit
+lint passed. These are offline harness results, not native payment acceptance.
+Full goal remains unfinished.
+No Vercel deployment is needed for these tooling-only corrections.
+
 ## October 9 16:49 UTC: empty transport failed on GitHub draft tag drift
 
 Signed `8505845` full verification `37960552675` passed. Explicit native run

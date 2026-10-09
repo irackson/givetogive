@@ -48,6 +48,14 @@ export function parallelReleaseMetadataReads(read) {
 }
 const linkDigest = () => createHash('sha256').update(readFileSync(resolve(root, '.vercel/project.json'))).digest('hex');
 const verifiedSnapshots = new WeakSet();
+/** Read-only transport context, NOT fresh hosting/payment authority. Financial
+ * admission must still call recheckLocalCheckoutRelease independently. */
+export function assertLocalCheckoutSourceUnchanged(original) {
+ guard(original && verifiedSnapshots.has(original));
+ guard(git(['rev-parse','HEAD']).toString().trim() === original.headSha &&
+  git(['status','--porcelain','--untracked-files=no']).toString().trim() === '' &&
+  linkDigest() === original.contextDigest && releaseSourceDigest(root) === original.sourceDigest);
+}
 /** Pure metadata check; READY, project/alias and runtime are checked separately. */
 export function matchesReviewedCheckoutUpload(metadata) {
  return metadata?.githubCommitSha === appSha && metadata?.githubOrg === 'irackson' &&

@@ -9,16 +9,19 @@ import { setTimeout as sleep } from 'node:timers/promises';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const guard = value => { if (!value) throw Error('Current native operator stopped; originals and holds retained; no retry; private details withheld.'); };
 export async function executeCurrentNativeOperator(recovery = 'none') {
- guard(['none', 'predispatch', 'readiness', 'association'].includes(recovery));
+ guard(['none', 'predispatch', 'readiness', 'association', 'handoff'].includes(recovery));
  const predispatchRecovery = recovery === 'predispatch', readinessRecovery = recovery === 'readiness', associationRecovery = recovery === 'association';
+ const preparedHandoff = recovery === 'handoff';
  guard(process.platform === 'win32' && Number(process.versions.node.split('.')[0]) === 24);
  const { currentCheckoutCandidate: c, currentCheckoutSourceEvidence } = await import('../tools/simulation/src/checkout-current-profile.ts')
   .then(async value => ({ ...value, currentCheckoutSourceEvidence: (await import('../tools/simulation/src/checkout-current-preflight.ts')).currentCheckoutSourceEvidence }));
  const { inspectCurrentCheckoutPrerequisites } = await import('./checkout-current-operator-inspect.mjs');
- const { inspectLocalCheckoutRelease, recheckLocalCheckoutRelease } = await import('./checkout-release-inspect.mjs');
+ const { inspectLocalCheckoutRelease, recheckLocalCheckoutRelease, assertLocalCheckoutSourceUnchanged } = await import('./checkout-release-inspect.mjs');
  // SOURCE gate comes before leases, key discovery, sign-in or remote mutations.
  const release = await inspectLocalCheckoutRelease(), head = release.headSha;
- let prerequisites = await inspectCurrentCheckoutPrerequisites();
+ const originalPreparationHead = preparedHandoff ? 'b6e1b7b7cc5c5f6fdf6402b9ec597383ff979743' : head;
+ const preparedBoundary = { headSha: originalPreparationHead, financialState: 'unadmitted', noticeConsumed: false };
+ let prerequisites = await inspectCurrentCheckoutPrerequisites(preparedHandoff ? preparedBoundary : 'unused');
  const { checkoutRunnerFiles } = await import('../tools/simulation/src/hosted-checkout-parent.ts');
  const git = args => execFileSync('git', args, { cwd: root, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000, maxBuffer: 16777216 });
  const hash = createHash('sha256');
@@ -43,6 +46,20 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
  const bypass = JSON.parse(readFileSync(join(state, 'protection.json'), 'utf8')).vercelProtectionBypass;
  guard(typeof bypass === 'string' && bypass.length >= 16);
  let recoveryProof;
+ if (preparedHandoff) {
+  const { observePreparedHandoffEligibility } = await import('./checkout-prepared-handoff-inspect.mjs');
+  const { loadCheckoutTransferKey } = await import('../tools/simulation/scripts/provision-checkout-key.mjs');
+  const inspectionKey = loadCheckoutTransferKey();
+  try { recoveryProof = await observePreparedHandoffEligibility(inspectionKey); }
+  finally { inspectionKey.fill(0); }
+  prerequisites = await inspectCurrentCheckoutPrerequisites(preparedBoundary);
+  // Hosted dependency installation took seven minutes in the preceding job.
+  // Refuse to launch an expiring session instead of racing its final seconds.
+  const { default: Stripe } = await import('stripe');
+  const expiryClient = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-08-26.dahlia', timeout: 15000, maxNetworkRetries: 0 });
+  const expiry = await expiryClient.checkout.sessions.retrieve(prerequisites.target.sessionId);
+  guard(expiry.livemode === false && expiry.status === 'open' && expiry.payment_status === 'unpaid' && expiry.expires_at * 1000 > Date.now() + 600000);
+ }
  if (predispatchRecovery) {
   const { readPredispatchRecovery } = await import('./checkout-predispatch-recovery.mjs');
   recoveryProof = readPredispatchRecovery(join(state, `current-native-${c.operationId}`), c.operationId, c.memberId);
@@ -84,16 +101,16 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
   finally{githubToken=undefined;}
   prerequisites=await inspectCurrentCheckoutPrerequisites();
  }
- const directory = join(state, `current-native-${c.operationId}${predispatchRecovery ? '-predispatch-recovery-v1' : readinessRecovery ? '-readiness-recovery-v1' : associationRecovery ? '-association-recovery-v1' : ''}`); mkdirSync(directory, { mode: 0o700 });
+ const directory = join(state, `current-native-${c.operationId}${preparedHandoff ? '-prepared-handoff-v1' : predispatchRecovery ? '-predispatch-recovery-v1' : readinessRecovery ? '-readiness-recovery-v1' : associationRecovery ? '-association-recovery-v1' : ''}`); mkdirSync(directory, { mode: 0o700 });
  const { writeBootstrapOriginal } = await import('../tools/simulation/src/checkout-bootstrap-retention.ts');
  const original = (name, value, location = directory) => {
   const data = Buffer.isBuffer(value) ? value : Buffer.from(JSON.stringify(value));
   try { writeBootstrapOriginal(location, name, data); } finally { if (!Buffer.isBuffer(value)) data.fill(0); }
  };
- original('operator-lease.json', { headSha: head, operationId: c.operationId, maximumMemberSignIns: 1, maximumPreparations: 1,
-  maximumSubmissions: 1, noHistoryReset: true, paymentAccepted: false, retryAllowed: false });
+ original('operator-lease.json', { headSha: head, operationId: c.operationId, maximumMemberSignIns: 1, maximumPreparations: preparedHandoff ? 0 : 1,
+  maximumSubmissions: 1, newPreparationsAllowed: preparedHandoff ? 0 : 1, noHistoryReset: true, paymentAccepted: false, retryAllowed: false });
  original('release.original.json', release); original('prerequisites.original.json', prerequisites.summary);
- if(recoveryProof)original(associationRecovery?'association-recovery.original.json':readinessRecovery?'readiness-recovery.original.json':'predispatch-recovery.original.json',recoveryProof);
+ if(recoveryProof)original(preparedHandoff?'prepared-handoff.original.json':associationRecovery?'association-recovery.original.json':readinessRecovery?'readiness-recovery.original.json':'predispatch-recovery.original.json',recoveryProof);
  const controller = new AbortController(), stop = () => controller.abort(), signal = AbortSignal.any([controller.signal, AbortSignal.timeout(1500000)]);
  let key, token, session, preparation, ledger, worker, broker, responder, input, stripe, finalizationSnapshot, finalizationReady = false, declineVerified = false, failure = false;
  const { loadCheckoutTransferKey } = await import('../tools/simulation/scripts/provision-checkout-key.mjs');
@@ -101,7 +118,7 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
  const { UiCheckoutPreparation } = await import('../tools/simulation/src/ui-checkout-preparation.ts');
  const { SandboxLedger } = await import('../tools/simulation/src/sandbox-ledger.ts');
  const { dispatchCurrentCheckoutWorker } = await import('../tools/simulation/src/checkout-current-dispatch.ts');
- const { prepareCurrentCheckoutInput } = await import('../tools/simulation/src/checkout-current-prepare.ts');
+ const { prepareCurrentCheckoutInput, handoffPreparedCurrentCheckoutInput } = await import('../tools/simulation/src/checkout-current-prepare.ts');
  const { observeCurrentCheckoutJob } = await import('../tools/simulation/src/checkout-current-job.ts');
  const { observeCurrentCheckoutFinalJob } = await import('../tools/simulation/src/checkout-current-final-job.ts');
  const { observeCurrentCheckoutReadiness } = await import('../tools/simulation/src/checkout-current-readiness.ts');
@@ -122,6 +139,16 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
  const { currentProfileDigest } = await import('../tools/simulation/src/checkout-current-phase.ts');
  process.on('SIGINT', stop); process.on('SIGTERM', stop);
  const targetFor = () => ({ headSha: head, workflowRunId: worker.workflowRunId, jobId: worker.observation.readiness.profile.job.jobId });
+ // Read-only encrypted transport has no financial admission authority. Check
+ // local source/link, real member and live exact job cheaply here; the broker
+ // independently performs ALL fresh hosting gates immediately before admission.
+ const verifyTransportContext = async scoped => {
+  scoped.throwIfAborted(); assertLocalCheckoutSourceUnchanged(release);
+  if (session) await session.verifyIdentity();
+  if (worker) { const job = await observeCurrentCheckoutJob(targetFor(), { token, signal: scoped });
+   guard(job.transportEvidence === 'github-live-current-job'); }
+  scoped.throwIfAborted();
+ };
  const verifyCurrent = async scoped => {
   scoped.throwIfAborted(); await recheckLocalCheckoutRelease(release); scoped.throwIfAborted();
   if (session) await session.verifyIdentity();
@@ -133,7 +160,7 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
  };
  const financialBoundary = (noticeConsumed = false) => {
   const attempt = ledger?.get(c.operationId); guard(!attempt || ['reserved', 'submitted'].includes(attempt.state));
-  return { headSha: head, financialState: attempt?.state ?? 'unadmitted', noticeConsumed };
+  return { headSha: originalPreparationHead, financialState: attempt?.state ?? 'unadmitted', noticeConsumed };
  };
  try {
   key = loadCheckoutTransferKey(); const tokenBytes = execFileSync('gh', ['auth', 'token'], { cwd: root, windowsHide: true,
@@ -153,9 +180,10 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
   guard(/^[sr]k_test_/.test(process.env.STRIPE_SECRET_KEY ?? ''));
   stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-08-26.dahlia', timeout: 15000, maxNetworkRetries: 0 });
   const reads = stripeCheckoutReads(stripe);
-  const prepared = await prepareCurrentCheckoutInput(worker.observation.readiness, { root: directory, key, releaseId: worker.releaseId,
+  const prepared = await (preparedHandoff ? handoffPreparedCurrentCheckoutInput : prepareCurrentCheckoutInput)(worker.observation.readiness, { root: directory, key, releaseId: worker.releaseId,
    account, stagingBypass: bypass, session, plan, preparation, draft: worker.draft, signal,
    retainOriginalRunIntent: async scoped => {
+    guard(!preparedHandoff);
     await verifyCurrent(scoped);
     original(`ui-acceptance-${c.operationId}.intent.json`, { runId: c.runId, operationId: c.operationId, actorId: c.memberId,
      headSha: head, planDigest: c.planDigest, scenario: 'decline', maximumAmountCents: 500,
@@ -191,12 +219,13 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
     subscriptions = await session.query('billing.mySubscriptions', undefined), payment = await session.query('billing.payment', { id: c.operationId }), after = await read();
    scoped.throwIfAborted(); return deriveCurrentMemberIdentity(before, after, availability, overview, subscriptions, payment, proof, Date.now());
   };
-  broker = new CurrentCheckoutRootBroker(input, { root: directory, key, ledger, reader, verifyCurrent: (__phase, scoped) => verifyCurrent(scoped),
+  broker = new CurrentCheckoutRootBroker(input, { root: directory, key, ledger, reader, verifyReadContext: (__phase, scoped) => verifyTransportContext(scoped),
+   verifyCurrent: (__phase, scoped) => verifyCurrent(scoped),
    verifyOriginalBudget: async (__phase, scoped, noticeConsumed) => {
     scoped.throwIfAborted(); await inspectCurrentCheckoutPrerequisites(financialBoundary(noticeConsumed)); scoped.throwIfAborted();
    }, readMember });
   responder = new CurrentCheckoutRootResponder(input, { root: directory, key, connectionNonce: prepared.connectionNonce,
-   releaseId: worker.releaseId, broker, transport: worker.draft, verifyContext: verifyCurrent });
+   releaseId: worker.releaseId, broker, transport: worker.draft, verifyContext: verifyTransportContext });
   const binding = { releaseId: worker.releaseId, operationId: c.operationId,
    job: { id: input.profile.job.jobId, nonce: input.profile.job.jobNonce, headSha: head } };
   const verifyFinalContext = async scoped => {
@@ -210,7 +239,7 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
    }
    await recheckLocalCheckoutRelease(release); finalSignal.throwIfAborted();
   };
-  const result = await coordinateCurrentCheckout({ binding, transport: worker.draft, responder, verifyContext: verifyCurrent, verifyFinalContext, signal });
+  const result = await coordinateCurrentCheckout({ binding, transport: worker.draft, responder, verifyContext: verifyTransportContext, verifyFinalContext, signal });
   original('coordination.result.json', result);
  } catch { failure = true; }
  finally {
@@ -253,7 +282,7 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
      const after = await cookieSession();
      const app = verifyCurrentDeclineAppSnapshot({ before, after, availability, overview, subscriptions, payment, database });
      const budget = inspectPreparedCheckoutCandidateBudget(run, c.planDigest, credentials, c.operationId,
-      { headSha: head, financialState: 'submitted', noticeConsumed: validated.noticeRequests === 1 });
+     { headSha: originalPreparationHead, financialState: 'submitted', noticeConsumed: validated.noticeRequests === 1 });
      original('app-decline-observation.result.json', app); original('original-submitted-budget.result.json', budget);
      if (decline.providerDeclineObserved) {
       original('failure-event-observation.intent.json', { maximumObservations: 1, paymentAccepted: false, retryAllowed: false });
@@ -312,7 +341,7 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
      id => stripe.events.retrieve(id), AbortSignal.timeout(30000));
     guard(events.processedFailureEventCorrelated && !events.webhookProcessingPending && !app.webhookProcessingPending);
     const budget = inspectPreparedCheckoutCandidateBudget(run, c.planDigest, credentials, c.operationId,
-     { headSha: head, financialState: 'submitted', noticeConsumed: finalizationSnapshot.noticeConsumed });
+     { headSha: originalPreparationHead, financialState: 'submitted', noticeConsumed: finalizationSnapshot.noticeConsumed });
     await recheckLocalCheckoutRelease(release);
     guard(Date.now() - refreshedAt <= 30000); signal.throwIfAborted();
     original('decline-final-readback.result.json', { provider: refreshed, app, events, budget, paymentAccepted: false, retryAllowed: false });
@@ -341,6 +370,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   else if(process.argv.length===3&&process.argv[2]==='--execute-reviewed-predispatch-recovery')console.log(JSON.stringify(await executeCurrentNativeOperator('predispatch')));
   else if(process.argv.length===3&&process.argv[2]==='--execute-reviewed-readiness-recovery')console.log(JSON.stringify(await executeCurrentNativeOperator('readiness')));
   else if(process.argv.length===3&&process.argv[2]==='--execute-reviewed-association-recovery')console.log(JSON.stringify(await executeCurrentNativeOperator('association')));
+  else if(process.argv.length===3&&process.argv[2]==='--execute-reviewed-prepared-handoff')console.log(JSON.stringify(await executeCurrentNativeOperator('handoff')));
   else { guard(process.argv.length === 2); console.log(JSON.stringify({ execute: false, externalRequests: 0, checkoutCreated: false, paymentAccepted: false })); }
  } catch { console.error('Current native operator stopped; originals and holds retained; no retry; private details withheld.'); process.exitCode = 1; }
 }

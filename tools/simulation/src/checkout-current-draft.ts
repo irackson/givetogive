@@ -19,7 +19,7 @@ const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).d
 const fail=():never=>{throw Error('Current Checkout private draft rejected; no admission or retry.');};
 // Separate reviewed transport namespace: the failed readiness draft remains
 // immutable and can never be rebound to this source or receive member input.
-export const currentCheckoutDraftTag=(operationId:string)=>`checkout-current-${z.uuid().parse(operationId)}-association-recovery-v1`;
+export const currentCheckoutDraftTag=(operationId:string)=>`checkout-current-${z.uuid().parse(operationId)}-prepared-handoff-v1`;
 export class CurrentCheckoutPrivateDraft extends CheckoutDraftTransport {
  readonly profile:ReturnType<typeof validateCurrentCheckoutProfile>;
  readonly association:Readonly<z.infer<typeof associationSchema>>;

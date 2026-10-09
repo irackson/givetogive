@@ -11,7 +11,7 @@ import type { CheckoutIpcPeer } from '../src/checkout-broker-ipc.ts';
 import { currentProfile,currentInput,head,source,now } from './fixtures/current-checkout.ts';
 import { currentProfileDigest } from '../src/checkout-current-phase.ts';
 const environment={PATH:'/public/bin',HOME:'/public/home',TMPDIR:'/public/tmp',PLAYWRIGHT_BROWSERS_PATH:'/public/browser'};
-function harness(options:{browser?:boolean;wrongReady?:boolean;leak?:boolean;reuse?:boolean;output?:boolean;detachedBrowser?:boolean}={}) {
+function harness(options:{browser?:boolean;wrongReady?:boolean;leak?:boolean;reuse?:boolean;output?:boolean;detachedBrowser?:boolean;lateExit?:boolean}={}) {
  const root=mkdtempSync(join(tmpdir(),'g2g-current-parent-')),profile=currentProfile();
  type Send=(value:unknown,callback:(error?:Error)=>void)=>void;
  const child=new EventEmitter() as EventEmitter&{pid:number;connected:boolean;stdout:EventEmitter;stderr:EventEmitter;send:Send;kill:()=>boolean;disconnect:()=>void};
@@ -19,7 +19,8 @@ function harness(options:{browser?:boolean;wrongReady?:boolean;leak?:boolean;reu
  child.pid=400;child.connected=true;child.stdout=new EventEmitter();child.stderr=new EventEmitter();
  let alive=true,browser=false,time=now,launches=0,transfers=0,sourceChecks=0,kills=0;let client:ReturnType<typeof createCurrentMemberClient>|undefined;
  const nonce='d'.repeat(32);
- const finish=()=>{alive=false;browser=options.leak??false;child.connected=false;child.emit('exit',0);};
+ const finish=()=>{alive=false;browser=options.leak??false;child.connected=false;
+  if(options.lateExit)setImmediate(()=>child.emit('exit',0));else child.emit('exit',0);};
  member.send=(value:unknown,callback:(error?:Error)=>void)=>{child.emit('message',value);callback();};
  child.send=(raw:unknown,callback:(error?:Error)=>void)=>{
   const value=raw as {kind:string;input:ReturnType<typeof currentInput>};
@@ -64,6 +65,12 @@ test('ordinary member is launched once with public profile and independently obs
  await assert.rejects(()=>runCurrentCheckoutParent(prepared,currentInput(),{phase:async()=>({})}));
  assert.throws(()=>inspectPreparedCurrentCheckoutParent(prepared));
  await assert.rejects(()=>h.prepare());assert.equal(h.counters().launches,1);
+});
+
+test('OS group disappearance cannot race ahead of the child exit event in a positive cleanup receipt',async()=>{
+ const h=harness({detachedBrowser:true,lateExit:true}),prepared=await h.prepare();
+ const closed=await closePreparedCurrentCheckoutParent(prepared);
+ assert.equal(closed.ownedGroupClosed,true);assert.equal(closed.exitObserved,true);assert.equal(closed.exitCode,0);
 });
 test('protocol readiness without an actual owned browser rejects before private transfer',async()=>{
  for(const options of [{browser:false},{wrongReady:true},{reuse:true},{output:true}]){
