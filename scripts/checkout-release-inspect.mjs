@@ -8,7 +8,16 @@ import { releaseSourceDigest } from './release-rehearsal-fingerprint.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const cli = 'C:/Users/Ian/AppData/Local/pnpm/global/v11/9538-1a03bddf05f-5e68638a8374958f/node_modules/vercel/dist/vc.js';
 const team = 'team_TXid48wU77cfhEg28L3EyLpn', projectId = 'prj_HvlFV1kKHVsML73nlsJAFQNA7grP';
-const deploymentId = 'dpl_4ZF8gk4Rv3NYoZcgFQeSnfBmNUg5', appSha = '8888877182d76c18de40a747fd573b3d04643006';
+// Reviewed October 9 protected staging upload; old financial source approvals
+// remain historical. This read-only binding never authorizes a payment retry.
+export const checkoutReleaseBinding = Object.freeze({
+ deploymentId: 'dpl_CN1fLhs5nKqXnPK7UMKxKZrQYn5z',
+ appSha: 'f7301db9bf188374fbd0cff3e374e16ab11292c7',
+ sourceDigest: '0f184a8fcceadd6611765449c145565cb392d962c2da7294c8261689497f3cd8',
+ lockDigest: '71ee2fb1a9ad63638e941cf94d51edc76265c964a9c7a686d07833f9c8f73def',
+ uploadDigest: 'f74918568d9171c42c9d51472843ce2afef798d6c0a8550314c3f1f146f7e0cb',
+});
+const { deploymentId, appSha } = checkoutReleaseBinding;
 const origin = 'https://givetogive-staging.vercel.app';
 const names = ['src','public','package.json','package-lock.json','next.config.ts','tsconfig.json','postcss.config.js','postcss.config.cjs','tailwind.config.ts'];
 const guard = value => { if (!value) throw Error('Checkout staging release unconfirmed; private details withheld.'); };
@@ -26,6 +35,14 @@ function api(path) {
  try { return JSON.parse(bytes.toString('utf8')); } finally { bytes.fill(0); }
 }
 const verifiedSnapshots = new WeakSet();
+/** Pure metadata check; READY, project/alias and runtime are checked separately. */
+export function matchesReviewedCheckoutUpload(metadata) {
+ return metadata?.githubCommitSha === appSha && metadata?.githubOrg === 'irackson' &&
+  metadata?.githubRepo === 'givetogive' &&
+  metadata?.verificationAuthoredSourceDigest === checkoutReleaseBinding.sourceDigest &&
+  metadata?.verificationLockDigest === checkoutReleaseBinding.lockDigest &&
+  metadata?.verificationSourceDigest === checkoutReleaseBinding.uploadDigest;
+}
 export async function inspectLocalCheckoutRelease() { return inspectRelease(); }
 /** Only a full native observation from this process may enable the fast check.
  * Preserve its source observation time; refreshing hosting gates is not fresh
@@ -60,6 +77,8 @@ async function inspectRelease(original) {
   if (!original) for (const name of names) if (git(['ls-tree','--name-only',head,'--',name]).toString().trim()) visit(name);
   const canonicalSourceDigest = original ? original.canonicalSourceDigest : hash.digest('hex');
   const rootLockDigest = createHash('sha256').update(git(['show',`${head}:package-lock.json`])).digest('hex');
+  guard(rootLockDigest === checkoutReleaseBinding.lockDigest &&
+   releaseSourceDigest(root) === checkoutReleaseBinding.sourceDigest);
   // Explicit context inspection; never rewrite the checkout's production link.
   phase = 'hosting-metadata';
   vc(['project','inspect','givetogive-staging','--scope',team]);
@@ -67,8 +86,7 @@ async function inspectRelease(original) {
   const alias = api('/v4/aliases/givetogive-staging.vercel.app');
   guard(project.id === projectId && project.name === 'givetogive-staging' && project.accountId === team && project.nodeVersion === '24.x' &&
    project.ssoProtection?.deploymentType === 'all' && deployment.id === deploymentId && deployment.projectId === projectId &&
-   deployment.readyState === 'READY' && deployment.nodeVersion === '24.x' && deployment.meta?.githubCommitSha === appSha &&
-   deployment.meta?.githubOrg === 'irackson' && deployment.meta?.githubRepo === 'givetogive' &&
+   deployment.readyState === 'READY' && deployment.nodeVersion === '24.x' && matchesReviewedCheckoutUpload(deployment.meta) &&
    alias.projectId === projectId && alias.deployment?.id === deploymentId);
   phase = 'protected-runtime-read';
   const bytes = vc(['curl','/api/trpc/billing.availability','--deployment',origin,'--scope',team,'--','--silent','--show-error','--fail','--max-time','20']);

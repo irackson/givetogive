@@ -3,6 +3,20 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const url = new URL('../../../scripts/checkout-release-inspect.mjs', import.meta.url), script = fileURLToPath(url);
+
+test('reviewed staging metadata requires the complete new source/lock/upload tuple', async () => {
+ const { checkoutReleaseBinding: binding, matchesReviewedCheckoutUpload } = await import('../../../scripts/checkout-release-inspect.mjs');
+ const valid = { githubCommitSha: binding.appSha, githubOrg: 'irackson', githubRepo: 'givetogive',
+  verificationAuthoredSourceDigest: binding.sourceDigest, verificationLockDigest: binding.lockDigest,
+  verificationSourceDigest: binding.uploadDigest };
+ assert.equal(matchesReviewedCheckoutUpload(valid), true);
+ for (const key of Object.keys(valid)) {
+  assert.equal(matchesReviewedCheckoutUpload({ ...valid, [key]: undefined }), false);
+  assert.equal(matchesReviewedCheckoutUpload({ ...valid, [key]: 'unreviewed' }), false);
+ }
+ assert.equal(matchesReviewedCheckoutUpload(undefined), false);
+ assert.equal(matchesReviewedCheckoutUpload({ ...valid, githubCommitSha: '8888877182d76c18de40a747fd573b3d04643006' }), false);
+});
 test('CLI 59.5 curl excludes the broken global flag; other commands stay explicitly non-interactive', async () => {
  const { releaseCliArguments } = await import('../../../scripts/checkout-release-inspect.mjs');
  const args = releaseCliArguments(['curl', '/api/health', '--', '--silent']);
