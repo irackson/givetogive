@@ -1,5 +1,44 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 late evening: genuine public wallet SDK execution passed
+
+Signed code head `f3e80d020c725f44bcba1c3fcb2e8328d9c30bb4` adds a manual,
+owner-dispatched, exact-main-head `checkout-public-sdk.yml` workflow. It uses
+the existing free public-repository runner, contents read-only, pinned actions,
+locked tools/browser installs, no secrets, caches, artifacts or credentials.
+The probe fulfills an empty synthetic page and anonymously downloads ONLY five
+known static Apple/Amazon JavaScript assets, executes the actual vendor bytes,
+blocks every other request and all redirects, limits requests/asset size/time,
+and never invokes wallet capability/merchant/payment methods or clicks/fills.
+Chrome receives OS variables only. This is NOT a financial acceptance harness.
+
+Actual run **37866498294 SUCCESS**, job **113614351624**, returned:
+all five assets loaded once; Apple SDK, Apple Pay button, Apple wallet button,
+Amazon Pay SDK and Amazon Stripe factory registered; blocked requests 0,
+page errors 0, console errors 0, asset failures 0. Financial actions 0 and
+paymentAccepted false. This verifies genuine static SDK execution, not private
+Checkout rendering, merchant status requests, card entry or paid subscriptions.
+
+First probe **37866365356** is terminal failure with no network/browser errors:
+the diagnostic initially looked for `wallet-button` instead of the actual
+`apple-wallet-button`, and loaded only Amazon's Stripe factory rather than its
+general `/checkout.js` too. Public source inspection established the proper
+registrations; fixed those probe errors, did NOT relax destination/payment guards,
+then ran the corrected code independently. No financial admission was consumed.
+Local full suite: 410 tests, 409 pass, one Linux-only skip; types/focused lint pass.
+Previous policy head `09b7b74` passed full hosted verification **37866099952**,
+including 12 actual-Chromium intercepted tests in both native TS and tsx.
+
+Current exact-code-head verification **37866493289 SUCCESS/terminal** passed
+application/simulator tests/types, public published smoke and 12 intercepted
+Chromium tests in BOTH native TypeScript and tsx. The superseded `c28cf78` run
+**37866355460** was canceled by the newer push,
+not a passing result. Both private preparations below remain expired/preserved;
+untouched decline admission remains untouched. Next safely resolve any remaining
+private Checkout renderer/capability policy issue before independently reviewed,
+bounded genuine payment tests; never replay consumed operation IDs or reset caps.
+Goal remains active/incomplete and production financial gates remain off.
+
 ## October 8 late evening: public SDK dependency source narrowed
 
 Anonymous GETs of Apple's public `jsapi/1.latest/apple-pay-sdk.js` confirmed its
