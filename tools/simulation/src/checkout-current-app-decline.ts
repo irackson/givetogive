@@ -21,11 +21,11 @@ export function verifyCurrentDeclineAppSnapshot(raw: unknown, now = Date.now()) 
    subscriptions: z.array(subscription).max(1), payment,
    database: z.object({ readOnly: z.literal(true), databaseIdentity: z.literal(c.databaseIdentity), actorId: z.literal(c.memberId),
     operationId: z.literal(c.operationId), canonicalCustomerVerified: z.literal(true), memberVerifiedAndActive: z.literal(true),
-    paymentStatus: unpaidStatus, paidCoverageCount: z.literal(0), paymentLedgerCount: z.literal(0), paidPaymentCount: z.literal(0),
+    memberSessionVersion: z.number().int().nonnegative(), paymentStatus: unpaidStatus, paidCoverageCount: z.literal(0), paymentLedgerCount: z.literal(0), paidPaymentCount: z.literal(0),
     subscriptions: z.array(subscription).max(1), processedFailureWebhookObserved: z.boolean(), pendingOrFailedWebhookObserved: z.boolean() })
   }).parse(raw);
   const { before, after, database } = value;
-  if (!Number.isFinite(now) || before.user.sessionVersion !== after.user.sessionVersion ||
+  if (!Number.isFinite(now) || before.user.sessionVersion !== after.user.sessionVersion || database.memberSessionVersion !== after.user.sessionVersion ||
    [before, after].some(session => Date.parse(session.expires) <= now + 15000 || !Number.isFinite(Date.parse(session.expires)) ||
     session.user.authenticatedAt > now + 5000) || database.paymentStatus !== value.payment.status)
    throw Error('Member identity or payment changed');

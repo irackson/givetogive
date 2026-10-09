@@ -1,5 +1,34 @@
 # Resume here: payments and simulation checkpoint
 
+## Native CURRENT decline finalization boundary implemented (October 9)
+
+Head `9fdf903` hosted verification **37888915487 SUCCESS/terminal** was observed.
+The native operator can now finalize only the original submitted decline after
+successful coordination, authenticated bound final originals, processed correlated
+failure events, unchanged canonical customer/frozen clock, ordinary Neighbor API
+observations and no paid DB coverage/ledger. Root resources must close successfully;
+the exact terminal GitHub job and reviewed release are checked again. Immediately
+before finalization it refreshes the exact declined graph, provider identity/clock,
+DB no-paid state and failure events, checks current DB session version against the
+ordinary cookie identity, and rechecks the original submitted budget. The final
+readback must complete within 30 seconds. A durable exclusive intent precedes the
+one financial-journal transition and a separate result follows its readback.
+
+`SandboxLedger.finalizeSubmittedDecline` uses BEGIN IMMEDIATE and exact run/op/
+actor/amount/scenario/submitted comparison. Reserved/ambiguous/foreign/wrong-amount,
+wrong-scenario and already finalized attempts reject. Budget sums still count the
+declined attempt and all historical holds. A commit/result-write uncertainty must
+be reconciled by readback, never by rerunning the native operator or payment.
+
+Verification: four real temporary SQLite tests, including two competing OS
+processes with exactly one winner; DB session-version rejection regression; full
+simulator **597 tests / 595 pass / two Linux-only skips / zero failures**;
+TypeScript and native-script zero-warning lint passed. This proves transition
+mechanics, NOT native Stripe acceptance. Original financial journals are unchanged
+by these tests. Next: audit/publish the pending staging release after quota becomes
+available, review the exact source binding and execute the one still-unused native
+decline candidate. Do not replay the previous expired/ambiguous attempts.
+
 ## CURRENT processed failure-event correlation implemented (October 9)
 
 Head `45a6285` hosted verification **37888590977 SUCCESS/terminal** was observed.

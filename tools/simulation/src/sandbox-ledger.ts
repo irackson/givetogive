@@ -54,5 +54,21 @@ export class SandboxLedger {
     } catch (error) { this.db.exec('ROLLBACK'); throw error; }
   }
   report() { return this.db.prepare('SELECT actor_id AS actorId,operation_id AS operationId,amount_cents AS reservedCents,scenario,state FROM sandbox_attempts WHERE run_id=? ORDER BY updated_at').all(this.runId); }
+  /** Narrow atomic finalization. Caller owns native outcome evidence; this method
+   * proves only the exact submitted-state transition. Holds remain counted in
+   * reserve(), including declined, expired and ambiguous historical attempts. */
+  finalizeSubmittedDecline(operationId: string, actorId: string, amountCents: number) {
+    if (!operationId || !actorId || !Number.isSafeInteger(amountCents) || amountCents <= 0) throw new Error('Invalid original decline boundary.');
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const prior = this.get(operationId);
+      if (!prior || prior.actorId !== actorId || prior.amountCents !== amountCents || prior.scenario !== 'decline' || prior.state !== 'submitted')
+        throw new Error('Only the exact original submitted decline may be finalized once.');
+      const changed = this.db.prepare("UPDATE sandbox_attempts SET state='verified_decline',updated_at=? WHERE run_id=? AND operation_id=? AND actor_id=? AND amount_cents=? AND scenario='decline' AND state='submitted'")
+        .run(Date.now(), this.runId, operationId, actorId, amountCents);
+      if (Number(changed.changes) !== 1) throw new Error('Original decline transition was not retained.');
+      this.db.exec('COMMIT');
+    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
+  }
   close() { this.db.close(); }
 }

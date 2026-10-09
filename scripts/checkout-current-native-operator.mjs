@@ -50,7 +50,7 @@ export async function executeCurrentNativeOperator() {
   maximumSubmissions: 1, noHistoryReset: true, paymentAccepted: false, retryAllowed: false });
  original('release.original.json', release); original('prerequisites.original.json', prerequisites.summary);
  const controller = new AbortController(), stop = () => controller.abort(), signal = AbortSignal.any([controller.signal, AbortSignal.timeout(1500000)]);
- let key, token, session, preparation, ledger, worker, broker, responder, input, stripe, failure = false;
+ let key, token, session, preparation, ledger, worker, broker, responder, input, stripe, finalizationSnapshot, finalizationReady = false, declineVerified = false, failure = false;
  const { loadCheckoutTransferKey } = await import('../tools/simulation/scripts/provision-checkout-key.mjs');
  const { UiSession } = await import('../tools/simulation/src/ui-session.ts');
  const { UiCheckoutPreparation } = await import('../tools/simulation/src/ui-checkout-preparation.ts');
@@ -221,19 +221,72 @@ export async function executeCurrentNativeOperator() {
        invoiceId: decline.invoiceId, paymentIntentId: decline.paymentIntentId }, database.failureEvents,
        id => stripe.events.retrieve(id), AbortSignal.timeout(30000));
       original('failure-event-observation.result.json', events);
+      // Every observation above is native in this entrypoint; injected/pure
+      // observers never receive original journal finalization authority.
+      finalizationReady = !failure && events.processedFailureEventCorrelated && !events.webhookProcessingPending &&
+       !app.webhookProcessingPending && app.normalMemberNeighborObserved && app.canonicalDatabaseNoPaidEntitlementObserved &&
+       validated.authenticatedOriginalBindingsValidated && validated.recordedNativeClosureValidated && budget.financialState === 'submitted';
+      if (finalizationReady) finalizationSnapshot = { before, after, availability, overview, subscriptions, payment,
+       invoiceId: decline.invoiceId, paymentIntentId: decline.paymentIntentId, noticeConsumed: validated.noticeRequests === 1 };
      }
      original('final-recovery.result.json', { originalRetained: true, authenticatedDecryption: true,
       ciphertextDigest: createHash('sha256').update(final).digest('hex'), paymentAccepted: false, independentClosureAndSettlementRequired: true, retryAllowed: false });
     } finally { final.fill(0); }
    }
   } catch { failure = true; }
-  for (const resource of [responder, broker, ledger, preparation]) try { resource?.close(); } catch { failure = true; }
+  for (const resource of [responder, broker, preparation]) try { resource?.close(); } catch { failure = true; }
   try { await session?.close(); } catch { failure = true; }
-  key?.fill(0); token = undefined; input = undefined;
+  try {
+   if (!failure && finalizationReady) {
+    signal.throwIfAborted(); await recheckLocalCheckoutRelease(release);
+    const job = await observeCurrentCheckoutFinalJob(targetFor(), { token, signal: AbortSignal.timeout(30000) });
+    guard(job.transportEvidence === 'github-live-current-final-job' && job.runFinished && job.successful);
+    signal.throwIfAborted(); await recheckLocalCheckoutRelease(release);
+    guard(finalizationSnapshot);
+    const refreshedAt = Date.now();
+    original('decline-final-readback.intent.json', { maximumObservations: 1, readOnly: true, paymentAccepted: false, retryAllowed: false });
+    const refreshed = await observeCurrentProviderDecline({ operationId: c.operationId, sessionId: input.proof.checkout.sessionId,
+     customerAccountId: input.proof.customerAccountId, origin: c.origin }, {
+     checkout: id => stripe.checkout.sessions.retrieve(id), invoice: id => stripe.invoices.retrieve(id),
+     invoicePayments: id => stripe.invoicePayments.list({ invoice: id, limit: 10 }), paymentIntent: id => stripe.paymentIntents.retrieve(id),
+    }, AbortSignal.timeout(30000));
+    guard(refreshed.providerDeclineObserved && refreshed.invoiceId === finalizationSnapshot.invoiceId && refreshed.paymentIntentId === finalizationSnapshot.paymentIntentId);
+    const identityReads = stripeCheckoutReads(stripe), platform = await identityReads.platform(), balance = await identityReads.balance(),
+     customer = await identityReads.customer(input.proof.customerAccountId), clock = await identityReads.clock(prerequisites.target.clockId);
+    guard(platform.id === process.env.STRIPE_PLATFORM_ACCOUNT_ID && balance.livemode === false && customer.id === input.proof.customerAccountId &&
+     customer.livemode === false && customer.configuration?.customer?.test_clock === prerequisites.target.clockId &&
+     clock.id === prerequisites.target.clockId && clock.name === `givetogive:${c.runId}` && clock.livemode === false &&
+     clock.status === 'ready' && clock.frozen_time === prerequisites.target.frozenTime);
+    const database = await inspectCurrentDeclineApp({ sessionId: input.proof.checkout.sessionId, customerAccountId: input.proof.customerAccountId,
+     invoiceId: refreshed.invoiceId, paymentIntentId: refreshed.paymentIntentId });
+    const app = verifyCurrentDeclineAppSnapshot({ ...finalizationSnapshot, database });
+    const events = await observeCurrentFailureEvents({ platformAccountId: process.env.STRIPE_PLATFORM_ACCOUNT_ID,
+     customerAccountId: input.proof.customerAccountId, invoiceId: refreshed.invoiceId, paymentIntentId: refreshed.paymentIntentId }, database.failureEvents,
+     id => stripe.events.retrieve(id), AbortSignal.timeout(30000));
+    guard(events.processedFailureEventCorrelated && !events.webhookProcessingPending && !app.webhookProcessingPending);
+    const budget = inspectPreparedCheckoutCandidateBudget(run, c.planDigest, credentials, c.operationId,
+     { headSha: head, financialState: 'submitted', noticeConsumed: finalizationSnapshot.noticeConsumed });
+    await recheckLocalCheckoutRelease(release);
+    guard(Date.now() - refreshedAt <= 30000); signal.throwIfAborted();
+    original('decline-final-readback.result.json', { provider: refreshed, app, events, budget, paymentAccepted: false, retryAllowed: false });
+    const prior = ledger.get(c.operationId);
+    guard(prior?.state === 'submitted' && prior.actorId === c.memberId && prior.amountCents === 500 && prior.scenario === 'decline');
+    original('decline-finalization.intent.json', { operationId: c.operationId, actorId: c.memberId, headSha: head,
+     maximumTransitions: 1, from: 'submitted', to: 'verified_decline', originalBudgetHoldsPreserved: true, paymentAccepted: false, retryAllowed: false });
+    ledger.finalizeSubmittedDecline(c.operationId, c.memberId, 500);
+    guard(ledger.get(c.operationId)?.state === 'verified_decline');
+    original('decline-finalization.result.json', { operationId: c.operationId, originalDeclineVerified: true,
+     originalBudgetHoldsPreserved: true, paymentAccepted: false, retryAllowed: false });
+    declineVerified = true;
+   }
+  } catch { failure = true; }
+  try { ledger?.close(); } catch { failure = true; }
+  key?.fill(0); token = undefined; input = undefined; finalizationSnapshot = undefined;
   process.off('SIGINT', stop); process.off('SIGTERM', stop);
  }
  guard(!failure);
- return { nativeOperatorFinished: true, privateFinalRetained: true, independentClosureAndSettlementRequired: true, paymentAccepted: false, retryAllowed: false };
+ return { nativeOperatorFinished: true, privateFinalRetained: true, originalDeclineVerified: declineVerified,
+  independentClosureAndSettlementRequired: !declineVerified, originalBudgetHoldsPreserved: true, paymentAccepted: false, retryAllowed: false };
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
  try {

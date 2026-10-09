@@ -13,7 +13,7 @@ export async function inspectCurrentDeclineApp(target) {
   sql = postgres(configuration.directUrl, { max: 1, connect_timeout: 15, idle_timeout: 5, onnotice() {} });
   return await sql.begin('read only', async tx => {
    await tx.unsafe("SET LOCAL statement_timeout='15000ms'"); await verifyIsolatedTarget(tx, configuration);
-   const members = await tx.unsafe('SELECT u.id,u.email,u.role,u.is_synthetic,u.email_verified IS NOT NULL AS verified,u.frozen_at IS NOT NULL AS frozen,a.id AS agent_id FROM givetogive_user u JOIN givetogive_simulation_agent a ON a.user_id=u.id WHERE a.run_id=$1 AND u.id=$2', [c.runId, c.memberId]);
+   const members = await tx.unsafe('SELECT u.id,u.email,u.role,u.session_version,u.is_synthetic,u.email_verified IS NOT NULL AS verified,u.frozen_at IS NOT NULL AS frozen,a.id AS agent_id FROM givetogive_user u JOIN givetogive_simulation_agent a ON a.user_id=u.id WHERE a.run_id=$1 AND u.id=$2', [c.runId, c.memberId]);
    guard(members.length === 1 && members[0].email === c.memberEmail && members[0].role === 'member' && members[0].is_synthetic &&
     members[0].verified && !members[0].frozen && members[0].agent_id === c.agentId);
    const accounts = await tx.unsafe('SELECT stripe_account_id,livemode FROM givetogive_payment_account WHERE user_id=$1', [c.memberId]);
@@ -31,7 +31,7 @@ export async function inspectCurrentDeclineApp(target) {
    const hooks = await tx.unsafe('SELECT stripe_event_id,object_id,type,status,processed_at FROM givetogive_payment_webhook_inbox WHERE object_id=ANY($1::text[]) AND stripe_account_id=$2 AND livemode=false LIMIT 101', [ids, process.env.STRIPE_PLATFORM_ACCOUNT_ID]);
    guard(hooks.length <= 100);
    return { readOnly: true, databaseIdentity: c.databaseIdentity, actorId: c.memberId, operationId: c.operationId,
-    canonicalCustomerVerified: true, memberVerifiedAndActive: true, paymentStatus: p.status,
+    canonicalCustomerVerified: true, memberVerifiedAndActive: true, memberSessionVersion: members[0].session_version, paymentStatus: p.status,
     paidCoverageCount: 0, paymentLedgerCount: 0, paidPaymentCount: 0,
     subscriptions: subscriptions.map(sub => ({ id: sub.id, kind: sub.kind, status: sub.status, tier: null, paidThrough: sub.paidThrough })),
     failureEvents: hooks.filter(h => ['payment_intent.payment_failed','invoice.payment_failed'].includes(h.type)).map(h => ({

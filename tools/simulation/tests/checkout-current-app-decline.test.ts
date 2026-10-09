@@ -13,7 +13,7 @@ function fixture(): Record<string, any> {
   payment: { id: c.operationId, kind: 'supporter', status: 'checkout_open', grossAmount: 500, currency: 'usd', tier: 'supporter',
    recurring: true, livemode: false, paidAt: null, refundedAmount: 0, disputedAmount: 0 },
   database: { readOnly: true, databaseIdentity: c.databaseIdentity, actorId: c.memberId, operationId: c.operationId,
-   canonicalCustomerVerified: true, memberVerifiedAndActive: true, paymentStatus: 'checkout_open', paidCoverageCount: 0,
+   canonicalCustomerVerified: true, memberVerifiedAndActive: true, memberSessionVersion: 2, paymentStatus: 'checkout_open', paidCoverageCount: 0,
    paymentLedgerCount: 0, paidPaymentCount: 0, subscriptions: [], processedFailureWebhookObserved: false, pendingOrFailedWebhookObserved: false } };
 }
 test('ordinary neighbor and isolated DB no-paid snapshots never authorize original journal finalization', () => {
@@ -52,6 +52,7 @@ test('rejects changed identities, environment, paid entitlement and inconsistent
   (f: Record<string, any>) => { f.database.paymentLedgerCount = 1; },
   (f: Record<string, any>) => { f.database.paidPaymentCount = 1; },
   (f: Record<string, any>) => { f.database.memberVerifiedAndActive = false; },
+  (f: Record<string, any>) => { f.database.memberSessionVersion++; },
  ];
  for (const change of changes) { const f = fixture(); change(f); assert.throws(() => verifyCurrentDeclineAppSnapshot(f, now), /private details withheld/); }
 });
