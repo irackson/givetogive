@@ -3,7 +3,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { allowedCheckoutRequest, allowedPassiveCheckoutWalletScript, sandboxOrigin, stripeOwnedOrigin, type CheckoutScenario, type VerifiedCheckout } from './sandbox-policy.ts';
 import { protectionHeaders } from './protection.ts';
 import { freemem } from 'node:os';
-import { observeSurface, SurfaceReadUnavailable, validateAcknowledgmentSurface, validateNativeSurface, OneNativeClick, type Counters, type CheckoutSurface, type SurfaceReadPhase } from './hosted-checkout-worker.ts';
+import { observeSurface, SurfaceReadUnavailable, validateAcknowledgmentSurface, validateCardSelectionSurface, validateNativeSurface, OneNativeClick, type Counters, type CheckoutSurface, type SurfaceReadPhase } from './hosted-checkout-worker.ts';
 import { approved } from './hosted-checkout-policy.ts';
 
 export interface CheckoutDriver {
@@ -94,6 +94,7 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   pageErrors = 0;
   private readonly counters: Counters = { consoleErrors: 0, pageErrors: 0, httpErrors: 0, blockedRequests: 0, failedRequests: 0, unexpectedPages: 0 };
   private readonly noticeClick = new OneNativeClick();
+  private readonly cardSelectionClick = new OneNativeClick();
   private lastSurface?: CheckoutSurface;
   private observedFreeBytes?: number;
   private surfaceReadFailure?: 'policy_rejected' | 'dom_read_unavailable';
@@ -176,11 +177,6 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   }
   async fillFixture(scenario: Exclude<CheckoutScenario, 'cancel'>) {
     await this.prepareReviewedSurface();
-    // Selecting the visible card option changes UI only; provider configuration remains dynamic.
-    if (this.page) {
-      const card = this.page.getByRole('button', { name: 'Card', exact: true });
-      if (await card.isVisible().catch(() => false)) await card.click();
-    }
     await (await this.find('input[name="cardNumber"], input[autocomplete="cc-number"]')).fill(fixtureCards[scenario]);
     const year = String((new Date().getUTCFullYear() + 2) % 100).padStart(2, '0');
     await (await this.find('input[name="cardExpiry"], input[autocomplete="cc-exp"]')).fill(`12${year}`);
@@ -208,7 +204,7 @@ export class StripeCheckoutDriver implements CheckoutDriver {
     this.memoryFloor();
     if (!this.page) throw new Error('Checkout is not open.');
     try {
-      this.lastSurface = await observeSurface(this.page, this.counters, Date.now());
+      this.lastSurface = await observeSurface(this.page, this.counters, Date.now(), { cardChoice: true });
       this.surfaceReadFailure = undefined;
       this.surfaceReadPhase = undefined;
     } catch (error) {
@@ -222,13 +218,14 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   /** Fixed booleans/counters only. No DOM text, control label, URL, PAN or response body. */
   diagnostics() {
     const surface = this.lastSurface;
-    return { ...this.counters, noticeClickAttempts: this.noticeClick.attempts,
+    return { ...this.counters, noticeClickAttempts: this.noticeClick.attempts, cardSelectionClickAttempts: this.cardSelectionClick.attempts,
       blockedRequestCategories: [...this.blockedRequestCategories.values()], failedRequestCategories: [...this.failedRequestCategories.values()],
       ...(this.observedFreeBytes === undefined ? {} : { observedFreeMiB: Math.floor(this.observedFreeBytes / 1024 ** 2), runtimeMemoryFloorSatisfied: this.observedFreeBytes >= 1.5 * 1024 ** 3 }),
       ...(this.surfaceReadFailure ? { surfaceReadFailure: this.surfaceReadFailure } : {}),
       ...(this.surfaceReadPhase ? { surfaceReadPhase: this.surfaceReadPhase } : {}),
       surfaceObserved: !!surface, ...(surface ? {
         testModeLabel: surface.testModeLabel, visibleCard: surface.visibleCard,
+        cardChoiceCount: surface.cardChoiceCount, cardChoiceVisible: surface.cardChoiceVisible, cardChoiceEnabled: surface.cardChoiceEnabled,
         panelCount: surface.panelCount, reviewedPanelMatches: surface.panelDigest === approved.panelDigest,
         reviewedControlMatches: surface.controlName === approved.controlName,
         controlCount: surface.controlCount, visible: surface.visible, enabled: surface.enabled, unchecked: surface.unchecked,
@@ -250,7 +247,7 @@ export class StripeCheckoutDriver implements CheckoutDriver {
         if (!(error instanceof SurfaceReadUnavailable) || error.phase !== 'frame-discovery') throw error;
         frameReadUnavailable = true; await sleep(200); continue;
       }
-      if (surface.panelCount || surface.visibleCard || surface.unknownInstructions || surface.requiresCaptchaOrWalletOrAttestation) break;
+      if (surface.panelCount || surface.visibleCard || surface.cardChoiceCount || surface.unknownInstructions || surface.requiresCaptchaOrWalletOrAttestation) break;
       await sleep(200);
     }
     if (frameReadUnavailable) throw new SurfaceReadUnavailable('frame-discovery');
@@ -274,6 +271,24 @@ export class StripeCheckoutDriver implements CheckoutDriver {
         await control.waitFor({ state: 'hidden', timeout: 5000 });
       } else if (surface.visibleCard) {
         validateNativeSurface(surface, Date.now()); return;
+      } else if (surface.cardChoiceCount && this.cardSelectionClick.attempts === 0) {
+        validateCardSelectionSurface(surface, Date.now());
+        let choice: Locator | undefined;
+        for (const frame of this.frames()) {
+          const choices = frame.getByRole('button', { name: 'Card', exact: true });
+          const count = await choices.count();
+          if (count > 16) throw new Error('Card choice bound exceeded.');
+          for (let index = 0; index < count; index++) {
+            const candidate = choices.nth(index);
+            if (await candidate.isVisible()) {
+              if (choice || !await candidate.isEnabled()) throw new Error('Card choice changed.');
+              choice = candidate;
+            }
+          }
+        }
+        if (!choice) throw new Error('Card choice disappeared.');
+        validateCardSelectionSurface(await this.readSurface(), Date.now());
+        await this.cardSelectionClick.perform(true, new AbortController().signal, async () => { await choice!.click({ timeout: 5000 }); });
       } else if (surface.requiresCaptchaOrWalletOrAttestation || surface.unknownInstructions || surface.consoleErrors || surface.pageErrors || surface.httpErrors) {
         throw new Error('Unreviewed or unhealthy Checkout surface.');
       }

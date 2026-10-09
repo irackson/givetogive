@@ -31,6 +31,7 @@ export interface CheckoutSurface {
 	panelDigest: string | null; controlName: string; controlCount: number; visible: boolean;
 	enabled: boolean; unchecked: boolean; optionalLinkDeferred: true;
 	requiresCaptchaOrWalletOrAttestation: boolean; unknownInstructions: boolean;
+	cardChoiceCount?: number; cardChoiceVisible?: boolean; cardChoiceEnabled?: boolean;
 	consoleErrors: number; pageErrors: number; httpErrors: number;
 }
 export type Counters = { consoleErrors: number; pageErrors: number; httpErrors: number; blockedRequests: number; failedRequests: number; unexpectedPages: number };
@@ -109,6 +110,17 @@ export function validateAcknowledgmentSurface(raw: unknown, now: number): void {
 		&& value.optionalLinkDeferred === true && value.requiresCaptchaOrWalletOrAttestation === false && value.unknownInstructions === false
 		&& value.consoleErrors === 0 && value.pageErrors === 0 && value.httpErrors === 0);
 }
+/** Selecting the visible Card option reveals fields, not a payment submission.
+ * This separate guard must never manufacture visibleCard for native admission. */
+export function validateCardSelectionSurface(raw: unknown, now: number): void {
+	const value = object(raw), time = typeof value.observedAt === 'string' ? Date.parse(value.observedAt) : NaN;
+	requirePolicy(Number.isFinite(now) && Number.isFinite(time) && now - time >= -limits.futureSkewMs && now - time <= limits.surfaceAgeMs
+		&& value.testModeLabel === true && value.visibleCard === false && value.panelCount === 0 && value.panelDigest === null
+		&& value.controlCount === 0 && value.controlName === '' && value.visible === false && value.enabled === false && value.unchecked === false
+		&& value.optionalLinkDeferred === true && value.requiresCaptchaOrWalletOrAttestation === false && value.unknownInstructions === false
+		&& value.consoleErrors === 0 && value.pageErrors === 0 && value.httpErrors === 0
+		&& value.cardChoiceCount === 1 && value.cardChoiceVisible === true && value.cardChoiceEnabled === true);
+}
 function ownedProvider(raw: string): boolean {
 	try { const url = new URL(raw); return url.protocol === 'https:' && !url.username && !url.password
 		&& (!url.port || url.port === '443') && (url.hostname === 'stripe.com' || url.hostname.endsWith('.stripe.com')
@@ -140,9 +152,9 @@ async function uniqueVisible(frames: Frame[], selector: string, optional = false
 	requirePolicy(optional || !!found); return found;
 }
 /** DOM read only: compute redacted panel digest in the provider frame; return no DOM text/URLs. */
-export async function observeSurface(page: Page, counters: Counters, now: number): Promise<CheckoutSurface> {
+export async function observeSurface(page: Page, counters: Counters, now: number, options: { cardChoice?: boolean } = {}): Promise<CheckoutSurface> {
 	const observation: { phase: SurfaceReadPhase } = { phase: 'frame-discovery' };
-	try { return await observeSurfaceBody(page, counters, now, observation); }
+	try { return await observeSurfaceBody(page, counters, now, observation, options); }
 	catch (error) {
 		if (error instanceof Error && error.message === 'Hosted Checkout policy rejected; private details withheld.') throw error;
 		// Never retain the Playwright cause: it can contain private URLs or DOM values.
@@ -157,7 +169,7 @@ export class SurfaceReadUnavailable extends Error {
 		this.phase = phase;
 	}
 }
-async function observeSurfaceBody(page: Page, counters: Counters, now: number, observation: { phase: SurfaceReadPhase }): Promise<CheckoutSurface> {
+async function observeSurfaceBody(page: Page, counters: Counters, now: number, observation: { phase: SurfaceReadPhase }, options: { cardChoice?: boolean }): Promise<CheckoutSurface> {
 	const frames = await visibleFrames(page);
 	let panelCount = 0, controlCount = 0, panelDigest: string | null = null;
 	let testModeLabel = false, unknownInstructions = false, challenge = false, visible = false, enabled = false, unchecked = false, controlName = '';
@@ -211,7 +223,17 @@ async function observeSurfaceBody(page: Page, counters: Counters, now: number, o
 	const cards = panelCount ? undefined : await uniqueVisible(frames, cardFields.number, true);
 	const expiry = panelCount ? undefined : await uniqueVisible(frames, cardFields.expiry, true);
 	const cvc = panelCount ? undefined : await uniqueVisible(frames, cardFields.cvc, true);
+	let cardChoiceCount = 0, cardChoiceEnabled = false;
+	for (const frame of options.cardChoice ? frames : []) {
+		const choices = frame.getByRole('button', { name: 'Card', exact: true });
+		const count = await choices.count(); requirePolicy(count <= 16);
+		for (let index = 0; index < count; index++) {
+			const choice = choices.nth(index);
+			if (await choice.isVisible()) { cardChoiceCount++; cardChoiceEnabled = await choice.isEnabled(); }
+		}
+	}
 	return { observedAt: new Date(now).toISOString(), testModeLabel, visibleCard: !!cards && !!expiry && !!cvc,
+		...(options.cardChoice ? { cardChoiceCount, cardChoiceVisible: cardChoiceCount > 0, cardChoiceEnabled } : {}),
 		panelCount, panelDigest, controlName, controlCount, visible, enabled, unchecked, optionalLinkDeferred: true,
 		requiresCaptchaOrWalletOrAttestation: challenge, unknownInstructions,
 		consoleErrors: counters.consoleErrors, pageErrors: counters.pageErrors,

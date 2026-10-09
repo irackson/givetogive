@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import superjson from 'superjson';
 import type { BrowserType } from 'playwright';
 import { approved, limits, digest, assetName, memberQueryRequestAllowed, type Manifest, type Proof } from '../src/hosted-checkout-policy.ts';
-import { deriveMemberIdentity, queryAddress, scopedHeaders, OneNativeClick, validateNativeSurface, validateAcknowledgmentSurface,
+import { deriveMemberIdentity, queryAddress, scopedHeaders, OneNativeClick, validateNativeSurface, validateAcknowledgmentSurface, validateCardSelectionSurface,
 	runHostedCheckoutMember, type CheckoutMemberBroker, type CheckoutWorkerRuntime } from '../src/hosted-checkout-worker.ts';
 
 // Pure public synthetic fixtures. Every browser, auth, response and broker below is an in-memory fake.
@@ -49,6 +49,17 @@ const payment = { id: approved.operationId, kind: 'supporter', status: 'checkout
 const cardSurface = { observedAt: new Date(NOW).toISOString(), testModeLabel: true, visibleCard: true, panelCount: 0,
 	panelDigest: null, controlName: '', controlCount: 0, visible: false, enabled: false, unchecked: false,
 	optionalLinkDeferred: true, requiresCaptchaOrWalletOrAttestation: false, unknownInstructions: false, consoleErrors: 0, pageErrors: 0, httpErrors: 0 };
+
+test('revealing a Card choice requires fresh healthy test-mode evidence and never satisfies native submit admission', () => {
+	const selection = { ...cardSurface, visibleCard: false, cardChoiceCount: 1, cardChoiceVisible: true, cardChoiceEnabled: true };
+	assert.doesNotThrow(() => validateCardSelectionSurface(selection, NOW));
+	assert.throws(() => validateNativeSurface(selection, NOW));
+	for (const change of [{ testModeLabel: false }, { visibleCard: true }, { panelCount: 1 }, { panelDigest: 'private-fixture' },
+		{ cardChoiceCount: 0 }, { cardChoiceCount: 2 }, { cardChoiceVisible: false }, { cardChoiceEnabled: false },
+		{ controlCount: 1 }, { requiresCaptchaOrWalletOrAttestation: true }, { unknownInstructions: true },
+		{ consoleErrors: 1 }, { pageErrors: 1 }, { httpErrors: 1 }, { observedAt: new Date(NOW - 5001).toISOString() }])
+		assert.throws(() => validateCardSelectionSurface({ ...selection, ...change }, NOW));
+});
 
 test('actual session and billing-management response shape derives exact neighbor identity, including SuperJSON Date', () => {
 	const identity = deriveMemberIdentity(session, session, availability, overview, [], payment, proof(), NOW, '8'.repeat(32));

@@ -149,6 +149,18 @@ test('read-only observation refuses persistent frame failure and does not retry 
   await assert.rejects(observed.inspectSurface(1), SurfaceReadUnavailable);
   assert.equal(reads, 1);
 });
+
+test('read-only observation reports a collapsed Card choice without selecting it or entering a fixture', async () => {
+  const observed = new StripeCheckoutDriver('', 'readonly-card-choice@givetogive.invalid');
+  let reads = 0;
+  Object.assign(observed, { async readSurface() { reads++; return { visibleCard: false, cardChoiceCount: 1 }; },
+    async fillFixture() { assert.fail('Inspection cannot enter a card fixture.'); },
+    async submit() { assert.fail('Inspection cannot submit a payment.'); } });
+  await observed.inspectSurface(1000);
+  assert.equal(reads, 1);
+  assert.equal(observed.diagnostics().cardSelectionClickAttempts, 0);
+  assert.equal(observed.diagnostics().noticeClickAttempts, 0);
+});
 test('sandbox verification rejects live, wrong actor/origin/run, stale, expired and over-budget sessions before opening a browser', () => {
   const { boundary, context } = fixture();
   assert.doesNotThrow(() => validateCheckoutContext(context, boundary));

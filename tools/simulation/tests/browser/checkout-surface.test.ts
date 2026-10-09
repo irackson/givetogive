@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { chromium, type Browser, type Page } from 'playwright';
-import { observeSurface, SurfaceReadUnavailable, validateNativeSurface, validateAcknowledgmentSurface, type Counters } from '../../src/hosted-checkout-worker.ts';
+import { observeSurface, SurfaceReadUnavailable, validateNativeSurface, validateAcknowledgmentSurface, validateCardSelectionSurface, type Counters } from '../../src/hosted-checkout-worker.ts';
 import { StripeCheckoutDriver, checkoutBrowserEnvironment } from '../../src/stripe-checkout-driver.ts';
 import { allowedPassiveCheckoutWalletScript } from '../../src/sandbox-policy.ts';
 
@@ -26,7 +26,7 @@ test('real secret-free Chromium can be acquired and closed before any Checkout o
   } finally { await driver.close(); }
 });
 async function fixture(html: string, inspect: (page: Page) => Promise<void>) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, env: checkoutBrowserEnvironment() });
   try {
     const context = await browser.newContext({ acceptDownloads: false, serviceWorkers: 'block' });
     let requests = 0;
@@ -146,4 +146,40 @@ test('actual Chromium admits only intercepted official wallet SDK script loads w
     const surface = await observeSurface(page, counters(), Date.now());
     assert.doesNotThrow(() => validateNativeSurface(surface, Date.now()));
   } finally { await browser.close(); }
+});
+
+test('actual driver reveals a collapsed Card section once before fixture entry, never submits or collapses it again', async () => {
+  const html = '<p>Test mode</p><button type="button" onclick="window.cardSelections=(window.cardSelections||0)+1;document.querySelector(\'#fields\').hidden=false">Card</button>' +
+    '<div id="fields" hidden><input name="cardNumber"><input name="cardExpiry"><input name="cardCvc"></div>';
+  await fixture(html, async page => {
+    const before = await observeSurface(page, counters(), Date.now(), { cardChoice: true });
+    assert.equal(before.visibleCard, false);
+    assert.equal(before.cardChoiceCount, 1);
+    assert.doesNotThrow(() => validateCardSelectionSurface(before, Date.now()));
+    assert.throws(() => validateNativeSurface(before, Date.now()));
+    const driver = new StripeCheckoutDriver('', 'collapsed-card-fixture@givetogive.invalid');
+    Object.assign(driver, { page });
+    await driver.fillFixture('success');
+    assert.equal(await page.evaluate(() => (window as unknown as { cardSelections: number }).cardSelections), 1);
+    assert.equal(driver.diagnostics().cardSelectionClickAttempts, 1);
+    assert.equal(driver.diagnostics().noticeClickAttempts, 0);
+    assert.equal((await page.locator('input[name="cardNumber"]').inputValue()).length, 16);
+    const after = await observeSurface(page, counters(), Date.now());
+    assert.doesNotThrow(() => validateNativeSurface(after, Date.now()));
+  });
+});
+
+for (const [name, html] of [
+  ['duplicate Card options', '<p>Test mode</p><button>Card</button><button>Card</button>'],
+  ['disabled Card option', '<p>Test mode</p><button disabled>Card</button>'],
+  ['non-test page', '<p>Payment</p><button>Card</button>'],
+  ['unknown alert', '<p>Test mode</p><button>Card</button><div role="alert">Unreviewed condition</div>'],
+]) test(`actual driver refuses card selection on ${name}`, async () => {
+  await fixture(html, async page => {
+    const driver = new StripeCheckoutDriver('', 'refused-card-fixture@givetogive.invalid');
+    Object.assign(driver, { page });
+    await assert.rejects(driver.fillFixture('success'));
+    assert.equal(driver.diagnostics().cardSelectionClickAttempts, 0);
+    assert.equal(driver.diagnostics().noticeClickAttempts, 0);
+  });
 });
