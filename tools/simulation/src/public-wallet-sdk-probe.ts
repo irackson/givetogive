@@ -38,7 +38,7 @@ export async function probePublicWalletSdks() {
       const request = route.request();
       if (request.url() === main && request.isNavigationRequest() && request.method() === 'GET') {
         await route.fulfill({ contentType: 'text/html', body: '<html><head><link rel="icon" href="data:,"></head><body>' +
-          `<script src="${publicWalletScripts[0]}"></script><script src="${publicWalletScripts[3]}"></script></body></html>` });
+          `<script src="${publicWalletScripts[0]}"></script><script src="${publicWalletScripts[3]}"></script><script src="${publicWalletScripts[4]}"></script></body></html>` });
         return;
       }
       if (!publicWalletScripts.includes(request.url() as typeof publicWalletScripts[number]) ||
@@ -65,13 +65,14 @@ export async function probePublicWalletSdks() {
     page.on('console', message => { if (message.type() === 'error') consoleErrors++; });
     context.on('page', other => { if (other !== page) { blockedRequests++; void other.close(); } });
     await page.goto(main, { waitUntil: 'load', timeout: 45000 });
-    await page.waitForFunction(() => Boolean(customElements.get('apple-pay-button') && customElements.get('wallet-button')), null, { timeout: 15000 }).catch(() => undefined);
+    await page.waitForFunction(() => Boolean(customElements.get('apple-pay-button') && customElements.get('apple-wallet-button')), null, { timeout: 15000 }).catch(() => undefined);
     const registered = await page.evaluate(() => {
-      const value = window as unknown as { ApplePaySDK?: unknown; amazon?: { Pay?: unknown } };
+      const value = window as unknown as { ApplePaySDK?: unknown; PartnerExpressFactory?: unknown; amazon?: { Pay?: unknown } };
       return { appleSdk: Boolean(value.ApplePaySDK), appleButton: Boolean(customElements.get('apple-pay-button')),
-        walletButton: Boolean(customElements.get('wallet-button')), amazonSdk: Boolean(value.amazon?.Pay) };
+        walletButton: Boolean(customElements.get('apple-wallet-button')), amazonSdk: Boolean(value.amazon?.Pay), amazonStripeFactory: Boolean(value.PartnerExpressFactory) };
     });
-    const passed = !assetFailures && !pageErrors && registered.appleSdk && registered.appleButton && registered.walletButton && registered.amazonSdk;
+    const passed = publicWalletScripts.every(url => observed.has(url)) && !assetFailures && !pageErrors &&
+      registered.appleSdk && registered.appleButton && registered.walletButton && registered.amazonSdk && registered.amazonStripeFactory;
     const result = { passed, publicSdkExecution: true, financialAuthority: false, financialActions: 0, paymentAccepted: false,
       assets: publicWalletScripts.map(url => ({ name: new URL(url).pathname.split('/').at(-1), loads: observed.get(url) ?? 0 })),
       registered, blockedRequests, pageErrors, consoleErrors, assetFailures };
