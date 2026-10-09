@@ -38,7 +38,12 @@ function fixture(mode = 'ok') {
   }
   if (method === 'PATCH') {
    assert.equal(path.endsWith('/releases/42'), true); assert.ok(existsSync(join(directory, 'association-write.intent.json')));
-   writes.push('associate'); release = { ...release, ...JSON.parse(String(init?.body)) };
+   const update = JSON.parse(String(init?.body));
+   assert.deepEqual(Object.keys(update).sort(), ['body','draft','prerelease','tag_name','target_commitish']);
+   assert.equal(update.tag_name, release.tag_name); assert.equal(update.target_commitish, head);
+   assert.equal(update.draft, true); assert.equal(update.prerelease, false);
+   writes.push('associate'); release = { ...release, ...update };
+   if (mode === 'tag-drift') release.tag_name = 'untagged-public-fixture';
    if (mode === 'uncertain-patch') throw Error('offline uncertain patch'); return reply(release);
   }
   assert.equal(method, 'GET');
@@ -75,7 +80,7 @@ test('one current dispatch and exact private association retain all write intent
  } finally { f.cleanup(); }
 });
 test('uncertain create, dispatch, association and changed readback never replay', async () => {
- for (const mode of ['uncertain-create', 'uncertain-dispatch', 'uncertain-patch', 'changed-readback', 'public-draft']) {
+ for (const mode of ['uncertain-create', 'uncertain-dispatch', 'uncertain-patch', 'changed-readback', 'public-draft', 'tag-drift']) {
   const f = fixture(mode); try {
    await assert.rejects(() => dispatchCurrentCheckoutWorker(f.options)); const writes = [...f.writes];
    await assert.rejects(() => dispatchCurrentCheckoutWorker(f.options)); assert.deepEqual(f.writes, writes);

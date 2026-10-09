@@ -1,5 +1,36 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 16:49 UTC: empty transport failed on GitHub draft tag drift
+
+Signed `8505845` full verification `37960552675` passed. Explicit native run
+`37961347241` reached actual owned Chromium readiness, but FAILED at association.
+Root retained only its association-write intent; no result, private input,
+preparation or submission exists. Authenticated readback proves the exact initial
+job/nonce/profile association was written, but GitHub replaced the intended tag
+with `untagged-*` during the body-only PATCH. Both sides correctly rejected that
+changed identity; the draft remains private, unpublished and empty. Original run,
+draft and receipts remain untouched, with no closure/payment success claim.
+Fresh provider/SQL/original-budget readback at 16:48:44 still proves the candidate
+unused, exactly two old expired/unpaid sessions and zero paid coverage/ledger.
+
+The next source pins tag, target commit, draft=true and prerelease=false on the
+one association PATCH. Regression fixtures assert all fields and preserve a
+tag-drift failure as non-retryable. A separate exact-hash preparation-free
+`--execute-reviewed-association-recovery` uses a new root/private draft without
+repairing or rebinding the old transport. Its reader requires the exact failed
+first-attempt job, exact old association, observed untagged identity, empty assets
+and immutable no-input/no-preparation/no-submission root tree. Fresh independent
+source/provider/SQL/original-budget gates remain mandatory; verify/sign first.
+
+Release rechecks retain all current metadata/runtime/alias reads, but perform
+independent metadata GETs concurrently. Initial explicit CLI project inspection
+is process-bound to the unchanged local link; no new credential source, remote
+metadata cache, protection change or weakened freshness limit is introduced.
+The duplicate post-dispatch budget/source check is removed because input
+preparation independently performs that exact gate before ANY financial intent.
+This avoids consuming browser freshness on redundant reads. No Vercel release
+needed; no actual payment or full-goal acceptance yet.
+
 ## October 9 16:21 UTC: genuine Chromium readiness and shutdown passed
 
 Signed `b7cb0c8` full verification `37957565355` passed. Separate native

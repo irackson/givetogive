@@ -102,7 +102,11 @@ export async function dispatchCurrentCheckoutWorker(options: {
    { ...(options.request ? { request: options.request } : {}), now });
   await options.verifyCurrent(signal); signal.throwIfAborted();
   record('association-write.intent.json', { releaseId: created.id, profileDigest: observation.readiness.profileDigest, maximumPatches: 1, retryAllowed: false });
-  await api(`releases/${created.id}`, 'PATCH', { body: JSON.stringify(draft.association) });
+  // GitHub replaced the intended tag with untagged-* on the observed body-only
+  // draft PATCH. Pin every identity/publication field; retain the original draft
+  // and reject any changed readback rather than accepting its replacement tag.
+  await api(`releases/${created.id}`, 'PATCH', { body: JSON.stringify(draft.association),
+   tag_name: tag, target_commitish: options.headSha, draft: true, prerelease: false });
   const inventory = await draft.inspect(signal); guard(inventory.assets.length === 0);
   await observeCurrentCheckoutReadiness({ headSha: options.headSha, workflowRunId }, options.source,
    { token: options.token, signal, request: options.request, now, original: observation });

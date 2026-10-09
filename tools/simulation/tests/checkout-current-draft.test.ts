@@ -25,7 +25,7 @@ function fixture(){
  const p=profile(),binding={releaseId:123,operationId:p.operationId,job:{id:p.job.jobId,nonce:p.job.jobNonce,headSha:head}};
  const rows:Row[]=[],bytes=new Map<number,Buffer>(),calls:Call[]=[];let nextId=10;
  const release={id:123,draft:true,prerelease:false,published_at:null,target_commitish:head,
-  tag_name:`checkout-current-${p.operationId}-readiness-recovery-v1`,body:'',assets:rows};
+  tag_name:`checkout-current-${p.operationId}-association-recovery-v1`,body:'',assets:rows};
  const controls:{publiclyVisible?:boolean;failPost?:boolean;corruptReadback?:boolean}={};
  const request=(async(input:RequestInfo|URL,init?:RequestInit)=>{
   const call={url:String(input),method:init?.method??'GET',headers:new Headers(init?.headers),body:init?.body};calls.push(call);

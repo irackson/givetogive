@@ -1,6 +1,7 @@
 // Local read-only release verification. Import/default is inert; no relink,
 // deploy, environment change, secret dump, member login or payment action.
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execFile } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -29,12 +30,23 @@ export function releaseCliArguments(args) {
  // do not add --yes, relink, or approve new protection access as a workaround.
  return args[0] === 'curl' ? [cli, ...args] : [cli, '--non-interactive', ...args];
 }
-function vc(args) { return execFileSync(process.execPath, releaseCliArguments(args), {
- cwd: root, windowsHide: true, stdio: ['ignore','pipe','pipe'], timeout: 30000, maxBuffer: 2 * 1024 * 1024 }); }
-function api(path) {
- const bytes = vc(['api', `${path}?teamId=${team}`, '--raw']);
+function vcReadAsync(args) {
+ return new Promise((accept, reject) => execFile(process.execPath, releaseCliArguments(args), {
+  cwd: root, windowsHide: true, encoding: 'buffer', timeout: 30000, maxBuffer: 2 * 1024 * 1024,
+ }, (error, stdout, stderr) => { stderr.fill(0); if (error) { stdout.fill(0); reject(Error('Release read failed; private details withheld.')); }
+  else accept(stdout); }));
+}
+async function apiReadAsync(path) {
+ const bytes = await vcReadAsync(['api', `${path}?teamId=${team}`, '--raw']);
  try { return JSON.parse(bytes.toString('utf8')); } finally { bytes.fill(0); }
 }
+/** Pure coordination, not native verification or financial authority. Each
+ * target remains explicit; the native caller validates all three snapshots. */
+export function parallelReleaseMetadataReads(read) {
+ return Promise.all([read(`/v9/projects/${projectId}`), read(`/v13/deployments/${deploymentId}`),
+  read('/v4/aliases/givetogive-staging.vercel.app')]);
+}
+const linkDigest = () => createHash('sha256').update(readFileSync(resolve(root, '.vercel/project.json'))).digest('hex');
 const verifiedSnapshots = new WeakSet();
 /** Pure metadata check; READY, project/alias and runtime are checked separately. */
 export function matchesReviewedCheckoutUpload(metadata) {
@@ -62,6 +74,7 @@ async function inspectRelease(original) {
    git(['status','--porcelain','--untracked-files=no']).toString().trim() === '');
   git(['verify-commit', head]);
   if (original) guard(head === original.headSha && releaseSourceDigest(root) === original.sourceDigest);
+  const contextDigest = linkDigest(); if (original) guard(contextDigest === original.contextDigest);
   // Different tooling commits may use the SAME authored application. Verify the
   // actual app bytes, not equality between the runner and deployed Git SHAs.
   guard(git(['diff','--name-only', appSha, head, '--', ...names]).toString().trim() === '');
@@ -83,15 +96,17 @@ async function inspectRelease(original) {
    releaseSourceDigest(root) === checkoutReleaseBinding.sourceDigest);
   // Explicit context inspection; never rewrite the checkout's production link.
   phase = 'hosting-metadata';
-  vc(['project','inspect','givetogive-staging','--scope',team]);
-  const project = api(`/v9/projects/${projectId}`), deployment = api(`/v13/deployments/${deploymentId}`);
-  const alias = api('/v4/aliases/givetogive-staging.vercel.app');
+  // Explicit initial native context remains bound by the unchanged local link
+  // and process-owned original. No relink, metadata cache, stale gate or new
+  // credential path. Independent current provider reads run concurrently.
+  if (!original) { const bytes = await vcReadAsync(['project','inspect','givetogive-staging','--scope',team]); bytes.fill(0); }
+  const [project, deployment, alias] = await parallelReleaseMetadataReads(apiReadAsync);
   guard(project.id === projectId && project.name === 'givetogive-staging' && project.accountId === team && project.nodeVersion === '24.x' &&
    project.ssoProtection?.deploymentType === 'all' && deployment.id === deploymentId && deployment.projectId === projectId &&
    deployment.readyState === 'READY' && deployment.nodeVersion === '24.x' && matchesReviewedCheckoutUpload(deployment.meta) &&
    alias.projectId === projectId && alias.deployment?.id === deploymentId);
   phase = 'protected-runtime-read';
-  const bytes = vc(['curl','/api/trpc/billing.availability','--deployment',origin,'--scope',team,'--','--silent','--show-error','--fail','--max-time','20']);
+  const bytes = await vcReadAsync(['curl','/api/trpc/billing.availability','--deployment',origin,'--scope',team,'--','--silent','--show-error','--fail','--max-time','20']);
   let availability;
   try { const value = JSON.parse(bytes.toString('utf8')); availability = value.result?.data?.json; } finally { bytes.fill(0); }
   phase = 'runtime-gates';
@@ -101,12 +116,12 @@ async function inspectRelease(original) {
    availability.publishableKey === process.env.STRIPE_PUBLISHABLE_KEY);
   // Reobserve the alias after runtime observation; no stale promotion assumption.
   phase = 'final-binding';
-  const after = api('/v4/aliases/givetogive-staging.vercel.app');
+  const after = await apiReadAsync('/v4/aliases/givetogive-staging.vercel.app');
   guard(after.projectId === projectId && after.deployment?.id === deploymentId &&
    git(['rev-parse','HEAD']).toString().trim() === head && git(['status','--porcelain','--untracked-files=no']).toString().trim() === '');
   const result = Object.freeze({ observedAt, sourceObservedAt: original ? original.sourceObservedAt : observedAt,
    headSha: head, deploymentId, deployedAppSha: appSha, canonicalSourceDigest, rootLockDigest,
-   sourceDigest: releaseSourceDigest(root), ready: true, protected: true, nodeVersion: '24.x',
+   sourceDigest: releaseSourceDigest(root), contextDigest, ready: true, protected: true, nodeVersion: '24.x',
    runtimeGatesVerified: true, publishableKeyMatchesLocal: true, deployedCanonicalAppMatchesHead: true,
    sourceApprovalStillRequired: true, financialAdmission: false, databaseWrites: 0, memberActions: 0, paymentAccepted: false });
   verifiedSnapshots.add(result); return result;

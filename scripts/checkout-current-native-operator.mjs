@@ -9,8 +9,8 @@ import { setTimeout as sleep } from 'node:timers/promises';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const guard = value => { if (!value) throw Error('Current native operator stopped; originals and holds retained; no retry; private details withheld.'); };
 export async function executeCurrentNativeOperator(recovery = 'none') {
- guard(['none', 'predispatch', 'readiness'].includes(recovery));
- const predispatchRecovery = recovery === 'predispatch', readinessRecovery = recovery === 'readiness';
+ guard(['none', 'predispatch', 'readiness', 'association'].includes(recovery));
+ const predispatchRecovery = recovery === 'predispatch', readinessRecovery = recovery === 'readiness', associationRecovery = recovery === 'association';
  guard(process.platform === 'win32' && Number(process.versions.node.split('.')[0]) === 24);
  const { currentCheckoutCandidate: c, currentCheckoutSourceEvidence } = await import('../tools/simulation/src/checkout-current-profile.ts')
   .then(async value => ({ ...value, currentCheckoutSourceEvidence: (await import('../tools/simulation/src/checkout-current-preflight.ts')).currentCheckoutSourceEvidence }));
@@ -73,7 +73,18 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
   }finally{githubToken=undefined;}
   prerequisites=await inspectCurrentCheckoutPrerequisites();
  }
- const directory = join(state, `current-native-${c.operationId}${predispatchRecovery ? '-predispatch-recovery-v1' : readinessRecovery ? '-readiness-recovery-v1' : ''}`); mkdirSync(directory, { mode: 0o700 });
+ if (associationRecovery) {
+  const { readAssociationRecovery, observeAssociationRecoveryRemote, associationRecoveryBinding: b } = await import('./checkout-association-recovery.mjs');
+  recoveryProof = readAssociationRecovery(join(state, `current-native-${c.operationId}-readiness-recovery-v1`), c.operationId, c.memberId);
+  guard(git(['diff','--name-only',b.diagnosticHead,head,'--','tools/simulation/src/checkout-current-parent.ts',
+   'tools/simulation/src/checkout-process-observation.ts','tools/simulation/src/checkout-current-member-entry.mjs']).toString().trim()==='');
+  const bytes=execFileSync('gh',['auth','token'],{windowsHide:true,stdio:['ignore','pipe','pipe']});let githubToken;
+  try{githubToken=bytes.toString().trim();}finally{bytes.fill(0);}
+  try{const remote=await observeAssociationRecoveryRemote(recoveryProof,githubToken);guard(remote.transportEvidence==='github-live-association-recovery');}
+  finally{githubToken=undefined;}
+  prerequisites=await inspectCurrentCheckoutPrerequisites();
+ }
+ const directory = join(state, `current-native-${c.operationId}${predispatchRecovery ? '-predispatch-recovery-v1' : readinessRecovery ? '-readiness-recovery-v1' : associationRecovery ? '-association-recovery-v1' : ''}`); mkdirSync(directory, { mode: 0o700 });
  const { writeBootstrapOriginal } = await import('../tools/simulation/src/checkout-bootstrap-retention.ts');
  const original = (name, value, location = directory) => {
   const data = Buffer.isBuffer(value) ? value : Buffer.from(JSON.stringify(value));
@@ -82,7 +93,7 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
  original('operator-lease.json', { headSha: head, operationId: c.operationId, maximumMemberSignIns: 1, maximumPreparations: 1,
   maximumSubmissions: 1, noHistoryReset: true, paymentAccepted: false, retryAllowed: false });
  original('release.original.json', release); original('prerequisites.original.json', prerequisites.summary);
- if(recoveryProof)original(readinessRecovery?'readiness-recovery.original.json':'predispatch-recovery.original.json',recoveryProof);
+ if(recoveryProof)original(associationRecovery?'association-recovery.original.json':readinessRecovery?'readiness-recovery.original.json':'predispatch-recovery.original.json',recoveryProof);
  const controller = new AbortController(), stop = () => controller.abort(), signal = AbortSignal.any([controller.signal, AbortSignal.timeout(1500000)]);
  let key, token, session, preparation, ledger, worker, broker, responder, input, stripe, finalizationSnapshot, finalizationReady = false, declineVerified = false, failure = false;
  const { loadCheckoutTransferKey } = await import('../tools/simulation/scripts/provision-checkout-key.mjs');
@@ -132,7 +143,9 @@ export async function executeCurrentNativeOperator(recovery = 'none') {
   session = await UiSession.signIn(c.origin, account, bypass);
   worker = await dispatchCurrentCheckoutWorker({ root: directory, headSha: head, source, token, signal, verifyCurrent });
   guard(worker.nativeEvidence === 'github-live-current-dispatch');
-  await verifyCurrent(signal); prerequisites = await inspectCurrentCheckoutPrerequisites();
+  // prepareCurrentCheckoutInput independently rechecks live source/job/member,
+  // provider/SQL/original unused budget before retaining ANY financial intent.
+  // Do not duplicate that full read between discovery and its readiness gate.
   // ORIGINAL run paths exist and were SELECT-verified above. Never initialize a
   // fresh journal to evade expired/ambiguous holds.
   preparation = new UiCheckoutPreparation(join(run, 'financial-intents.sqlite'), plan);
@@ -327,6 +340,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (process.argv.length === 3 && process.argv[2] === '--execute-reviewed-current') console.log(JSON.stringify(await executeCurrentNativeOperator()));
   else if(process.argv.length===3&&process.argv[2]==='--execute-reviewed-predispatch-recovery')console.log(JSON.stringify(await executeCurrentNativeOperator('predispatch')));
   else if(process.argv.length===3&&process.argv[2]==='--execute-reviewed-readiness-recovery')console.log(JSON.stringify(await executeCurrentNativeOperator('readiness')));
+  else if(process.argv.length===3&&process.argv[2]==='--execute-reviewed-association-recovery')console.log(JSON.stringify(await executeCurrentNativeOperator('association')));
   else { guard(process.argv.length === 2); console.log(JSON.stringify({ execute: false, externalRequests: 0, checkoutCreated: false, paymentAccepted: false })); }
  } catch { console.error('Current native operator stopped; originals and holds retained; no retry; private details withheld.'); process.exitCode = 1; }
 }

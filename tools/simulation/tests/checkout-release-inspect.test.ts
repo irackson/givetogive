@@ -1,5 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { parallelReleaseMetadataReads } from '../../../scripts/checkout-release-inspect.mjs';
+
+test('three current explicit metadata GETs start together; a failure rejects rather than becoming cached proof', async () => {
+ const starts: string[] = [], releases: Array<(value: unknown) => void> = [];
+ const pending = parallelReleaseMetadataReads(path => { starts.push(path); return new Promise(resolve => releases.push(resolve)); });
+ assert.equal(starts.length, 3); assert.equal(releases.length, 3);
+ assert.ok(starts[0]!.startsWith('/v9/projects/')); assert.ok(starts[1]!.startsWith('/v13/deployments/'));
+ assert.equal(starts[2], '/v4/aliases/givetogive-staging.vercel.app');
+ releases.forEach((resolve, index) => resolve(index)); assert.deepEqual(await pending, [0,1,2]);
+ await assert.rejects(() => parallelReleaseMetadataReads(async () => { throw Error('offline unavailable'); }));
+});
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const url = new URL('../../../scripts/checkout-release-inspect.mjs', import.meta.url), script = fileURLToPath(url);
