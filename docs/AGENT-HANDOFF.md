@@ -1,5 +1,34 @@
 # Resume here: payments and simulation checkpoint
 
+## Current encrypted root responder implemented (October 9)
+
+Prepared-budget head `c7207b3` hosted verification **37882074759 SUCCESS/terminal**.
+New `checkout-current-responder.ts` connects the encrypted current parent phase
+channel to the supplied root phase broker. Construction/import is inert. Each
+ordered opening/fixture/optional notice/submission performs one private request
+download, one broker call and one response upload. It retains exclusive ownership,
+download/broker/upload intents and original ciphertext before each external step.
+Exact request/channel/member/phase/proof bindings and retained response metadata
+are checked. Original request/response bytes are rechecked after final context
+verification. Failure/abort/concurrency/restart cannot retry a spent phase; any
+already admitted financial hold remains for reconciliation. Optional notice is
+not invented. Parent/root share one strict retained-asset validator.
+
+Verification: ten responder regression tests, including the real current exchange
+and root phase broker together with temporary SQLite, plus the full simulator
+**520 tests / 519 pass / one Linux-only skip / zero failures**. TypeScript and
+explicit zero-warning lint pass. Provider observations/private transport are
+injected doubles; these are NOT native hosted execution or payment acceptance.
+No actual journal was modified; no Checkout, email request or deployment created.
+
+Next: native current bootstrap/workflow and operator assembly. Supply real live
+source/job/member/provider verifiers, connect ORIGINAL prepared-budget observations
+at each phase, and retain/review final encrypted evidence. Do not invoke the legacy
+consumed Sustainer workflow for this current 500-cent decline candidate. Current
+runner closure now includes the responder; old runner fingerprints are obsolete.
+Staging's pending email update still requires publishing after quota availability;
+strict financial app-source binding is unchanged and remains a prerequisite.
+
 ## Original prepared-budget observation implemented (October 9)
 
 Provider/root head `ed10eda` hosted verification **37881405937 SUCCESS/terminal**.

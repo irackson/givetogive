@@ -73,6 +73,14 @@ export function decodeCurrentPhaseResponse(bytes:Buffer,key:Buffer,raw:unknown,i
 const retainedSchema=z.object({phase:z.string(),assetId:z.number().int().positive(),name:z.string(),size:z.number().int().min(37).max(65536),ciphertextDigest:sha,
  releaseId:z.number().int().positive(),jobId:z.string(),jobNonce:nonce,headSha:z.string(),operationId:z.literal(c.operationId),anonymousDraft404:z.literal(true),
  anonymousAsset404:z.literal(true),observedAt:z.iso.datetime(),exactRetainedAssetVerified:z.literal(true),readbackVerified:z.literal(true),retryAllowed:z.literal(false),paymentAccepted:z.literal(false)}).strict();
+export function validateRetainedCurrentPhaseAsset(raw:unknown,binding:CheckoutAssetBinding,phase:Parameters<typeof assetName>[1],bytes:Buffer,now:number){
+ try{const retained=retainedSchema.parse(raw),age=now-Date.parse(retained.observedAt);
+  guard(Number.isFinite(now)&&retained.phase===phase&&retained.name===assetName(binding,phase)&&retained.size===bytes.length&&
+   retained.ciphertextDigest===hash(bytes)&&retained.releaseId===binding.releaseId&&retained.jobId===binding.job.id&&
+   retained.jobNonce===binding.job.nonce&&retained.headSha===binding.job.headSha&&retained.operationId===binding.operationId&&age>=-5000&&age<=30000);
+  return retained;
+ }catch{return fail();}
+}
 function next(previous:CurrentCheckoutPhase|undefined,phase:CurrentCheckoutPhase){return previous===undefined?phase==='opening':
  previous==='opening'?phase==='fixture':previous==='fixture'?phase==='notice'||phase==='submission':previous==='notice'?phase==='submission':false;}
 export class CurrentCheckoutPhaseExchange implements CurrentMemberBroker {
@@ -108,9 +116,7 @@ export class CurrentCheckoutPhaseExchange implements CurrentMemberBroker {
    const intent={phase:requestPhase,requestDigest:digest(original.request),ciphertextDigest:hash(ciphertext),size:ciphertext.length,maximumUploads:1,retryAllowed:false,paymentAccepted:false};
    this.retain(`${phase}-upload-intent.json`,Buffer.from(JSON.stringify(intent)));
    const raw=await this.transport.upload(requestPhase,ciphertext,bounded);this.active(bounded);this.unchanged(`${phase}-request.g2genc`,ciphertext);
-   const retained=retainedSchema.parse(raw),age=this.now()-Date.parse(retained.observedAt);
-   guard(retained.phase===requestPhase&&retained.name===assetName(this.binding,requestPhase)&&retained.size===intent.size&&retained.ciphertextDigest===intent.ciphertextDigest&&
-    retained.releaseId===this.releaseId&&retained.jobId===this.binding.job.id&&retained.jobNonce===this.binding.job.nonce&&retained.headSha===this.binding.job.headSha&&age>=-5000&&age<=30000);
+   const retained=validateRetainedCurrentPhaseAsset(raw,this.binding,requestPhase,ciphertext,this.now());
    this.retain(`${phase}-upload-result.json`,Buffer.from(JSON.stringify(retained)));
    response=await this.transport.download(responsePhase,bounded);this.active(bounded);guard(Buffer.isBuffer(response)&&response.length>36&&response.length<=65536);
    this.retain(`${phase}-response.g2genc`,response);this.unchanged(`${phase}-request.g2genc`,ciphertext);
