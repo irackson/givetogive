@@ -1,5 +1,84 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 UTC: current member adapter/entry/IPC implemented, parent/root wiring open
+
+Previous transport head `4afcf8b0cb583f69856551ad120906b998c5d929` passed
+**37875880018 SUCCESS/terminal** (full app build/checks, 453 Linux simulator tests,
+public/intercepted browser checks and native source preflight). This was not an
+actual financial workflow or paid acceptance.
+
+`checkout-current-member.ts` now implements the ordinary-member core with a
+private in-process prepared-resource registry: real Chromium is acquired before
+private input/login/financial preparation; native preparation requires Linux,
+Node 24, owned IPC and the exact child environment. Injected runtimes are always
+labelled `injected-offline`, never native evidence. Preparation readiness carries
+no password/key or paid permission; parent must independently bind process group
+and live GitHub/source. Handle clones/reuse/closed resources cannot launch again.
+
+After bound input, the core uses the existing normal UiSession login and only
+four allowlisted billing GETs plus session reads. Before/after session version,
+active exact member/role/email and billing-management checks require Neighbor,
+no subscriptions and this exact unpaid 500-cent Supporter operation/expiry.
+Opening/fixture/notice/submission each request a fresh scoped root response,
+enforce new nonce, same complete provider session/customer and monotonic proof
+time, and re-read member identity. Proof age is checked again after those reads.
+Only the fixed public decline fixture is filled; notice/submission require root
+admission responses. Native browser policy still rejects unknown instructions,
+CAPTCHA/wallet/attestation requirements. No Checkout creation or privileged API
+is exposed to the worker. Root must implement actual original-journal admissions
+and independently verify provider/job/source; phase-packet assertions alone are
+not authoritative. Every receipt keeps `paymentAccepted=false` and requires
+independent root job/OS/provider/ledger reconciliation.
+
+`checkout-current-member-entry.mjs` is inert by default; its sole explicit entry
+requires owned Linux/Node 24 IPC and four-variable launcher environment. It checks
+native source snapshots before readiness/input and before/after each phase.
+Initial input is public profile only, then actual Chromium readiness, then bound
+private member input. The input listener is installed before readiness to avoid
+an immediate-transfer race. It holds no Stripe/SQL/admin/GitHub/encryption keys.
+`checkout-current-ipc.ts` provides strict profile/connection binding and ordered
+opening -> fixture -> optional notice -> submission, four requests maximum,
+identity freshness, single pending request, cancellation/timeout/disconnect and
+generic failures without retries. Backend is still the parent proxy/root work,
+not an implemented provider-admission backend by itself.
+
+The current transport now has **ten fixed slots**: input, four request/response
+pairs and final receipt. The previous six-slot design could not carry all four
+required phase round trips. Historical scope still has its original six slots
+and rejects all current RPC phases; no old consumed approval was broadened.
+All current names are fixed, bounded and job/operation/nonce scoped, with the
+final slot preserved. No native private draft was created or transferred.
+
+Generic Stripe driver now supports one-time staging-access binding only after
+its waiting browser exists and before context/session/navigation. It reports
+actual context/browser close results separately and retains failed-close handles
+instead of silently claiming success. OS cleanup remains independent. Explicit
+resource close/abort stops later member phases and shares one cleanup promise.
+
+Local full suite **473 total, 472 pass, one Linux-only skip, zero failures**;
+types and focused ESLint (`--no-ignore`) pass. New tests cover injected sequencing,
+all phase/identity/root/driver failures, cancellation/resource disposal, stale
+proof after recheck, cleanup failure after submit, native-entry inert/no-IPC
+rejection, current IPC binding/order/errors/timeouts, four-RPC transport capacity
+and historical isolation. These tests use public fixtures/fake peers/handles,
+not a real Checkout, native financial parent or signed provider outcome. Current
+head still needs hosted verification after push. Runner closure now includes the
+actual member/driver/session dependencies; observe its new tuple rather than
+copying a prior digest.
+
+Next: implement the current native parent/bootstrap and its encrypted phase
+proxy/root responder. Reuse exact current profile/input/draft/core/IPC and existing
+process observer/durable original-file helpers. Parent launches this explicit
+member, independently observes real owned browser processes, publishes live
+readiness, receives encrypted input, and brokers the ten fixed slots. Root must
+retain original finite plan/UI/financial journals, verify current alias/source/job/
+member/customer clock/provider before every action, reserve/ack/submit once,
+and reconcile actual signed hosted outcome. NEVER dispatch the historical fixed
+worker or recreate expired steps 0/1. Original step 2 remains unprepared/unused.
+Paid lifecycles, all-three-money-flow/cross-tier acceptance, 253-member hour and
+final published paid-state PDF remain incomplete. No user input is needed for
+the next engineering step; production financial gates remain intentionally dark.
+
 ## October 9 UTC: current private-draft transport connected to profile
 
 Input-codec head `a0fd6cb9c5e20f435887779f3369d7b604cd6487` passed exact-head

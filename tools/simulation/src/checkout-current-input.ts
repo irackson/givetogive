@@ -13,20 +13,36 @@ import { currentCheckoutCandidate as c,recheckCurrentCheckoutProfile,
 
 const maximumClearBytes=32768,maximumCipherBytes=65536;
 const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const proofSchema=z.object({platformAccountId:z.literal(approved.platformAccountId),customerAccountId:z.string().regex(/^acct_[A-Za-z0-9]+$/),
+ canonicalCustomerClockVerified:z.literal(true),providerIdentityVerified:z.literal(true),
+ providerInvoiceAbsent:z.literal(true),providerSubscriptionAbsent:z.literal(true),
+ checkout:checkoutContextSchema.strict()}).strict();
 const envelope=z.object({protocol:z.literal(1),purpose:z.literal('current-cohort-private-member-input'),
  profile:z.unknown(),profileDigest:z.string().regex(/^[a-f0-9]{64}$/),
  member:z.object({id:z.literal(c.agentId),userId:z.literal(c.memberId),email:z.literal(c.memberEmail),
   password:z.string().min(12).max(512)}).strict(),
  stagingBypass:z.string().min(16).max(2048),
- proof:z.object({platformAccountId:z.literal(approved.platformAccountId),customerAccountId:z.string().regex(/^acct_[A-Za-z0-9]+$/),
-  canonicalCustomerClockVerified:z.literal(true),providerIdentityVerified:z.literal(true),
-  providerInvoiceAbsent:z.literal(true),providerSubscriptionAbsent:z.literal(true),
-  checkout:checkoutContextSchema.strict()}).strict(),
+ proof:proofSchema,
  retryAllowed:z.literal(false),paymentAccepted:z.literal(false),
 }).strict();
 const fail=():never=>{throw Error('Current private Checkout input rejected; no admission or retry.');};
 function guard(value:unknown):asserts value {if(!value)fail();}
 function freeze(value:object){for(const v of Object.values(value))if(v&&typeof v==='object')freeze(v);Object.freeze(value);}
+export function validateCurrentCheckoutProof(raw:unknown,profile:Readonly<CurrentCheckoutProfile>,now:number) {
+ try {
+  guard(Number.isFinite(now));const proof=proofSchema.parse(raw),checkout=proof.checkout;
+  guard(checkout.environment==='staging'&&checkout.databaseIdentity===profile.databaseIdentity&&checkout.runId===profile.runId&&
+   checkout.operationId===profile.operationId&&checkout.actorId===c.memberId&&checkout.returnOrigin===profile.origin&&
+   checkout.livemode===false&&checkout.currency==='usd'&&checkout.amountTotal===500&&checkout.mode==='subscription'&&
+   checkout.status==='open'&&checkout.paymentStatus==='unpaid'&&checkout.expiresAt*1000>now+15000);
+  const age=now-Date.parse(checkout.verifiedAt);guard(age>=-5000&&age<=30000);
+  const url=new URL(checkout.url);
+  guard(url.origin==='https://checkout.stripe.com'&&!url.username&&!url.password&&!url.search&&
+   url.pathname===`/c/pay/${checkout.sessionId}`);
+  freeze(proof);return proof;
+ }catch{return fail();}
+}
+export type CurrentCheckoutProof=ReturnType<typeof validateCurrentCheckoutProof>;
 
 export function validateCurrentCheckoutInput(raw:unknown,expected:Readonly<CurrentCheckoutProfile>,now:number) {
  try {
@@ -36,16 +52,8 @@ export function validateCurrentCheckoutInput(raw:unknown,expected:Readonly<Curre
   // runtime floor. This codec alone cannot prove that a browser was acquired.
   const profile=recheckCurrentCheckoutProfile(value.profile,expected,now);
   guard(value.profileDigest===hash(profile));
-  const checkout=value.proof.checkout;
-  guard(checkout.environment==='staging'&&checkout.databaseIdentity===profile.databaseIdentity&&checkout.runId===profile.runId&&
-   checkout.operationId===profile.operationId&&checkout.actorId===c.memberId&&checkout.returnOrigin===profile.origin&&
-   checkout.livemode===false&&checkout.currency==='usd'&&checkout.amountTotal===500&&checkout.mode==='subscription'&&
-   checkout.status==='open'&&checkout.paymentStatus==='unpaid'&&checkout.expiresAt*1000>now+15000);
-  const age=now-Date.parse(checkout.verifiedAt);guard(age>=-5000&&age<=30000);
-  const url=new URL(checkout.url);
-  guard(url.origin==='https://checkout.stripe.com'&&!url.username&&!url.password&&!url.search&&
-   url.pathname===`/c/pay/${checkout.sessionId}`);
-  const output={...value,profile};freeze(output);return output;
+  const proof=validateCurrentCheckoutProof(value.proof,profile,now);
+  const output={...value,profile,proof};freeze(output);return output;
  }catch{return fail();}
 }
 export type CurrentCheckoutInput=ReturnType<typeof validateCurrentCheckoutInput>;

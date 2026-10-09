@@ -115,6 +115,19 @@ export class StripeCheckoutDriver implements CheckoutDriver {
     this.browser = await chromium.launch({ headless: true, env: checkoutBrowserEnvironment() });
     this.memoryFloor();
   }
+  /** Waiting member starts with no staging credential. Bind access once, only
+   * after its real browser exists and before any Checkout context/navigation. */
+  bindPreparedStagingAccess(bypass:string) {
+    if (this.bypass || !this.browser?.isConnected() || this.context || this.checkout ||
+        typeof bypass!=='string' || bypass.length<16 || bypass.length>2048)
+      throw new Error('Prepared Checkout access binding rejected.');
+    this.bypass=bypass;
+  }
+  preparedBrowserObservation() {
+    this.memoryFloor();
+    return { browserConnected:!!this.browser?.isConnected(),contextAbsent:!this.context,checkoutAbsent:!this.checkout,
+      freeBytes:this.observedFreeBytes!,paymentAccepted:false as const };
+  }
   async open(checkout: VerifiedCheckout) {
     await this.prepareBrowser();
     if (!this.browser || this.context || this.checkout) throw new Error('Checkout browser is unavailable or already bound.');
@@ -320,5 +333,14 @@ export class StripeCheckoutDriver implements CheckoutDriver {
     // Closing an unpaid browser is a valid abandoned Checkout; it must NOT expire/refund a provider session implicitly.
     await this.page.close();
   }
-  async close() { await this.context?.close().catch(() => undefined); await this.browser?.close().catch(() => undefined); this.page = undefined; this.context = undefined; this.browser = undefined; }
+  /** Protocol closure evidence only. Parent must independently prove OS closure.
+   * Failed closes retain their handles and never become a positive receipt. */
+  async closeConfirmed() {
+    let contextClosed=!this.context,browserClosed=!this.browser;
+    try {if(this.context){await this.context.close();contextClosed=true;this.context=undefined;}}catch{/* No private error text. */}
+    try {if(this.browser){await this.browser.close();browserClosed=true;this.browser=undefined;}}catch{/* OS verification remains required. */}
+    if(contextClosed&&browserClosed)this.page=undefined;
+    return {contextClosed,browserClosed,independentOsClosureRequired:true as const,paymentAccepted:false as const};
+  }
+  async close() { await this.closeConfirmed(); }
 }

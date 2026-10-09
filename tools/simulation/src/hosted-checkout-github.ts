@@ -17,7 +17,7 @@ const assetSchema = z.object({id:z.number().int().positive(),name:z.string(),siz
  digest:z.string().regex(/^sha256:[a-f0-9]{64}$/),state:z.literal('uploaded')}).passthrough();
 type Asset = z.infer<typeof assetSchema>;
 const releaseSchema = z.object({id:z.number().int().positive(),draft:z.literal(true),prerelease:z.literal(false),published_at:z.null(),
- target_commitish:z.string(),tag_name:z.string(),body:z.string().max(4096),assets:z.array(assetSchema).max(limits.maxAssets)}).passthrough();
+ target_commitish:z.string(),tag_name:z.string(),body:z.string().max(4096),assets:z.array(assetSchema).max(12)}).passthrough();
 type Release = z.infer<typeof releaseSchema>;
 const bodySchema = z.object({protocol:z.literal(1),purpose:z.literal('one-member-test-checkout-policy'),
  repository:z.literal(approved.repository),runId:z.literal(approved.runId),operationId:z.literal(approved.operationId),headSha:z.string()}).strict();
@@ -35,7 +35,7 @@ export function validateRetainedCheckoutAsset(raw:unknown):RetainedCheckoutAsset
 export type CheckoutDraftDependencies = { request?:typeof fetch; now?:()=>number;
  pause?:(milliseconds:number,signal:AbortSignal)=>Promise<unknown> };
 type Dependencies = CheckoutDraftDependencies;
-export type CheckoutDraftInventoryPolicy = Readonly<{tagName:string;validateAssociation(raw:unknown):void}>;
+export type CheckoutDraftInventoryPolicy = Readonly<{tagName:string;maximumAssets:number;validateAssociation(raw:unknown):void}>;
 
 /** No release/tag mutation APIs. Token stays in this broker-owned object, never in worker output. */
 export class CheckoutDraftTransport {
@@ -48,6 +48,7 @@ export class CheckoutDraftTransport {
  private downloads = new Set<CheckoutAssetPhase>();
  private uploads = new Set<CheckoutAssetPhase>();
  private inventoryPolicy:CheckoutDraftInventoryPolicy|undefined;
+ private maximumAssets:number;
  protected constructor(binding:CheckoutAssetBinding,token:string,dependencies:Dependencies,allowed:readonly CheckoutAssetPhase[],
   inventoryPolicy?:CheckoutDraftInventoryPolicy) {
   this.now=dependencies.now??Date.now;
@@ -55,6 +56,9 @@ export class CheckoutDraftTransport {
   const freeze=(value:object)=>{for(const child of Object.values(value))if(child&&typeof child==='object')freeze(child);Object.freeze(value);};
   freeze(this.binding);
   this.inventoryPolicy=inventoryPolicy?Object.freeze({...inventoryPolicy}):undefined;
+  this.maximumAssets=inventoryPolicy?.maximumAssets??limits.maxAssets;
+  guard(Number.isSafeInteger(this.maximumAssets)&&this.maximumAssets>=1&&this.maximumAssets<=12&&
+   allowed.length<=this.maximumAssets&&new Set(allowed).size===allowed.length);
   guard(typeof token==='string'&&token.length>=20&&token.length<=4096&&!/[\r\n]/.test(token));this.token=token;
   this.request=dependencies.request??fetch;
   this.pause=dependencies.pause??((milliseconds,signal)=>sleep(milliseconds,undefined,{signal}));
@@ -87,6 +91,7 @@ export class CheckoutDraftTransport {
  }
  private inventory(raw:unknown):Release {
   const value=releaseSchema.parse(raw),m=this.binding;
+  guard(value.assets.length<=this.maximumAssets);
   guard(value.id===m.releaseId&&value.target_commitish===m.job.headSha&&
    value.tag_name===(this.inventoryPolicy?.tagName??`checkout-acceptance-${m.operationId}`));
   const rawAssociation:unknown=JSON.parse(value.body);
@@ -161,7 +166,10 @@ export class CheckoutDraftTransport {
    const signal=this.signal(parent,180000),name=assetName(this.binding,phase);
    await this.private404(`releases/${this.binding.releaseId}`,signal);
    const before=await this.inspectInternal(signal);
-   validateAssetSet(before.assets.map(({id,name,size,digest})=>({id,name,size,digest:digest.slice(7)})),this.binding,phase);
+   if(this.inventoryPolicy){
+    guard(!before.assets.some(asset=>asset.name===name)&&before.assets.length<this.maximumAssets&&
+     (phase==='final'||before.assets.length<this.maximumAssets-1));
+   }else validateAssetSet(before.assets.map(({id,name,size,digest})=>({id,name,size,digest:digest.slice(7)})),this.binding,phase);
    await this.private404(`releases/${this.binding.releaseId}`,signal);
    this.active(signal);
    const response=await this.request(`https://uploads.github.com/repos/${approved.repository}/releases/${this.binding.releaseId}/assets?name=${encodeURIComponent(name)}`,

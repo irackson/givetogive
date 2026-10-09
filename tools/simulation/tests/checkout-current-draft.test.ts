@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash,randomBytes } from 'node:crypto';
-import { CurrentCheckoutPrivateDraft } from '../src/checkout-current-draft.ts';
+import { CurrentCheckoutPrivateDraft,currentCheckoutAssetPhases } from '../src/checkout-current-draft.ts';
 import { currentCheckoutCandidate as c,validateCurrentCheckoutProfile } from '../src/checkout-current-profile.ts';
 import { checkoutReleaseBinding } from '../../../scripts/checkout-release-inspect.mjs';
 import { CheckoutPrivateDraft,type CheckoutAssetPhase } from '../src/hosted-checkout-github.ts';
@@ -105,9 +105,18 @@ test('selected input cannot be redownloaded and changed or ambiguous writes neve
 });
 test('finite phase inventory preserves the final receipt slot for the current job',async()=>{
  const f=fixture(),value=ciphertext();try{
-  for(const phase of ['input','open-proof','submit-proof','ack-intent','submit-intent'] as const)f.add(phase,value);
+  for(const phase of currentCheckoutAssetPhases.filter(phase=>phase!=='final'))f.add(phase,value);
   await assert.rejects(f.transport.upload('input',value));
-  const retained=await f.transport.upload('final',value);assert.equal(retained.phase,'final');assert.equal(f.rows.length,6);
+  const retained=await f.transport.upload('final',value);assert.equal(retained.phase,'final');assert.equal(f.rows.length,10);
   await assert.rejects(f.transport.upload('final',value));assert.equal(f.calls.filter(c=>c.method==='POST').length,1);
+ }finally{value.fill(0);f.cleanup();}
+});
+test('only current protocol admits four fixed RPC pairs; historical phase names are not silently reused',async()=>{
+ const f=fixture(),value=ciphertext();try{
+  for(const phase of ['open-proof','submit-proof','ack-intent','submit-intent'] as const)
+   await assert.rejects(f.transport.upload(phase,value));
+  assert.equal(f.calls.length,0);
+  for(const phase of currentCheckoutAssetPhases){const receipt=await f.transport.upload(phase,value);assert.equal(receipt.phase,phase);}
+  assert.equal(f.rows.length,10);assert.equal(f.calls.filter(c=>c.method==='POST').length,10);
  }finally{value.fill(0);f.cleanup();}
 });

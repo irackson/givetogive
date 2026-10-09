@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { CheckoutPrivateDraft, CheckoutBootstrapFailureDraft, type CheckoutAssetPhase } from '../src/hosted-checkout-github.ts';
-import { approved, assetName, limits, type Manifest } from '../src/hosted-checkout-policy.ts';
+import { approved, assetName, limits, validateAssetSet, type Manifest } from '../src/hosted-checkout-policy.ts';
 
 // All data, tokens and ciphertext are PUBLIC OFFLINE fixtures. No actual network or secret input.
 const NOW=Date.parse('2026-10-04T04:00:00Z'),HEAD='4'.repeat(40),TOKEN='OFFLINE-BROKER-SECRET-MARKER-ONLY';
@@ -75,6 +75,15 @@ test('constructor/import are inert and exact manifest/head are required before f
  assert.throws(()=>new CheckoutPrivateDraft({...manifest(),maximumAmountCents:500},HEAD,TOKEN,{request:f.request,now:()=>NOW}));
  assert.throws(()=>new CheckoutPrivateDraft(manifest(),HEAD,'short',{request:f.request,now:()=>NOW}),safeFailure);
  assert.equal(f.calls.length,0);assert(Object.isFrozen(f.transport.manifest.job));
+});
+
+test('historical transport and six-slot policy cannot admit current RPC phases',async()=>{
+ const f=fake();
+ for(const phase of ['opening-request','opening-response','fixture-request','fixture-response','notice-request','notice-response','submission-request','submission-response'] as const){
+  await assert.rejects(f.transport.upload(phase,ciphertext()),safeFailure);
+  assert.throws(()=>validateAssetSet([],f.m,phase));
+ }
+ assert.equal(f.calls.length,0);
 });
 
 test('exact private draft/body and six-name inventory; no release/tag writes',async()=>{

@@ -236,13 +236,15 @@ export function validateChildEnvironment(raw: unknown): Record<string, string> {
 /** Naming/transport shape only. Financial scopes are validated separately by
  * their strict legacy manifest or current profile, never by this structural type. */
 export type CheckoutAssetBinding = Pick<Manifest, 'releaseId'> & { operationId: string; job: Pick<Manifest['job'], 'id' | 'nonce' | 'headSha'> };
-export function assetName(manifest: CheckoutAssetBinding, phase: 'input' | 'open-proof' | 'submit-proof' | 'ack-intent' | 'submit-intent' | 'final') {
+export function assetName(manifest: CheckoutAssetBinding, phase: 'input' | 'open-proof' | 'submit-proof' | 'ack-intent' | 'submit-intent' | 'final' |
+ 'opening-request'|'opening-response'|'fixture-request'|'fixture-response'|'notice-request'|'notice-response'|'submission-request'|'submission-response') {
 	return `checkout-${manifest.operationId}-${manifest.job.id}-1-${manifest.job.nonce}-${phase}.g2genc`;
 }
 export function validateAssetSet(raw: unknown, manifest: CheckoutAssetBinding, next: Parameters<typeof assetName>[1]) {
 	const rows = parse(z.array(z.object({ id: z.number().int().positive(), name: z.string(), digest: sha,
 		size: z.number().int().positive().max(limits.checkpointBytes) }).strict()).max(limits.maxAssets), raw);
 	const phases = ['input', 'open-proof', 'submit-proof', 'ack-intent', 'submit-intent', 'final'] as const;
+	requirePolicy(phases.includes(next as typeof phases[number]));
 	const names = phases.map(phase => assetName(manifest, phase));
 	requirePolicy(rows.every(row => names.includes(row.name)) && new Set(rows.map(row => row.id)).size === rows.length
 		&& new Set(rows.map(row => row.name)).size === rows.length && !rows.some(row => row.name === assetName(manifest, next))
