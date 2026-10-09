@@ -1,5 +1,42 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 UTC: refreshed staging binding and untouched decline readback
+
+Protected staging `dpl_CN1fLhs5nKqXnPK7UMKxKZrQYn5z` is now READY and canonical;
+the exact-project CLI inspection confirms protection `all` and reviewed upload
+digest. `scripts/checkout-release-inspect.mjs` now pins this reviewed release,
+not the historical October 8 deployment. It additionally requires all three
+provider metadata digests (authored sources, root lock, upload), the reviewed
+Git SHA/repository, unchanged app bytes, signed clean main, exact alias/project,
+Node 24, protection and actual protected billing-runtime gates. Missing or
+mixed metadata fails closed. This is read-only release evidence, not a new
+financial source approval or permission to replay consumed operations.
+
+Signed implementation `5d5528e` and declaration correction `e448991` are pushed.
+Local full simulator suite: 423 tests, 422 pass, one Linux-only skip, no failures.
+Five focused release-inspector tests and focused lint pass. Initial typecheck
+caught missing new exports in the existing .d.mts; correction was made and
+types/focused tests rerun successfully. Exact-head hosted run 37872253751,
+job 113632771903, is SUCCESS/terminal: full application build, app/simulator
+tests/types, published public browser smoke and 21 intercepted Checkout browser
+tests under native TypeScript and tsx all pass. This is not paid acceptance.
+
+Actual native `--inspect-readonly` passed on clean signed `e448991`, including
+provider metadata, canonical alias, runtime gates and publishable-key match.
+Canonical Git application digest:
+`decf53acf95f71d4805301fccb7aec1880fbd00e6ac403b6b0e85940201e0f1f`.
+Actual fresh-cohort read-only `inspect 2` passed: normal member identity and
+canonical clock/customer verified, existing operation count zero, tier Neighbor,
+financial mutation false. Immutable plan SHA is unchanged. No Checkout opened,
+notice admitted, preparation consumed, or ledger/budget reset.
+
+Observed free RAM remains approximately 2.1 GiB, below 2.5 GiB native browser
+startup. Preserve untouched decline; do not force a local launch or dispatch
+the old consumed fixed hosted approval. Next financial work needs the reviewed
+current-source hosted path with immutable original budget/account ownership and
+no automatic retry. Paid acceptance, full 253-member hour and final paid-state
+PDF remain required and unfinished. Main remains the only local/remote branch.
+
 ## October 9 UTC: Next verified, main-only; protected staging refresh submitted
 
 Signed sharp patch `e78a5af29178b06217f3be7204f17ca83e6faa4f` passed hosted
