@@ -2,6 +2,26 @@
 
 ## Active goal, real hosted auth, batched release (October 9, 15:21 UTC)
 
+**15:30 UTC native pre-dispatch failure:** full CI `37951276432` passed for
+`1b88714`; the once-only native operator passed source/provider/budget checks and
+normal member sign-in, then stopped at the GitHub repository GET. It used a
+trailing slash, which independently returned 404 (canonical root returns 200).
+The original current-dispatch directory contains only `dispatch-lease.json`:
+no draft-create, dispatch, preparation or submission intent. Authenticated exact
+draft lookup returned 404; current-workflow history has zero runs. Fresh native
+provider/SQL/original-budget inspection confirmed the candidate still unused,
+only two old expired/unpaid sessions and zero paid coverage/ledger.
+
+Original root evidence remains at
+`tools/simulation/.state/current-native-398c5cf9-62de-4908-afb0-ce6321e8b3ad`.
+Never rerun/reset that namespace. The URL regression is fixed. A separate explicit
+`--execute-reviewed-predispatch-recovery` path requires the exact immutable old
+tree, fresh authenticated provider draft/history absence, source and original
+unused-budget checks; it uses a distinct once-only recovery namespace. Any draft,
+dispatch or financial intent makes this path ineligible. No financial budget is
+reset or expired/ambiguous attempt replayed. This recovery still needs verification
+and a signed checkpoint before execution; no actual browser/payment is claimed.
+
 The goal is observed **active** again. GiveToGive-only checkpoint pushes no
 longer create automatic Vercel deployments. Full hosted CI `37950227357` passed
 for signed main `c8044c1`, including production build, root/simulation tests/types,

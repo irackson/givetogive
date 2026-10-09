@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
-import { dispatchCurrentCheckoutWorker } from '../src/checkout-current-dispatch.ts';
+import { dispatchCurrentCheckoutWorker, currentCheckoutRepositoryUrl } from '../src/checkout-current-dispatch.ts';
 import { currentInput, head, source, now } from './fixtures/current-checkout.ts';
 import { currentCheckoutCandidate as c } from '../src/checkout-current-profile.ts';
 function fixture(mode = 'ok') {
@@ -53,13 +53,18 @@ function fixture(mode = 'ok') {
   if (path.includes('/commits/')) return reply({ total_count: 1, check_runs: [{ id: 99, name, external_id: external }] });
   if (path.endsWith('/check-runs/99')) return reply({ id: 99, name, head_sha: head, external_id: external, status: 'in_progress', conclusion: null,
    app: { slug: 'github-actions' }, output: { title: name, summary: JSON.stringify(ready) } });
-  assert.equal(path, '/repos/irackson/givetogive/'); return reply({ full_name: 'irackson/givetogive', private: false });
+  assert.equal(path, '/repos/irackson/givetogive'); return reply({ full_name: 'irackson/givetogive', private: false });
  };
  const options = { root, headSha: head, source, token: 'public-fixture-token-only', signal: new AbortController().signal, request,
   now: () => now, pollMs: 1, verifyCurrent: async () => { contexts++; if (mode === 'context') throw Error('offline stale source'); } };
  return { root, directory, writes, options, contexts: () => contexts, cleanup() {
   assert.ok(resolve(root).startsWith(resolve(tmpdir()) + sep)); rmSync(root, { recursive: true }); } };
 }
+test('repository root is canonical without a trailing slash; unsafe suffixes reject', () => {
+ assert.equal(currentCheckoutRepositoryUrl(''), 'https://api.github.com/repos/irackson/givetogive');
+ assert.equal(currentCheckoutRepositoryUrl('releases'), 'https://api.github.com/repos/irackson/givetogive/releases');
+ for (const path of ['/releases', '../other', 'releases#fragment']) assert.throws(() => currentCheckoutRepositoryUrl(path));
+});
 test('one current dispatch and exact private association retain all write intents before transport', async () => {
  const f = fixture(); try {
   const result = await dispatchCurrentCheckoutWorker(f.options);

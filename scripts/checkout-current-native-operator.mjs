@@ -8,7 +8,8 @@ import { createHash } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const guard = value => { if (!value) throw Error('Current native operator stopped; originals and holds retained; no retry; private details withheld.'); };
-export async function executeCurrentNativeOperator() {
+export async function executeCurrentNativeOperator(predispatchRecovery = false) {
+ guard(typeof predispatchRecovery === 'boolean');
  guard(process.platform === 'win32' && Number(process.versions.node.split('.')[0]) === 24);
  const { currentCheckoutCandidate: c, currentCheckoutSourceEvidence } = await import('../tools/simulation/src/checkout-current-profile.ts')
   .then(async value => ({ ...value, currentCheckoutSourceEvidence: (await import('../tools/simulation/src/checkout-current-preflight.ts')).currentCheckoutSourceEvidence }));
@@ -40,7 +41,23 @@ export async function executeCurrentNativeOperator() {
  const account = { id: member.id, userId: member.userId, email: member.email, password: member.password };
  const bypass = JSON.parse(readFileSync(join(state, 'protection.json'), 'utf8')).vercelProtectionBypass;
  guard(typeof bypass === 'string' && bypass.length >= 16);
- const directory = join(state, `current-native-${c.operationId}`); mkdirSync(directory, { mode: 0o700 });
+ let recoveryProof;
+ if (predispatchRecovery) {
+  const { readPredispatchRecovery } = await import('./checkout-predispatch-recovery.mjs');
+  recoveryProof = readPredispatchRecovery(join(state, `current-native-${c.operationId}`), c.operationId, c.memberId);
+  // Independent authenticated GitHub observations, never caller-provided flags.
+  const bytes = execFileSync('gh', ['auth', 'token'], {windowsHide:true,stdio:['ignore','pipe','pipe']});
+  let token;try{token=bytes.toString().trim();}finally{bytes.fill(0);}
+  try {
+   const headers={Authorization:'Bearer '+token,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2026-03-10'};
+   const absent=await fetch(`https://api.github.com/repos/irackson/givetogive/releases/tags/checkout-current-${c.operationId}`,{headers,redirect:'error',signal:AbortSignal.timeout(20000)});
+   guard(absent.status===404);await absent.body?.cancel();
+   const history=await fetch('https://api.github.com/repos/irackson/givetogive/actions/workflows/checkout-current-staging.yml/runs?event=workflow_dispatch&branch=main&per_page=100',{headers,redirect:'error',signal:AbortSignal.timeout(20000)});
+   guard(history.ok);const runs=await history.json();guard(runs.total_count===0&&Array.isArray(runs.workflow_runs)&&runs.workflow_runs.length===0);
+  }finally{token=undefined;}
+  prerequisites=await inspectCurrentCheckoutPrerequisites();
+ }
+ const directory = join(state, `current-native-${c.operationId}${predispatchRecovery ? '-predispatch-recovery-v1' : ''}`); mkdirSync(directory, { mode: 0o700 });
  const { writeBootstrapOriginal } = await import('../tools/simulation/src/checkout-bootstrap-retention.ts');
  const original = (name, value, location = directory) => {
   const data = Buffer.isBuffer(value) ? value : Buffer.from(JSON.stringify(value));
@@ -49,6 +66,7 @@ export async function executeCurrentNativeOperator() {
  original('operator-lease.json', { headSha: head, operationId: c.operationId, maximumMemberSignIns: 1, maximumPreparations: 1,
   maximumSubmissions: 1, noHistoryReset: true, paymentAccepted: false, retryAllowed: false });
  original('release.original.json', release); original('prerequisites.original.json', prerequisites.summary);
+ if(recoveryProof)original('predispatch-recovery.original.json',recoveryProof);
  const controller = new AbortController(), stop = () => controller.abort(), signal = AbortSignal.any([controller.signal, AbortSignal.timeout(1500000)]);
  let key, token, session, preparation, ledger, worker, broker, responder, input, stripe, finalizationSnapshot, finalizationReady = false, declineVerified = false, failure = false;
  const { loadCheckoutTransferKey } = await import('../tools/simulation/scripts/provision-checkout-key.mjs');
@@ -291,6 +309,7 @@ export async function executeCurrentNativeOperator() {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
  try {
   if (process.argv.length === 3 && process.argv[2] === '--execute-reviewed-current') console.log(JSON.stringify(await executeCurrentNativeOperator()));
+  else if(process.argv.length===3&&process.argv[2]==='--execute-reviewed-predispatch-recovery')console.log(JSON.stringify(await executeCurrentNativeOperator(true)));
   else { guard(process.argv.length === 2); console.log(JSON.stringify({ execute: false, externalRequests: 0, checkoutCreated: false, paymentAccepted: false })); }
  } catch { console.error('Current native operator stopped; originals and holds retained; no retry; private details withheld.'); process.exitCode = 1; }
 }

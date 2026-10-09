@@ -13,6 +13,10 @@ import { observeCurrentCheckoutReadiness } from './checkout-current-readiness.ts
 import { CurrentCheckoutPrivateDraft } from './checkout-current-draft.ts';
 const fail = (): never => { throw Error('Current native dispatch unresolved; originals retained; no automatic retry; private details withheld.'); };
 function guard(value: unknown): asserts value { if (!value) fail(); }
+export function currentCheckoutRepositoryUrl(path: string) {
+  guard(!path.startsWith('/') && !path.includes('..') && !path.includes('#'));
+  return `https://api.github.com/repos/irackson/givetogive${path ? `/${path}` : ''}`;
+}
 export async function dispatchCurrentCheckoutWorker(options: {
  root: string; headSha: string; source: CurrentCheckoutSource; token: string; signal: AbortSignal;
  verifyCurrent(signal: AbortSignal): Promise<void>; request?: typeof fetch; now?: () => number; pollMs?: number;
@@ -34,7 +38,7 @@ export async function dispatchCurrentCheckoutWorker(options: {
   };
   const api = async (path: string, method = 'GET', body?: unknown, status = 200) => {
    signal.throwIfAborted();
-   const response = await request(`https://api.github.com/repos/irackson/givetogive/${path}`, { method, redirect: 'error',
+   const response = await request(currentCheckoutRepositoryUrl(path), { method, redirect: 'error',
     signal: AbortSignal.any([signal, AbortSignal.timeout(20000)]), headers: { Authorization: `Bearer ${options.token}`,
      Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2026-03-10' },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
