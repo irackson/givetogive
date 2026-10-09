@@ -28,6 +28,15 @@ const fail=():never=>{throw Error('Current native bootstrap stopped; originals r
 function guard(value:unknown):asserts value{if(!value)fail();}
 const hash=(bytes:Buffer)=>createHash('sha256').update(bytes).digest('hex');
 const digest=(value:unknown)=>hash(Buffer.from(JSON.stringify(value)));
+const bootstrapStages=z.enum(['configuration','memory','source','job','profile','state','browser-environment','browser-readiness',
+ 'readiness-publication','association','input-transfer','input-validation','member-execution','final-retention','diagnostic-cleanup']);
+/** Fixed stage codes only: never forward exception text, environment values,
+ * provider URLs, cookies or worker output into a public diagnostic. */
+export function currentBootstrapFailureDiagnostic(phase:unknown,diagnosticOnly:unknown,retained:unknown){
+ return {nativeBootstrapFailed:true,phase:bootstrapStages.parse(phase),diagnosticOnly:z.boolean().parse(diagnosticOnly),
+ privateFinalRetentionVerified:z.boolean().parse(retained),independentClosureAndSettlementRequired:true,
+ paymentAccepted:false,retryAllowed:false,privateDetailsWithheld:true};
+}
 export function currentCheckoutBootstrapConfiguration(env:NodeJS.ProcessEnv,platform:string,nodeMajor:number){
  guard(platform==='linux'&&nodeMajor===24&&env.GITHUB_REPOSITORY==='irackson/givetogive'&&env.GITHUB_REPOSITORY_OWNER==='irackson'&&
  env.GITHUB_ACTOR==='irackson'&&env.GITHUB_TRIGGERING_ACTOR==='irackson'&&env.GITHUB_REF==='refs/heads/main'&&
@@ -122,51 +131,64 @@ export async function retainCurrentBootstrapFinal(directory:string,profile:Curre
  }catch{return fail();}finally{encrypted?.fill(0);}
 }
 /** No injected runtime can report native bootstrap success. */
-export async function executeCurrentCheckoutBootstrap(){
+export async function executeCurrentCheckoutBootstrap(diagnosticOnly=false){
  let key:Buffer|undefined,inputBytes:Buffer|undefined,directory:string|undefined,profile:CurrentCheckoutProfile|undefined;
  let draft:CurrentCheckoutPrivateDraft|undefined,prepared:Awaited<ReturnType<typeof prepareCurrentCheckoutParent>>|undefined,exchange:CurrentCheckoutPhaseExchange|undefined;
- let result:Awaited<ReturnType<typeof runCurrentCheckoutParent>>|undefined,releaseId:number|undefined,retained=false;const controller=new AbortController(),stop=()=>controller.abort();
- try{guard(process.argv.length===3&&process.argv[2]==='--execute-current-native-bootstrap');
- const config=currentCheckoutBootstrapConfiguration(process.env,process.platform,Number(process.versions.node.split('.')[0]));releaseId=config.releaseId;checkMemory(freemem(),true);
- const source=checkoutParentSourceSnapshot(config.headSha),signal=AbortSignal.any([controller.signal,AbortSignal.timeout(900000)]);
+ let result:Awaited<ReturnType<typeof runCurrentCheckoutParent>>|undefined,releaseId:number|undefined,retained=false;
+ let phase:z.infer<typeof bootstrapStages>='configuration';const controller=new AbortController(),stop=()=>controller.abort();
+ try{guard(typeof diagnosticOnly==='boolean'&&process.argv.length===3&&process.argv[2]===(diagnosticOnly?'--execute-readiness-diagnostic':'--execute-current-native-bootstrap'));
+ const config=currentCheckoutBootstrapConfiguration(process.env,process.platform,Number(process.versions.node.split('.')[0]));releaseId=config.releaseId;
+ phase='memory';checkMemory(freemem(),true);
+ phase='source';const source=checkoutParentSourceSnapshot(config.headSha),signal=AbortSignal.any([controller.signal,AbortSignal.timeout(900000)]);
+ phase='job';
  const observed=await observeCurrentCheckoutJob({headSha:config.headSha,workflowRunId:config.workflowRunId},{token:config.token,signal});
  guard(observed.transportEvidence==='github-live-current-job');
- profile=validateCurrentCheckoutProfile({protocol:1,purpose:'current-cohort-one-checkout',runId:c.runId,agentId:c.agentId,operationId:c.operationId,
+ phase='profile';profile=validateCurrentCheckoutProfile({protocol:1,purpose:'current-cohort-one-checkout',runId:c.runId,agentId:c.agentId,operationId:c.operationId,
  planDigest:c.planDigest,databaseIdentity:c.databaseIdentity,origin:c.origin,maximumAmountCents:500,currency:'usd',scenario:'decline',checkoutTier:'supporter',expectedResultTier:'neighbor',
  runBudgetCents:2500,actorBudgetCents:1500,noHistoryReset:true,maximumMemberLaunches:1,maximumSubmissions:1,retryAllowed:false,financialAdmission:false,paymentAccepted:false,
  stagedDeploymentId:checkoutReleaseBinding.deploymentId,source,job:{repository:'irackson/givetogive',actor:'irackson',triggeringActor:'irackson',event:'workflow_dispatch',ref:'refs/heads/main',attempt:1,
  runner:'ubuntu-24.04',platform:'linux',nodeMajor:24,workflowRunId:config.workflowRunId,jobId:observed.jobId,jobNonce:randomBytes(16).toString('hex'),headSha:config.headSha,
  status:'in_progress',observedAt:observed.observedAt,freeBytes:freemem(),publicRepository:true}},config.headSha,source,Date.now());
- const root=join(base,'.state');if(!existsSync(root))mkdirSync(root,{mode:0o700});contained(root);guard((lstatSync(root).mode&0o077)===0);
- directory=join(root,`checkout-current-bootstrap-${config.workflowRunId}`);mkdirSync(directory,{mode:0o700});
+ phase='state';const root=join(base,'.state');if(!existsSync(root))mkdirSync(root,{mode:0o700});contained(root);guard((lstatSync(root).mode&0o077)===0);
+ directory=join(root,`${diagnosticOnly?'checkout-current-diagnostic':'checkout-current-bootstrap'}-${config.workflowRunId}`);mkdirSync(directory,{mode:0o700});
  const rootFd=openSync(root,'r');try{fsyncSync(rootFd);}finally{closeSync(rootFd);}
  record(directory,'bootstrap-lease.json',{profile,releaseId:config.releaseId,maximumMemberLaunches:1,financialAdmission:false,paymentAccepted:false,retryAllowed:false});
  key=Buffer.from(config.key,'hex');delete process.env.CHECKOUT_BUNDLE_KEY;delete process.env.CHECKOUT_GITHUB_TOKEN;
  process.on('SIGTERM',stop);process.on('SIGINT',stop);
- const home=join(directory,'member-home'),temp=join(directory,'member-tmp');mkdirSync(home,{mode:0o700});mkdirSync(temp,{mode:0o700});
+ phase='browser-environment';const home=join(directory,'member-home'),temp=join(directory,'member-tmp');mkdirSync(home,{mode:0o700});mkdirSync(temp,{mode:0o700});
  const executable=chromium.executablePath();guard(lstatSync(executable).isFile());
  const environment=validateChildEnvironment({PATH:config.path,HOME:home,TMPDIR:temp,PLAYWRIGHT_BROWSERS_PATH:checkoutBrowserCacheRoot(executable)});
  // Association stays bound to the INITIAL public profile even if private input
  // later refreshes only observedAt/freeBytes of this exact job.
- draft=new CurrentCheckoutPrivateDraft(profile,config.headSha,source,config.releaseId,config.token);
+ phase='browser-readiness';
  prepared=await prepareCurrentCheckoutParent(profile,config.headSha,source,{root:directory,memberEnvironment:environment,signal});
+ // This branch has no draft association, public financial readiness, input
+ // download, member sign-in, provider access, preparation or submission.
+ if(diagnosticOnly){phase='diagnostic-cleanup';const cleanup=await closePreparedCurrentCheckoutParent(prepared);
+  guard(cleanup.ownedGroupClosed&&cleanup.exitObserved&&cleanup.publicOutputBytes===0&&!cleanup.escapedDescendantObserved);
+  return {readinessDiagnosticOnly:true,nativeBrowserReadinessVerified:true,ownedBrowserGroupClosed:true,
+   readinessPublished:false,privateInputTransferred:false,memberSignIns:0,checkoutPrepared:false,submitAttempts:0,
+   paymentAccepted:false,retryAllowed:false};}
+ draft=new CurrentCheckoutPrivateDraft(profile,config.headSha,source,config.releaseId,config.token);
+ phase='readiness-publication';
  await publish(profile,inspectPreparedCurrentCheckoutParent(prepared),directory,config.token,signal);
+ phase='association';
  record(directory,'association-wait.intent.json',{profileDigest:currentProfileDigest(profile),readOnly:true,maximumAssociationWrites:0,paymentAccepted:false,retryAllowed:false});
  const association=await awaitCurrentDraftAssociation(draft,config.releaseId,{token:config.token,signal,verifyCurrent:async scoped=>{
   const observed=await observeCurrentCheckoutJob({headSha:config.headSha,workflowRunId:config.workflowRunId,jobId:profile!.job.jobId},{token:config.token,signal:scoped});
   guard(observed.transportEvidence==='github-live-current-job');inspectPreparedCurrentCheckoutParent(prepared!);
  }});
  record(directory,'association-wait.result.json',association);
- record(directory,'input-download.intent.json',{profileDigest:currentProfileDigest(profile),maximumDownloads:1,paymentAccepted:false,retryAllowed:false});
+ phase='input-transfer';record(directory,'input-download.intent.json',{profileDigest:currentProfileDigest(profile),maximumDownloads:1,paymentAccepted:false,retryAllowed:false});
  inputBytes=await draft.download('input',signal);writeBootstrapOriginal(directory,'original-input.g2genc',inputBytes,65536);
- const input=decryptCurrentCheckoutInput(inputBytes,key,profile,Date.now());
+ phase='input-validation';const input=decryptCurrentCheckoutInput(inputBytes,key,profile,Date.now());
  const target={headSha:config.headSha,workflowRunId:config.workflowRunId,jobId:profile.job.jobId};
  const verify=async(scoped:AbortSignal)=>{inspectPreparedCurrentCheckoutParent(prepared!);const current=checkoutParentSourceSnapshot(config.headSha);guard(digest(current)===digest(source));
  await observeCurrentCheckoutJob(target,{token:config.token,signal:scoped});inspectPreparedCurrentCheckoutParent(prepared!);};
  await verify(signal);exchange=new CurrentCheckoutPhaseExchange(directory,input,prepared.ready.connectionNonce,key,config.releaseId,draft,verify);
- result=await runCurrentCheckoutParent(prepared,input,exchange);record(directory,'bootstrap-result.json',{protocol:1,failed:result.failed,
+ phase='member-execution';result=await runCurrentCheckoutParent(prepared,input,exchange);record(directory,'bootstrap-result.json',{protocol:1,failed:result.failed,
  parent:result,independentClosureAndSettlementRequired:true,paymentAccepted:false,retryAllowed:false});
- await retainCurrentBootstrapFinal(directory,profile,key,config.releaseId,draft,signal);retained=true;guard(!result.failed);
+ phase='final-retention';await retainCurrentBootstrapFinal(directory,profile,key,config.releaseId,draft,signal);retained=true;guard(!result.failed);
  return {nativeBootstrap:true,privateFinalRetentionVerified:true,independentClosureAndSettlementRequired:true,paymentAccepted:false,retryAllowed:false};
  }catch{if(prepared)try{const cleanup=await closePreparedCurrentCheckoutParent(prepared);
  if(directory&&result===undefined)record(directory,'bootstrap-result.json',{protocol:1,failed:true,cleanup,independentClosureAndSettlementRequired:true,paymentAccepted:false,retryAllowed:false});
@@ -174,10 +196,10 @@ export async function executeCurrentCheckoutBootstrap(){
  // No automatic second final upload. Uncertain transfer preserves its intent.
  if(directory&&profile&&key&&draft&&releaseId&&!existsSync(join(directory,'final-upload.intent.json'))&&existsSync(join(directory,'bootstrap-result.json'))){
  try{await retainCurrentBootstrapFinal(directory,profile,key,releaseId,draft,AbortSignal.timeout(180000));retained=true;}catch{/* Private original failure is retained locally. */}}
- console.error(JSON.stringify({nativeBootstrapFailed:true,privateFinalRetentionVerified:retained,independentClosureAndSettlementRequired:true,paymentAccepted:false,retryAllowed:false,privateDetailsWithheld:true}));return fail();
+ console.error(JSON.stringify(currentBootstrapFailureDiagnostic(phase,diagnosticOnly,retained)));return fail();
  }finally{exchange?.close();key?.fill(0);inputBytes?.fill(0);process.off('SIGTERM',stop);process.off('SIGINT',stop);}
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  if(process.argv.length===2)console.log(JSON.stringify({execute:false,externalRequests:0,financialAdmission:false,paymentAccepted:false}));
- else executeCurrentCheckoutBootstrap().then(value=>console.log(JSON.stringify(value))).catch(()=>{console.error('Current native bootstrap stopped; private details withheld.');process.exitCode=1;});
+ else executeCurrentCheckoutBootstrap(process.argv[2]==='--execute-readiness-diagnostic').then(value=>console.log(JSON.stringify(value))).catch(()=>{console.error('Current native bootstrap stopped; private details withheld.');process.exitCode=1;});
 }

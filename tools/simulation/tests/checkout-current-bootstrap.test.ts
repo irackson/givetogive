@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { currentProfile,now,head } from './fixtures/current-checkout.ts';
 import { currentProfileDigest } from '../src/checkout-current-phase.ts';
-import { currentCheckoutBootstrapConfiguration,validateCurrentBootstrapReadiness,collectCurrentBootstrapEvidence,retainCurrentBootstrapFinal } from '../src/checkout-current-bootstrap.ts';
+import { currentCheckoutBootstrapConfiguration,currentBootstrapFailureDiagnostic,validateCurrentBootstrapReadiness,collectCurrentBootstrapEvidence,retainCurrentBootstrapFinal } from '../src/checkout-current-bootstrap.ts';
 import { observeCurrentCheckoutJob } from '../src/checkout-current-job.ts';
 import { fileBytes,unseal } from '../src/hosted-community-bundle.ts';
 import { assetName } from '../src/hosted-checkout-policy.ts';
@@ -17,6 +17,16 @@ const environment={GITHUB_REPOSITORY:'irackson/givetogive',GITHUB_REPOSITORY_OWN
  GITHUB_REF:'refs/heads/main',GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_JOB:'checkout-current-parent',
  GITHUB_SHA:head,CHECKOUT_EXPECTED_SHA:head,GITHUB_RUN_ID:'1234',CHECKOUT_RELEASE_ID:'42',CHECKOUT_BUNDLE_KEY:'d'.repeat(64),
  CHECKOUT_GITHUB_TOKEN:'public-fixture-token-only',PATH:'/public/bin'};
+
+test('bootstrap diagnostics accept only fixed non-secret stage codes and never financial success',()=>{
+ const result=currentBootstrapFailureDiagnostic('browser-readiness',true,false);
+ assert.equal(result.phase,'browser-readiness');assert.equal(result.diagnosticOnly,true);assert.equal(result.paymentAccepted,false);
+ assert.equal(result.retryAllowed,false);assert.equal(result.privateDetailsWithheld,true);
+ for(const raw of ['https://checkout.stripe.com/private','secret-key','Error: private cookie',{},undefined])
+  assert.throws(()=>currentBootstrapFailureDiagnostic(raw,true,false));
+ assert.throws(()=>currentBootstrapFailureDiagnostic('source','true',false));
+ assert.throws(()=>currentBootstrapFailureDiagnostic('source',false,'true'));
+});
 test('current bootstrap config is exact, separate from historical admission and excludes root credentials',()=>{
  assert.equal(currentCheckoutBootstrapConfiguration(environment,'linux',24).releaseId,42);
  for(const patch of [{GITHUB_JOB:'checkout-parent'},{GITHUB_EVENT_NAME:'push'},{GITHUB_RUN_ATTEMPT:'2'},
@@ -125,9 +135,21 @@ test('workflow remains manual, isolated and pinned; bootstrap default is genuine
  assert.match(workflow,/workflow_dispatch:/);assert.doesNotMatch(workflow,/\n\s+(push|schedule):/);
  assert.match(workflow,/group: givetogive-staging-community/);assert.match(workflow,/cancel-in-progress: false/);
  assert.match(workflow,/node-version: 24\.x/);assert.match(workflow,/persist-credentials: false/);
+ assert.match(workflow,/diagnostic_only:[\s\S]*default: false/);
+ assert.match(workflow,/inputs\.diagnostic_only && '--execute-readiness-diagnostic'/);
  assert.doesNotMatch(workflow,/STRIPE_|DATABASE_|SIM_CREDENTIALS|upload-artifact|cache@/);
  for(const match of workflow.matchAll(/uses: ([^\s]+)/g))assert.match(match[1]!,/@[a-f0-9]{40}$/);
  const command=fileURLToPath(new URL('../src/checkout-current-bootstrap.ts',import.meta.url));
  const result=JSON.parse(execFileSync(process.execPath,[command],{encoding:'utf8',windowsHide:true,timeout:15000}));
  assert.deepEqual(result,{execute:false,externalRequests:0,financialAdmission:false,paymentAccepted:false});
+});
+
+test('diagnostic CLI cannot bypass configuration and fails with fixed stages rather than private errors',{skip:process.platform!=='win32'},()=>{
+ const command=fileURLToPath(new URL('../src/checkout-current-bootstrap.ts',import.meta.url));
+ try{execFileSync(process.execPath,[command,'--execute-readiness-diagnostic'],{encoding:'utf8',windowsHide:true,timeout:15000,stdio:'pipe'});
+ assert.fail('Windows must reject native Linux readiness');}catch(error){
+ assert.ok(error&&typeof error==='object'&&'stderr' in error);
+ const diagnostic=JSON.parse(String(error.stderr).split(/\r?\n/)[0]!);
+ assert.deepEqual(diagnostic,currentBootstrapFailureDiagnostic('configuration',true,false));
+ }
 });

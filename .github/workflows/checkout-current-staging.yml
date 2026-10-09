@@ -10,6 +10,11 @@ on:
         description: Exact unpublished current private draft; never reuse historical admission
         required: true
         type: string
+      diagnostic_only:
+        description: Readiness and owned browser cleanup only; no private input or payment action
+        required: false
+        default: false
+        type: boolean
 permissions:
   contents: read
 concurrency:
@@ -50,5 +55,5 @@ jobs:
           CHECKOUT_RELEASE_ID: ${{ inputs.release_id }}
           CHECKOUT_BUNDLE_KEY: ${{ secrets.CHECKOUT_STAGING_BUNDLE_KEY }}
           CHECKOUT_GITHUB_TOKEN: ${{ github.token }}
-        run: node --experimental-strip-types src/checkout-current-bootstrap.ts --execute-current-native-bootstrap
+        run: node --experimental-strip-types src/checkout-current-bootstrap.ts ${{ inputs.diagnostic_only && '--execute-readiness-diagnostic' || '--execute-current-native-bootstrap' }}
       # No cache/artifact/trace/HAR uploads; no provider/database/admin credentials.

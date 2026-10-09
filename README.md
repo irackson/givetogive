@@ -125,6 +125,16 @@ CI fixtures are retired, not erased. Raw browser traces/videos are disabled
 because they could retain passwords, authentication links, and TOTP secrets.
 Never aim this harness at the production site.
 
+## Deployment cadence
+
+Checkpoint pushes to `main` run verification but do not automatically deploy
+GiveToGive. Batch application/configuration fixes into a verified milestone,
+then use the [controlled-release procedure](docs/controlled-releases.md) to
+publish staging and, after its checks, production. Documentation, tests and
+simulation-tool changes do not require another application deployment.
+This policy applies to this repository only. Production payment gates remain
+disabled; a release does not grant live-payment or migration approval.
+
 ## Current routes
 
 - `/` - home and authentication status
@@ -221,11 +231,17 @@ not overwrite or claim to supersede the prior published-site guide.
 
 ## Simulated community
 
-See [the simulation guide](docs/simulation.md). One local model serves 100
-independently scheduled Strands agents with separate accounts and checkpoints;
-100 agents do not mean 100 model copies or simultaneous GPU generations.
-Benchmarks and the hosted 100-agent soak are separate acceptance gates. No paid
-model fallback, production targeting, or fabricated paid tiers is permitted.
+See [the simulation guide](docs/simulation.md) and the current
+[implementation contract](docs/payments-implementation-plan.md). The accepted
+required population is 250 continuously active scripted users plus three
+browser users in one isolated community. Browser population/concurrency is
+configurable from one to 30, subject to measured memory headroom. Scripted
+rules react to current site activity and continue alongside browser actions;
+they are not a one-time database seed. Both groups use independently signed-in
+normal accounts and the same member APIs as the UI. Local-model exploration is
+optional, not required for acceptance. The full mixed-community hour and
+genuine Stripe-paid tier distribution remain unfinished. No paid-model
+fallback, production targeting or fabricated paid entitlement is permitted.
 
 The PDF builder needs `reportlab` and `Pillow`. It rejects incomplete captures
 or captures with reported errors/unfinished cleanup. Intermediate screenshots

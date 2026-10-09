@@ -1,5 +1,30 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 15:46 UTC: native readiness failure before financial preparation
+
+Signed main `aed43e3` full verification `37952962697` passed, including actual
+Linux Node 24 credential-free Chromium/source checks. The explicit separate
+pre-dispatch recovery ran ONCE. Canonical GitHub dispatch now works: hosted run
+`37953768787` was created and reached its native bootstrap. It FAILED there;
+the old bootstrap did not emit a safe substage, so the exact cause is not known.
+No readiness association, input upload, financial preparation or submission
+intent exists in the root recovery namespace. Preserve that consumed dispatch,
+private draft and all original receipts; do not rerun the financial workflow.
+
+Fresh independent read-only provider/SQL/original-budget checks at 15:46:34 UTC
+still found the third candidate unused/unprepared, exactly the two historical
+expired/unpaid sessions, zero subscriptions, paid coverage and ledger entries.
+There is no payment acceptance or new paid tier. The recovery namespace is
+`tools/simulation/.state/current-native-398c5cf9-62de-4908-afb0-ce6321e8b3ad-predispatch-recovery-v1`.
+
+The bootstrap now has allowlisted non-secret stage diagnostics and an explicit
+readiness-only diagnostic mode. That mode uses actual native job/source/browser
+checks and owned-group cleanup, but exits BEFORE readiness publication, draft
+association, private member input, sign-in or any financial action. It has a
+distinct runner-local namespace and does not reuse/reset a financial journal.
+Verify and checkpoint before one diagnostic dispatch; do not infer the failure
+cause from offline fixtures or relabel the failed historical run.
+
 ## Active goal, real hosted auth, batched release (October 9, 15:21 UTC)
 
 **15:30 UTC native pre-dispatch failure:** full CI `37951276432` passed for

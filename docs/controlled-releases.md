@@ -49,7 +49,8 @@ reviewed configuration commit. Do not change unrelated project settings.
 
 References: https://vercel.com/docs/project-configuration/git-configuration
 and https://vercel.com/docs/project-configuration/project-settings.
-# Source provenance
+
+## Source provenance
 
 Controlled uploads retain the authored application, lockfile and exact uploaded
 file-manifest digests in provider metadata as well as the local submission

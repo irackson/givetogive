@@ -5,6 +5,13 @@ completion in [the acceptance contract](payments-implementation-plan.md).
 The existing public release and its PDF remain the earlier non-payment baseline
 until a verified deployment explicitly replaces them.
 
+**Current checkpoint, October 9:** application code is published with production
+financial gates disabled; real sandbox lifecycle acceptance is not complete.
+Both canonical projects are READY at the deliberate `c8044c1` release. Use
+[controlled releases](controlled-releases.md), not a deployment for every push.
+The dated historical observations below do not override the newest
+[handoff](AGENT-HANDOFF.md) or [verification evidence](payments-verification.md).
+
 ## Environments and isolation
 
 | Environment | Database and role | Application |
@@ -15,8 +22,9 @@ until a verified deployment explicitly replaces them.
 
 Laptop and Codex Cloud are alternative development machines, not two kinds of
 CI. Cloud development uses coherent Development/staging settings; automated
-integration suites use the separate CI database. No GitHub Actions workflow is
-currently configured. See [Cloud setup](codex-cloud.md) for separate startup and
+integration suites use the separate CI database. GitHub Actions provides
+read-only checkpoint verification and explicitly dispatched, guarded staging
+acceptance workflows on standard hosted runners. See [Cloud setup](codex-cloud.md) for separate startup and
 test environments, including inherited-environment precedence and shared-data
 concurrency safeguards.
 
@@ -100,10 +108,13 @@ deductibility. No wallets, escrow, lending, cross-border or annual plans.
 ## Administrator identity and authentication
 
 The seeded staging administrator is explicitly synthetic and is not Ian.
-Do not grant Ian access by guessing an email or interpreting a display name.
-Bootstrap only an unambiguously selected, verified existing account, record the
-administrative role change, and enroll Ian's own authenticator through the UI.
-No real administrator bootstrap or MFA enrollment has been claimed complete.
+Dashboard access for a real account is restricted to Ian's explicitly selected
+`inasusr@gmail.com`, verified and unfrozen, using current database identity.
+Synthetic admins are accepted only in isolated staging/test environments.
+Personal MFA enrollment is in the icebox at Ian's request; do not invent an
+enrollment or a personal authenticated browser session. Live financial actions
+retain their separate recent-authentication/TOTP requirements. See the current
+handoff for identity readbacks; never grant access by display-name guessing.
 
 Production financial administration requires a recent sign-in/password check
 and a fresh, single-use TOTP to mint elevation. The resulting authorization token
@@ -112,9 +123,11 @@ memory only, and is invalidated by session-version rotation. Enrollment secrets
 are encrypted server-side, excluded from audits, and never included in a PDF.
 Freezing an account and revoking sessions/tokens must be verified separately.
 
-Staging/test email always goes to an encrypted private sink. It never sends
-external mail or exposes reset/verification links publicly, even if unrelated
-mail-provider settings happen to exist in the parent environment.
+Test email and non-allowlisted staging email go to an encrypted private sink.
+Only exact explicitly approved staging recipients may use the real mail
+transport. Actual AgentMail signup/resend/received-link/sign-in checks are
+documented in [the hosted-auth runbook](staging-auth-email.md). Authentication
+links are never exposed through public APIs, logs or screenshot artifacts.
 
 ## Migration and deployment procedure
 
@@ -123,7 +136,12 @@ immutable balanced journals, badge preference, bounded request telemetry,
 paid entitlement coverage, reversible dispute capacity holds, supporter changes
 and immutable application evidence. See [the migration review](payments-migration-review.md)
 for observed production metadata, line-ending checksum differences and remaining
-backup/rehearsal/deployment gates. Production has not been migrated.
+backup/rehearsal/deployment gates. Production's reviewed additive migration
+was performed October 3. Fresh read-only metadata inspection on October 9 at
+15:49:59 UTC confirms nineteen applied migrations, none pending, no missing new
+user columns, 34 application tables, 116 constraints and ten custom triggers.
+That check read no member data and performed no writes; it does not authorize
+another migration or prove payment acceptance.
 
 ```powershell
 node --env-file=.env.ci.local scripts/migrate-isolated.mjs
