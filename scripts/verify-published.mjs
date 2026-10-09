@@ -51,11 +51,22 @@ try {
 			.locator('main')
 			.waitFor({ state: 'visible', timeout: 10_000 });
 		assert.ok((await page.locator('main').innerText()).trim().length > 0);
+		let heroImageDecoded;
+		if (path === '/' || path === '/asks') {
+			const selector = path === '/' ? '.home-hero__art img' : '.asks-hero__art';
+			assert.equal(await page.locator(selector).count(), 1);
+			await page.waitForFunction((selector) => {
+				const image = document.querySelector(selector);
+				return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0;
+			}, selector, { timeout: 10000 });
+			heroImageDecoded = true;
+		}
 		results.push({
 			path,
 			status: response.status(),
 			rendered: true,
 			finalPath: finalUrl.pathname,
+			...(heroImageDecoded ? { heroImageDecoded } : {}),
 		});
 	}
 	assert.deepEqual(diagnostics, {
