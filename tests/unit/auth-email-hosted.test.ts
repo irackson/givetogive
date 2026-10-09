@@ -5,6 +5,7 @@ import {
 	receivedAuthLink,
 	validateHostedAuthInput,
 	hostedAuthContext,
+	authFieldLabel,
 } from '../../scripts/auth-email-hosted.ts';
 const sha = 'a'.repeat(40),
 	nonce = '11111111-1111-4111-8111-111111111111';
@@ -18,6 +19,13 @@ const input = () => ({
 	password: 'public-test-placeholder-only',
 	bypass: 'public-test-placeholder-only',
 	deploymentId: 'dpl_testfixture',
+});
+test('auth labels accept MUI required markers without matching other fields', () => {
+	for (const name of ['Name', 'Email', 'Password'] as const) {
+		assert.match(name, authFieldLabel(name));
+		assert.match(`${name} *`, authFieldLabel(name));
+		assert.doesNotMatch(`Confirm ${name}`, authFieldLabel(name));
+	}
 });
 test('real received links must be complete, first-party single-token verification URLs', () => {
 	const valid =

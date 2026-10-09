@@ -11,6 +11,7 @@ import {
 } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { releaseSourceDigest } from './release-rehearsal-fingerprint.mjs';
 
 export const releaseTargets = Object.freeze({
 	production: {
@@ -331,6 +332,10 @@ export async function controlledRelease(args: readonly string[]) {
 			),
 		)
 		.digest('hex');
+	const authoredSourceDigest = releaseSourceDigest(root),
+		lockDigest = createHash('sha256')
+			.update(readFileSync(join(root, 'package-lock.json')))
+			.digest('hex');
 	requireLocal(sha);
 	guard(
 		object(
@@ -361,6 +366,8 @@ export async function controlledRelease(args: readonly string[]) {
 				{
 					...receipt,
 					uploadDigest,
+					authoredSourceDigest,
+					lockDigest,
 					state: 'requesting; reconcile provider before retry',
 					retryAllowed: false,
 				},
@@ -385,6 +392,12 @@ export async function controlledRelease(args: readonly string[]) {
 				`controlledReleaseSha=${sha}`,
 				'--meta',
 				`controlledUploadDigest=${uploadDigest}`,
+				'--meta',
+				`verificationAuthoredSourceDigest=${authoredSourceDigest}`,
+				'--meta',
+				`verificationLockDigest=${lockDigest}`,
+				'--meta',
+				`verificationSourceDigest=${uploadDigest}`,
 			]),
 		);
 		const value =
@@ -398,6 +411,8 @@ export async function controlledRelease(args: readonly string[]) {
 		const result = {
 			...receipt,
 			uploadDigest,
+			authoredSourceDigest,
+			lockDigest,
 			submitted: true,
 			deploymentId: value['id'],
 			status: value['readyState'],
@@ -440,7 +455,18 @@ export function reconcileControlledRelease() {
 		object(api(cli, `/v4/aliases/${target.host}`)['deployment'])['id'] ===
 		d['id'];
 	if (status === 'READY')
-		guard(canonical && object(d['meta'])['controlledReleaseSha'] === sha);
+		guard(
+			canonical &&
+				object(d['meta'])['controlledReleaseSha'] === sha &&
+				object(d['meta'])['controlledUploadDigest'] ===
+					receipt['uploadDigest'] &&
+				object(d['meta'])['verificationSourceDigest'] ===
+					receipt['uploadDigest'] &&
+				object(d['meta'])['verificationAuthoredSourceDigest'] ===
+					receipt['authoredSourceDigest'] &&
+				object(d['meta'])['verificationLockDigest'] ===
+					receipt['lockDigest'],
+		);
 	if (['READY', 'ERROR', 'CANCELED'].includes(status)) {
 		writeFileSync(
 			join(state, `${targetName}-${sha}.terminal.json`),

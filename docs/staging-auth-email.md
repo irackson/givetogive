@@ -156,3 +156,12 @@ failure phase. Those images remained only on the ephemeral runner: this proves
 capture execution, not retained/visually reviewed final PDF inputs, authenticated
 views, email delivery, payments, or simulation acceptance. Earlier incomplete
 capture receipts remain failed; they were not relabeled by this later success.
+# Hosted selector correction (October 9)
+
+The first hosted signup attempt at `fb9f736` failed before account creation.
+Independent restricted read-only database inspection found the exact owned
+AgentMail alias absent; AgentMail had no new message for that recipient. The
+original encrypted failed result and dispatch intent are retained, not replayed.
+Required MUI field labels include a visible asterisk; the harness now accepts
+that marker using anchored labels and retains only fixed failure-stage names,
+request counts and error counts. A fresh reviewed attempt is required.

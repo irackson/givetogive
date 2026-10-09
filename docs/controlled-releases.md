@@ -49,3 +49,11 @@ reviewed configuration commit. Do not change unrelated project settings.
 
 References: https://vercel.com/docs/project-configuration/git-configuration
 and https://vercel.com/docs/project-configuration/project-settings.
+# Source provenance
+
+Controlled uploads retain the authored application, lockfile and exact uploaded
+file-manifest digests in provider metadata as well as the local submission
+receipt. Terminal reconciliation requires all of them to match. This preserves
+the separate native Checkout source review; a successful release is not financial
+admission, and previously reviewed payment attempts are never automatically
+replayed after publication.

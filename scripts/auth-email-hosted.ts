@@ -10,6 +10,10 @@ import { encryptionKey, seal, unseal } from './auth-email-envelope.mjs';
 
 const origin = 'https://givetogive-staging.vercel.app',
 	repository = 'irackson/givetogive';
+// MUI required fields expose the visible asterisk in their accessible label.
+export function authFieldLabel(name: 'Name' | 'Email' | 'Password') {
+	return new RegExp(`^${name}\\s*\\*?$`);
+}
 export const authEmailInput = z
 	.object({
 		purpose: z.literal('owned-agentmail-hosted-auth'),
@@ -203,6 +207,7 @@ async function downloadInput(
 	return bytes;
 }
 async function browserAcceptance(input: Input) {
+	let stage = 'launch';
 	const browser = await chromium.launch({ headless: true });
 	const context = await browser.newContext({
 		viewport: { width: 390, height: 844 },
@@ -273,6 +278,7 @@ async function browserAcceptance(input: Input) {
 			}
 		});
 		if (input.phase === 'signup-resend') {
+			stage = 'signup-navigation';
 			guard(
 				(
 					await page.goto(origin + '/signup', {
@@ -280,13 +286,15 @@ async function browserAcceptance(input: Input) {
 					})
 				)?.status() === 200,
 			);
+			stage = 'signup-fields';
 			await page
-				.getByLabel('Name', { exact: true })
+				.getByLabel(authFieldLabel('Name'))
 				.fill('Hosted AgentMail acceptance');
-			await page.getByLabel('Email', { exact: true }).fill(input.email);
+			await page.getByLabel(authFieldLabel('Email')).fill(input.email);
 			await page
-				.getByLabel('Password', { exact: true })
+				.getByLabel(authFieldLabel('Password'))
 				.fill(input.password);
+			stage = 'signup-submit';
 			const pending = page.waitForResponse(
 				(r) =>
 					new URL(r.url()).pathname === '/api/trpc/user.register' &&
@@ -297,6 +305,7 @@ async function browserAcceptance(input: Input) {
 				.click();
 			const response = await pending;
 			guard(response.ok());
+			stage = 'signup-delivery-ui';
 			await page
 				.getByRole('alert')
 				.filter({
@@ -313,6 +322,7 @@ async function browserAcceptance(input: Input) {
 					.count()) === 0,
 			);
 			result['hostedRegistrationDelivered'] = true;
+			stage = 'resend-navigation';
 			guard(
 				(
 					await page.goto(origin + '/verify-email', {
@@ -320,7 +330,9 @@ async function browserAcceptance(input: Input) {
 					})
 				)?.status() === 200,
 			);
-			await page.getByLabel('Email', { exact: true }).fill(input.email);
+			stage = 'resend-fields';
+			await page.getByLabel(authFieldLabel('Email')).fill(input.email);
+			stage = 'resend-submit';
 			const resend = page.waitForResponse(
 				(r) =>
 					new URL(r.url()).pathname ===
@@ -335,6 +347,7 @@ async function browserAcceptance(input: Input) {
 				.click();
 			const resent = await resend;
 			guard(resent.ok());
+			stage = 'resend-delivery-ui';
 			await page
 				.getByRole('alert')
 				.filter({
@@ -357,6 +370,7 @@ async function browserAcceptance(input: Input) {
 					!errors.console,
 			);
 		} else {
+			stage = 'superseded-link';
 			guard(
 				(
 					await page.goto(receivedAuthLink(input.oldLink), {
@@ -372,6 +386,7 @@ async function browserAcceptance(input: Input) {
 				})
 				.waitFor();
 			result['supersededLinkRejected'] = true;
+			stage = 'replacement-link';
 			guard(
 				(await page
 					.getByRole('button', {
@@ -392,6 +407,7 @@ async function browserAcceptance(input: Input) {
 				.filter({ hasText: 'Email verified. You can now sign in.' })
 				.waitFor();
 			result['replacementLinkVerified'] = true;
+			stage = 'consumed-link';
 			await page.reload({ waitUntil: 'networkidle' });
 			await page
 				.getByRole('alert')
@@ -401,6 +417,7 @@ async function browserAcceptance(input: Input) {
 				})
 				.waitFor();
 			result['consumedLinkRejected'] = true;
+			stage = 'password-signin';
 			guard(
 				(await page
 					.getByRole('button', {
@@ -416,9 +433,9 @@ async function browserAcceptance(input: Input) {
 					})
 				)?.status() === 200,
 			);
-			await page.getByLabel('Email', { exact: false }).fill(input.email);
+			await page.getByLabel(authFieldLabel('Email')).fill(input.email);
 			await page
-				.getByLabel('Password', { exact: false })
+				.getByLabel(authFieldLabel('Password'))
 				.fill(input.password);
 			await page
 				.getByRole('button', { name: 'Sign in', exact: true })
@@ -445,12 +462,24 @@ async function browserAcceptance(input: Input) {
 					errors.console <= 2,
 			);
 		}
+		stage = 'final-diagnostics';
 		guard(
 			errors.page === 0 &&
 				errors.unexpectedHttp === 0 &&
 				freemem() >= 1.5 * 1024 ** 3,
 		);
 		return { ...result, passed: true, diagnostics: errors, posts };
+	} catch {
+		// Only fixed stage names and counts are retained, never DOM, URLs or errors.
+		return {
+			...result,
+			passed: false,
+			stage,
+			diagnostics: errors,
+			posts,
+			privateDetailsWithheld: true,
+			automaticRetryAllowed: false,
+		};
 	} finally {
 		clearInterval(monitor);
 		await context.close();
