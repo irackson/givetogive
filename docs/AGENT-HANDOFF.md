@@ -1,5 +1,37 @@
 # Resume here: payments and simulation checkpoint
 
+## Fixed CURRENT final-job completion boundary (October 9)
+
+Native-entry head `b5a5326` hosted run **37886508227** was still **in_progress**
+at the last direct observation; keep observing it rather than restarting.
+Integration review found a race: native worker can upload final originals and
+finish before the coordinator's last live-only job check. This could incorrectly
+reject successful native completion (or reject while final inventory is becoming
+visible). New `checkout-current-final-job.ts` is a separate GET-only observer for
+the exact current run/job/head/actor/workflow/attempt and lifecycle. Completed
+success is accepted only at the final boundary, never for financial admission.
+Failed/canceled terminal runs are not successful; foreign/moved/inconsistent jobs
+reject. Payment/notice phases still require the unchanged live job validator.
+
+Coordinator validates private inventory before choosing live versus final context.
+After submission no further response is admitted; native final callback waits
+boundedly for exact successful run AND job, checks source/member before and source
+after. Final availability and GitHub success still require independent OS closure,
+provider/webhook/app settlement readback; paymentAccepted=false throughout.
+
+Verification: terminal-job and coordinator regressions, including delayed final
+inventory visibility without duplicate responses; **571 simulator tests / 569 pass /
+two Linux-only skips / zero failures**, TypeScript and zero-warning lint pass.
+Tests use injected HTTP; no actual financial job, Checkout or payment occurred.
+Runner fingerprint includes the final observer. Native entry's prior source gate
+was actually exercised and rejected the unpublished app BEFORE creating its
+operation directory; original financial journals were not modified.
+
+Next: strict authenticated final-receipt/closure inventory validation plus native
+provider/webhook/app decline reconciliation, then publish/review pending staging
+source after quota availability and execute exact-head native acceptance. Full
+paid lifecycles/hour cohort/mobile owner access/final PDF remain unfinished.
+
 ## CURRENT native Windows entry point wired (October 9)
 
 Dispatch head `f4d29c9` hosted verification **37886118967 SUCCESS/terminal** was

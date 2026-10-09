@@ -59,3 +59,26 @@ test('timeout interrupts a hung context callback', async () => {
  try { await assert.rejects(() => coordinateCurrentCheckout(f.options)); assert.equal(f.counts().closed, 1); }
  finally { clearTimeout(timer); }
 });
+test('final boundary uses terminal verification rather than rejecting a just-finished worker', async () => {
+ const f = fixture(); let finalChecks = 0;
+ const live = f.options.verifyContext;
+ f.options.verifyContext = async () => { if (f.calls.includes('submission')) throw Error('offline job finished'); await live(); };
+ const result = await coordinateCurrentCheckout({ ...f.options, verifyFinalContext: async () => { finalChecks++; } });
+ assert.equal(result.finalAvailable, true); assert.equal(result.paymentAccepted, false); assert.equal(finalChecks, 1);
+});
+test('failed final verification cannot report successful coordination', async () => {
+ const f = fixture(); await assert.rejects(() => coordinateCurrentCheckout({ ...f.options,
+  verifyFinalContext: async () => { throw Error('offline failed terminal job'); } }));
+ assert.equal(f.counts().closed, 1);
+});
+test('terminal verification can wait for final inventory visibility without admitting another response', async () => {
+ const f = fixture(), respond = f.options.responder.respond;
+ f.options.responder.respond = async phase => { const receipt = await respond(phase); if (phase === 'submission') f.assets.delete('final'); return receipt; };
+ const live = f.options.verifyContext; f.options.verifyContext = async () => {
+  if (f.calls.includes('submission')) throw Error('offline terminal run before inventory visibility'); await live();
+ };
+ let checks = 0;
+ const result = await coordinateCurrentCheckout({ ...f.options, verifyFinalContext: async () => { checks++; f.assets.add('final'); } });
+ assert.equal(result.finalAvailable, true); assert.equal(checks, 2);
+ assert.deepEqual(f.calls, ['opening', 'fixture', 'submission']);
+});

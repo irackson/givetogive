@@ -5,6 +5,7 @@ import { resolve, join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, mkdirSync, lstatSync, realpathSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { setTimeout as sleep } from 'node:timers/promises';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const guard = value => { if (!value) throw Error('Current native operator stopped; originals and holds retained; no retry; private details withheld.'); };
 export async function executeCurrentNativeOperator() {
@@ -57,6 +58,7 @@ export async function executeCurrentNativeOperator() {
  const { dispatchCurrentCheckoutWorker } = await import('../tools/simulation/src/checkout-current-dispatch.ts');
  const { prepareCurrentCheckoutInput } = await import('../tools/simulation/src/checkout-current-prepare.ts');
  const { observeCurrentCheckoutJob } = await import('../tools/simulation/src/checkout-current-job.ts');
+ const { observeCurrentCheckoutFinalJob } = await import('../tools/simulation/src/checkout-current-final-job.ts');
  const { observeCurrentCheckoutReadiness } = await import('../tools/simulation/src/checkout-current-readiness.ts');
  const { validateCurrentCheckoutProof } = await import('../tools/simulation/src/checkout-current-input.ts');
  const { deriveCurrentMemberIdentity } = await import('../tools/simulation/src/checkout-current-member.ts');
@@ -144,7 +146,18 @@ export async function executeCurrentNativeOperator() {
    releaseId: worker.releaseId, broker, transport: worker.draft, verifyContext: verifyCurrent });
   const binding = { releaseId: worker.releaseId, operationId: c.operationId,
    job: { id: input.profile.job.jobId, nonce: input.profile.job.jobNonce, headSha: head } };
-  const result = await coordinateCurrentCheckout({ binding, transport: worker.draft, responder, verifyContext: verifyCurrent, signal });
+  const verifyFinalContext = async scoped => {
+   await recheckLocalCheckoutRelease(release); await session.verifyIdentity();
+   const finalSignal = AbortSignal.any([scoped, AbortSignal.timeout(60000)]);
+   for (;;) {
+    const observed = await observeCurrentCheckoutFinalJob(targetFor(), { token, signal: finalSignal });
+    guard(observed.transportEvidence === 'github-live-current-final-job');
+    if (observed.runFinished) { guard(observed.successful); break; }
+    await sleep(2000, undefined, { signal: finalSignal });
+   }
+   await recheckLocalCheckoutRelease(release); finalSignal.throwIfAborted();
+  };
+  const result = await coordinateCurrentCheckout({ binding, transport: worker.draft, responder, verifyContext: verifyCurrent, verifyFinalContext, signal });
   original('coordination.result.json', result);
  } catch { failure = true; }
  finally {

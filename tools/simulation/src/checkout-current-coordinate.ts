@@ -12,6 +12,7 @@ type Options = {
  transport: Pick<CurrentCheckoutPrivateDraft, 'inspect'>;
  responder: Pick<CurrentCheckoutRootResponder, 'respond' | 'close'>;
  verifyContext(signal: AbortSignal): Promise<void>;
+ verifyFinalContext?(signal: AbortSignal): Promise<void>;
  signal: AbortSignal;
  timeoutMs?: number;
  pollMs?: number;
@@ -38,7 +39,6 @@ export async function coordinateCurrentCheckout(options: Options) {
  const completed: CurrentCheckoutPhase[] = [];
  try {
   for (;;) {
-   await run(() => options.verifyContext(signal));
    const inventory = await run(() => options.transport.inspect(signal));
    if (!inventory.privateDraftVerified || inventory.releaseId !== options.binding.releaseId) return fail();
    const names = new Set(inventory.assets.map(asset => asset.name));
@@ -50,10 +50,11 @@ export async function coordinateCurrentCheckout(options: Options) {
    }
    if (names.has(name('final'))) {
     if (!completed.includes('submission')) return fail();
-    await run(() => options.verifyContext(signal));
+    await run(() => (options.verifyFinalContext ?? options.verifyContext)(signal));
     return Object.freeze({ phases: Object.freeze([...completed]), finalAvailable: true,
      independentReconciliationRequired: true, paymentAccepted: false, retryAllowed: false });
    }
+   await run(() => (completed.includes('submission') ? options.verifyFinalContext ?? options.verifyContext : options.verifyContext)(signal));
    const previous = completed.at(-1);
    let next: CurrentCheckoutPhase | undefined;
    if (!previous) next = 'opening';
