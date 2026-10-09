@@ -1,5 +1,65 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 UTC: Next verified, main-only; protected staging refresh submitted
+
+Signed sharp patch `e78a5af29178b06217f3be7204f17ca83e6faa4f` passed hosted
+run 37870935439, including actual installed sharp 0.35.5 native processing.
+Local image tests used the previously installed 0.35.4, not the new version.
+PR 37 is closed and its remote branch is absent after direct integration;
+original commit `9ebbd143d67de95e30bce6041187cb681e095563` is retained here.
+
+Signed public-smoke improvement `99d48f2f2ffbc2825d842592b0af647eed37d293`
+passed run 37871294994 (job 113629766089): application 146/146, full build,
+simulator tests/types, 21 intercepted Chromium regressions in both runtimes,
+and actual published home/Ask-list illustrations decoded successfully.
+Public console/page/HTTP errors were zero. Exact deployment
+`dpl_EM2sPVhp8S64jKakEu83ocjdh1F1` is READY with production alias at readback.
+This does not prove authenticated, simulation, or paid acceptance.
+
+Signed `f7301db9bf188374fbd0cff3e374e16ab11292c7` integrates PR 39's
+Next 16.4.0 update plus matching eslint-config/plugin. Only Next-related lock
+entries changed; no caching flags, app code, schema, or financial gates changed.
+Exact-head verification 37871717377 (job 113631095182) is SUCCESS/terminal:
+146/146 app tests, complete production build, simulator tests/types, decoded
+published illustrations and all 21 intercepted browser regressions in both
+runtimes pass. Production deployment `dpl_HbWFZFvBAo7QnvQbHP2x99gDHuEr` is
+READY with the exact code SHA and production aliases. Public smoke reports zero
+console/page/HTTP errors, but is not authenticated/financial acceptance.
+PR 39 is CLOSED and remote readback now contains only main; local is main-only.
+No manual repeat close/delete was needed. Original
+commit `77acabd307e0f0d6beb00531a7bb26812d2f0f76` remains recoverable.
+
+Fresh read-only staging review receipt
+`tmp/staging-remote-build-preflight-1791510663939.json` passed with zero private
+upload files, unchanged root production link, protected staging identity and
+unchanged Supporter-only test gates. The guarded deploy helper rechecked the
+receipt/source/environment/database and submitted exactly one deployment:
+`dpl_CN1fLhs5nKqXnPK7UMKxKZrQYn5z`, INITIALIZING at submission. Poll that exact
+deployment and inspect canonical alias/protection before claiming staging READY.
+Authored source digest `0f184a8fcceadd6611765449c145565cb392d962c2da7294c8261689497f3cd8`,
+lock `71ee2fb1a9ad63638e941cf94d51edc76265c964a9c7a686d07833f9c8f73def`,
+upload `f74918568d9171c42c9d51472843ce2afef798d6c0a8550314c3f1f146f7e0cb`.
+No environment updates, migrations or financial operations accompanied it.
+Do not mix old source/lock financial approvals with this new binding.
+
+Owner-auth readback reconfirms the real owner verified and unfrozen. Existing
+AgentMail inboxes contain complete relayed links, and normal fixture password
+authentication succeeds. Automatic staging email remains intentionally captured;
+the owner iPhone authenticated dashboard is still not independently proven.
+
+Security follow-up: review the announced October 14 Next security release when
+available (https://nextjs.org/blog/upcoming-nextjs-security-update-october-2026).
+Do not claim 16.4 fixes the as-yet-unpublished affected versions/advisories.
+Current npm audit reports 11 findings (9 high, 2 moderate), including the root
+MCP SDK 1.30.1 OAuth-client advisory GHSA-6qxp-vccf-f47h; simulator SDK is already
+1.32.1. Primary advisory explicitly excludes MCP servers; current app imports
+only server/transport APIs, with no OAuth client usage found in the checked
+server/route paths. This is not evidence of credential exposure. Address the
+root SDK separately with reviewed update and verification,
+and investigate remaining transitive paths without blind force fixes/downgrades.
+No private Checkout operation was retried or ledger/budget reset in this turn.
+Paid lifecycles, all-member hour acceptance and final paid-state PDF remain open.
+
 ## October 9 UTC: full build gate and source-map patch
 
 Signed code head `04f65effb067af2152879ee346d6b7570e809c1c` integrates PR 38's
