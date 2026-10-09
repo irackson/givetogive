@@ -102,7 +102,28 @@ were exercised on the older published staging release, not a new deployment.
 No protection setting was disabled, no financial action ran, and auth URLs,
 passwords, raw provider responses, DOM dumps and network traces were not published.
 
-## Natural-expiry fixture prepared, not yet passed
+## Concurrent token replacement regression fixed (October 9)
+
+An actual isolated CI database test reproduced twelve concurrent replacement
+requests leaving **five** active verification tokens for one disposable member.
+Token issuance now acquires a transaction-scoped advisory lock keyed by member
+and purpose before deleting/inserting tokens. This serializes first issuance and
+replacement without introducing a user-row/token-row lock-order inversion with
+verification. No schema change or account grant is involved.
+
+The new `tests/integration/auth-token-lifecycle.test.ts` passes all three real
+SQL/router checks: one surviving replacement per purpose, one concurrent
+verification winner with immutable verified time on reuse, and expired/wrong-purpose
+rejection without verification or cross-purpose consumption. Together with existing
+email-capture/rate-limit regressions, **six** integration checks passed against the
+restricted isolated CI database; disposable members were cleaned up. Constructed
+expired CI tokens are not the separate naturally expiring AgentMail fixture.
+TypeScript and scoped zero-warning lint also passed. The credential-free hosted
+workflow has no database credentials and does not run these SQL integrations.
+This is a confirmed race fix, not proof of the owner's original email incident
+or final hosted signup/resend acceptance.
+
+## Natural-expiry preparation evidence
 
 On October 9, a second fresh tagged address was independently proved to route
 to an existing AgentMail inbox. The normal current registration router sent a

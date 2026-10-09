@@ -1,5 +1,24 @@
 # Resume here: payments and simulation checkpoint
 
+## Concurrent auth-token replacement fixed (October 9)
+
+Fresh isolated CI evidence reproduced twelve concurrent token replacements leaving
+five verification tokens. `src/server/auth/tokens.ts` now serializes issuance with
+a transaction-scoped member/purpose advisory lock. The three new real SQL/router
+regressions and existing email capture/rate-limit tests all passed (six total),
+as did all 153 application unit tests, TypeScript and scoped zero-warning lint.
+Disposable CI members were cleaned up; no real staging/owner token was modified.
+Details and remaining acceptance boundaries: `docs/staging-auth-email.md`.
+Do not attribute the owner's original incident to this race without evidence.
+
+The naturally expiring AgentMail fixture remains unconsumed/unverified: check
+after October 10 **06:30:56 UTC** using its ignored private receipt, never mutate
+its expiry or resend. Hosted run **37893510093** / `c58ed5b` passed 40 public
+desktop/mobile capture executions, zero attempted writes/errors; ephemeral
+runner PNGs are not retained final PDF inputs. Older failed receipts remain failed.
+Staging publication, exact release review, actual hosted signup/resend, original
+financial candidate, full community hour and final all-view/modal PDF remain open.
+
 ## Current capability/access inventory corrected (October 9)
 
 Independent provider/source audit at 06:11 UTC found production READY

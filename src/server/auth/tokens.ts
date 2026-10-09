@@ -4,7 +4,7 @@ import { createHash, randomBytes } from 'node:crypto';
 
 import { db } from '@/server/db';
 import { authTokens } from '@/server/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 
 export type AuthTokenPurpose = 'email_verification' | 'password_reset';
 
@@ -23,6 +23,12 @@ export async function createAuthToken(
 	);
 
 	await db.transaction(async (transaction) => {
+		// Serialize even first issuance (there may be no token row to lock).
+		// A purpose-scoped transaction lock avoids reversing verification's
+		// token-then-user row lock order. It releases automatically on rollback.
+		await transaction.execute(
+			sql`SELECT pg_advisory_xact_lock(hashtextextended(${`auth-token:${userId}:${purpose}`}, 0))`,
+		);
 		await transaction
 			.delete(authTokens)
 			.where(
