@@ -1,5 +1,43 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 UTC: current hosted source/browser preflight verified
+
+Signed `f8ccf15fdb101c45b888ee5fa1b551dc5bde1877` adds a credential-free
+current-source preflight to the existing read-only verification workflow.
+It uses the native Linux/Node 24 Git snapshot and the exact allowlisted browser
+child/closed intercepted CDP fixtures. It binds the staged canonical app/lock
+and checks source stability before/after browser execution. Unknown/missing
+source fields, different app/lock, wrong platform/job/actor/retry or transfer/
+provider credentials are rejected. Default/import are inert. It neither starts
+a waiting financial parent nor extends the historical fixed financial approval.
+
+Exact-head run 37873007648, job 113635093889, is SUCCESS/terminal, including
+the full app build/tests/types, simulator tests/types, published public smoke,
+21 intercepted Checkout browser tests under both runtimes and the new native
+preflight. Actual hosted browser fixture reports approximately 14.04 GiB minimum
+free memory, closed browser/context/local server, zero external requests and
+zero member sign-ins. Its intentionally injected partial-query failure is
+retained as a fixture diagnostic, not misrepresented as a dashboard success.
+Local simulator tests: 426 total, 425 pass, one Linux-only skip; types/lint pass.
+
+Current canonical app digest:
+`decf53acf95f71d4805301fccb7aec1880fbd00e6ac403b6b0e85940201e0f1f`;
+root lock `71ee2fb1a9ad63638e941cf94d51edc76265c964a9c7a686d07833f9c8f73def`;
+native runner closure `4dd3216dd4ea56f4fe5e632689f58b2de64b0fb191e2c1bf5a9b48231a51f269`.
+This is observed source/capability evidence only: financial source approval
+still required, native waiting parent false, Checkout prepared false, financial
+admission false, paid acceptance false. Do not append this tuple to the old
+consumed operation approval. No private input or Stripe credential was transferred.
+
+Next: repair the existing hosted execution path with an explicitly reviewed
+current-step profile for untouched fresh-cohort decline step 2, a SELECT-only
+original plan/budget/intent check, live job-bound encrypted handoff and local
+provider proof. Preserve step 0/1 consumed/expired history, original journals and
+budget. General read-only verification is not a financial workflow/readiness
+receipt. Existing fixed historical worker must not be dispatched again.
+App sources/lock and protected staging are unchanged by these tool/CI changes.
+Actual paid lifecycle, full 253-member hour and final paid-state PDF remain open.
+
 ## October 9 UTC: refreshed staging binding and untouched decline readback
 
 Protected staging `dpl_CN1fLhs5nKqXnPK7UMKxKZrQYn5z` is now READY and canonical;
