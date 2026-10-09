@@ -1,5 +1,40 @@
 # Resume here: payments and simulation checkpoint
 
+## CURRENT ordinary-member input preparation (October 9)
+
+Coordinator head `a68ff37` hosted verification **37885032712 SUCCESS/terminal**
+was read directly. `checkout-current-prepare.ts` is a separate explicit current
+handoff, not a reuse of the consumed historical 1500-cent operator. It accepts
+native owned-browser readiness, the supplied ORIGINAL UI journal and exact current
+ordinary member. It checks the fixed three-step plan/budgets and unused candidate,
+retains an exclusive lease plus mutation intent, then invokes the existing ordinary
+`billing.createCheckout` through `UiCheckoutPreparation` once. Supplied independent
+callbacks must recheck current source/job/member/browser/budget at unused and
+prepared boundaries and obtain the opening provider proof. Callback data validates
+bindings but does not itself establish live authority.
+
+The input carries only ordinary-member credentials, staging bypass and opening
+proof, encrypted for the waiting worker. Original ciphertext and upload intent
+precede the one input upload; exact retained metadata/hash/readback are required.
+Ambiguous mutation/upload, changed context, cancellation and stale proof stop
+without replaying or releasing holds. Returned input remains private operator data,
+never printed. This handoff does not submit a card or prove settlement.
+
+Verification: four new tests with real temporary SQLite/files/crypto and injected
+external observations, preserving 2000 cents of prior holds plus one 500-cent
+candidate; **547 simulator tests / 545 pass / two Linux-only skips / zero failures**,
+TypeScript and explicit zero-warning lint pass. No real candidate preparation,
+original-journal write or financial workflow dispatch occurred. Runner fingerprint
+includes this new module, so previous fingerprints are stale.
+
+Next native assembly must retain the original run's `ui-acceptance-<operation>.intent.json`
+before preparation, wire the original prepared-budget observer, discover/review the
+exact live readiness/check/draft association, supply real independently observed
+opening proof, and connect the current coordinator/root responder. Finish with
+actual provider/webhook/app reconciliation. Never manufacture proof from a member
+Checkout response. Pending email app source is still unpublished and cannot be
+financially approved until staging publication and review; goal active/incomplete.
+
 ## Current root phase coordination and real email evidence (October 9)
 
 Head `7627161` hosted verification **37883743488 SUCCESS/terminal** was checked
