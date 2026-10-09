@@ -42,7 +42,8 @@ export function seal(value: unknown, key: Buffer) {
   for (const bytes of [clear, compressed, iv, prefix, tail, encrypted, tag]) bytes?.fill(0);
  }
 }
-export function unseal(bytes: Buffer, key: Buffer): unknown {
+export function unseal(bytes: Buffer, key: Buffer, maximumOutputBytes = maximum): unknown {
+ requireHosted(Number.isSafeInteger(maximumOutputBytes) && maximumOutputBytes > 0 && maximumOutputBytes <= maximum);
  requireHosted(key.length === 32 && bytes.length > 36 && bytes.length <= maximum && bytes.subarray(0, 8).equals(magic));
  let prefix: Buffer | undefined, tail: Buffer | undefined, compressed: Buffer | undefined, clear: Buffer | undefined;
  try {
@@ -50,7 +51,7 @@ export function unseal(bytes: Buffer, key: Buffer): unknown {
   decipher.setAAD(magic); decipher.setAuthTag(bytes.subarray(20, 36));
   // Retain update's unauthenticated plaintext so final() failure cannot abandon it.
   prefix = decipher.update(bytes.subarray(36)); tail = decipher.final();
-  compressed = Buffer.concat([prefix, tail]); clear = gunzipSync(compressed, { maxOutputLength: maximum });
+  compressed = Buffer.concat([prefix, tail]); clear = gunzipSync(compressed, { maxOutputLength: maximumOutputBytes });
   return JSON.parse(clear.toString('utf8'));
  } finally {
   for (const owned of [prefix, tail, compressed, clear]) owned?.fill(0);

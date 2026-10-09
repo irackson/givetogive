@@ -11,6 +11,8 @@ import { checkMemory } from './hosted-checkout-policy.ts';
 export const currentCheckoutCandidate = Object.freeze({
  runId: '01d34cf1-7880-4978-aec3-e3c3ccc94b67',
  agentId: 'bot_bcfa98ea084ed93e_003',
+ memberId: 'synthetic-bcfa98ea084ed93e-003',
+ memberEmail: 'neighbor-bcfa98ea084ed93e-003@givetogive.invalid',
  operationId: '398c5cf9-62de-4908-afb0-ce6321e8b3ad',
  planDigest: 'e36e25e6e4e49e662a2343b15230c0d3dd1717637ca5eabfc4c342f8da8d1e1a',
  databaseIdentity: 'd5e4408d-c2fa-404d-81c5-ef4336dd8cd7',

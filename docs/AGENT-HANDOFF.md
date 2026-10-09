@@ -1,5 +1,53 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 UTC: current member-input codec; hosted profile correction passed
+
+Exact-head memory/profile correction `652fc9c81077df1b71c74540f95d9cc12c3ca310`
+passed **37875034533 SUCCESS/terminal**: full application build/checks, all 438
+Linux simulator tests, public smoke, intercepted Checkout guards and native
+current-source/browser preflight. Historical financial approval remains unchanged.
+
+`checkout-current-input.ts` now implements an inert authenticated private-input
+codec for current decline step 2, using existing AES-GCM bundle encryption.
+The envelope binds the complete validated current profile/digest and exact
+synthetic member ID/email, password and staging bypass, plus fresh exact 500-cent
+open/unpaid test-subscription proof. Job/run/nonce/head/source are rechecked;
+foreign/real users, stale/expired/paid/different sessions, wrong platform,
+unverified clock/ownership assertions and extra fields are rejected. No Stripe,
+SQL, admin or simulation-token fields are accepted. Caller-owned buffers are not
+erased; codec-owned temporary byte buffers are erased, errors remain generic.
+Only root's independently observed provider/job/member truth is authoritative;
+this codec does not authenticate assertions by itself or grant financial admission.
+
+Encrypted inputs are limited to 64 KiB and authenticated decompression to 32 KiB
+before parsing. Existing `unseal` supports an optional validated output limit;
+its existing default is unchanged for larger community archives. Current phase
+inputs retain the 1.5 GiB runtime floor because the native parent must already
+have acquired its browser before root's UI preparation; startup still requires
+2.5 GiB. This module does not prove native browser ownership. A session-comparison
+helper rejects any changed binding, including its opaque URL fragment, while
+allowing a refreshed verification timestamp.
+
+Nine new synthetic unit tests cover ciphertext tampering/wrong keys, exact job/
+profile binding, rejected authority credentials, foreign users/provider fields,
+test/amount/URL/freshness/status boundaries, compressed oversized input, session
+continuity and runtime memory. Local full simulator result: **447 total, 446 pass,
+one Linux-only skip, zero failures**. Types and focused ESLint (`--no-ignore`)
+pass. These tests use public fixtures only, not actual provider/member acceptance.
+The input codec and generic sandbox policy are included in the runner closure;
+new code needs a newly observed exact runner digest, not the prior tuple.
+
+Next: integrate this codec into the current native waiting-parent/ordinary-member
+adapter and exact encrypted private-draft transport. Acquire actual browser/OS
+ownership before original UI admission; root retains all Stripe/SQL/ledger
+authority and rechecks the live exact job before preparation, fixture entry and
+submission. Keep old expired/ambiguous holds and never dispatch the consumed
+historical fixed worker. The generic Checkout executor/driver already supports
+the fixed decline fixture, but remote transport/driver integration is still
+unfinished. No new private handoff, Checkout preparation, notice, payment or
+provider configuration change occurred in this checkpoint. Paid lifecycle,
+full mixed-cohort hour and final paid-state PDF remain required and incomplete.
+
 ## October 9 UTC: current decline execution profile and original budget readback
 
 Previous exact-head run **37873915945 SUCCESS/terminal**, head
