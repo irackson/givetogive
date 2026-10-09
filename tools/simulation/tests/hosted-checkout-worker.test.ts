@@ -119,7 +119,7 @@ test('durable wait does not grandfather a changed/stale acknowledgment panel', (
 });
 
 function fakeExecution(settings: { panel?: boolean; badDurable?: boolean; badAsset?: boolean; staleAsset?: boolean;
-	badSession?: boolean; abortAtAsset?: boolean; lateLaunch?: boolean; blockedNavigation?: boolean } = {}) {
+	badSession?: boolean; abortAtAsset?: boolean; lateLaunch?: boolean; blockedNavigation?: boolean; staleOpenAfterNavigation?: boolean } = {}) {
 	const abort = new AbortController(), value = input(), order: string[] = [], fills: string[] = [];
 	let time = NOW, panel = settings.panel ?? false, connected = true, auth = 0, queries = 0;
 	let route: ((route: unknown, request: unknown) => Promise<void>) | undefined;
@@ -155,6 +155,7 @@ function fakeExecution(settings: { panel?: boolean; badDurable?: boolean; badAss
 			assert.equal(Object.keys(options.headers).some(key => key.toLowerCase() === 'x-vercel-protection-bypass'), false);
 		} }, { frame: () => frame, resourceType: () => 'document', isNavigationRequest: () => true, postData: () => null, url: () => settings.blockedNavigation ? 'https://evil.example' : value.proof.url,
 			method: () => 'GET', headers: () => ({ 'x-vercel-protection-bypass': 'PRIVATE-MARKER' }) });
+		if (settings.staleOpenAfterNavigation) time += 30001;
 	}, waitForTimeout: async () => {}, close: async () => {} };
 	const context = { request: api, newPage: async () => page, route: async (__scope: string, callback: typeof route) => { route = callback; }, routeWebSocket: async () => {},
 		unroute: async () => { order.push('route-detach'); }, on: () => {}, off: () => { order.push('listener-detach'); }, close: async () => { order.push('context-close'); } };
@@ -194,6 +195,14 @@ test('in-memory member path requires normal auth, twelve exact billing GETs, dur
 	assert.equal(receipt.apiDisposed, true); assert.equal(receipt.browserContextClosed, true); assert.equal(receipt.browserDisconnected, true);
 	assert.ok(fake.order.indexOf('listener-detach') < fake.order.indexOf('browser-close'));
 	assert.equal(JSON.stringify(receipt).includes(fake.value.member.password), false); assert.equal(JSON.stringify(receipt).includes(fake.value.stagingBypass), false);
+});
+
+test('a fresh rendered surface cannot revive an opening provider proof that aged during navigation', async () => {
+	const fake = fakeExecution({ staleOpenAfterNavigation: true });
+	const result = await runHostedCheckoutMember(fake.value, HEAD, { broker: fake.broker, runtime: fake.runtime });
+	assert.equal(result.failed, true); assert.equal(result.submitClickAttempts, 0);
+	assert.equal(fake.fills.length, 0); assert.equal(fake.order.includes('submit-intent'), false);
+	assert.equal(result.browserDisconnected, true);
 });
 test('reviewed panel gets one durable acknowledgment before native transition; card/submit happen only afterward', async () => {
 	const fake = fakeExecution({ panel: true }); const result = await runHostedCheckoutMember(fake.value, HEAD, { broker: fake.broker, runtime: fake.runtime });

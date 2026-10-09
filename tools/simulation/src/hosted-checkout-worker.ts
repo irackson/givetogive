@@ -3,6 +3,7 @@
  * Broker receipts are external evidence, NEVER proof of writes performed by this module. */
 import { randomBytes } from 'node:crypto';
 import { freemem } from 'node:os';
+import { setTimeout as delay } from 'node:timers/promises';
 import superjson from 'superjson';
 import type { APIRequestContext, Browser, BrowserContext, BrowserType, Frame, Locator, Page, Request, Route } from 'playwright';
 import { approved, limits, requirePolicy, validateInput, validateIdentity, validateProof, checkMemory,
@@ -269,6 +270,50 @@ async function boundedClose(action: () => Promise<void>): Promise<boolean> {
 	})]); return true; } catch { return false; } finally { clearTimeout(timer); }
 }
 
+/** Wait only for clean asynchronous rendering. No control actions, swallowed
+ * browser reads, timestamp rewriting or financial admission. A hard timer also
+ * fences a hung read, rather than bounding only the gaps between reads. */
+export async function waitForHostedCheckoutSurface(read: () => Promise<CheckoutSurface>, options: {
+	signal: AbortSignal; now: () => number; timeoutMs?: number; afterNotice?: boolean; pause?: () => Promise<void>;
+}): Promise<CheckoutSurface> {
+	const timeout = options.timeoutMs ?? 15000;
+	requirePolicy(Number.isInteger(timeout) && timeout >= 1 && timeout <= 15000 && !options.signal.aborted);
+	const deadline = Date.now() + timeout, waiting = new AbortController();
+	let stopped = false, timer: ReturnType<typeof setTimeout> | undefined;
+	let rejectStopped: (error: Error) => void = () => {};
+	const stop = () => { stopped = true; waiting.abort(); rejectStopped(fixedError()); };
+	const stoppedPromise = new Promise<never>((__resolve, reject) => {
+		rejectStopped = reject; timer = setTimeout(stop, timeout);
+		options.signal.addEventListener('abort', stop, { once: true });
+		if (options.signal.aborted) stop();
+	});
+	const check = () => requirePolicy(!stopped && !options.signal.aborted && Date.now() < deadline);
+	const observe = async () => {
+		for (;;) {
+			check(); const surface = await read(); check();
+			const now = options.now(), age = now - Date.parse(surface.observedAt);
+			requirePolicy(Number.isFinite(now) && Number.isFinite(age) && age >= -limits.futureSkewMs && age <= limits.surfaceAgeMs
+				&& surface.unknownInstructions === false && surface.requiresCaptchaOrWalletOrAttestation === false
+				&& typeof surface.testModeLabel === 'boolean' && typeof surface.visibleCard === 'boolean'
+				&& Number.isInteger(surface.panelCount) && surface.panelCount >= 0 && surface.panelCount <= 32
+				&& surface.consoleErrors === 0 && surface.pageErrors === 0 && surface.httpErrors === 0);
+			if (surface.panelCount) {
+				if (!options.afterNotice) { validateAcknowledgmentSurface(surface, now); return surface; }
+				// An already acknowledged, known panel may be fading away. Never
+				// click it again or wait through a changed/duplicate notice.
+				requirePolicy(surface.panelCount === 1 && surface.panelDigest === approved.panelDigest);
+			} else {
+				requirePolicy(surface.panelDigest === null && surface.controlCount === 0 && surface.controlName === ''
+					&& !surface.visible && !surface.enabled && !surface.unchecked && surface.optionalLinkDeferred === true);
+				if (surface.testModeLabel && surface.visibleCard) { validateNativeSurface(surface, now); return surface; }
+			}
+			await (options.pause?.() ?? delay(200, undefined, { signal: waiting.signal }));
+		}
+	};
+	try { return await Promise.race([observe(), stoppedPromise]); }
+	finally { stopped = true; clearTimeout(timer); options.signal.removeEventListener('abort', stop); waiting.abort(); }
+}
+
 export async function runHostedCheckoutMember(raw: unknown, expectedHead: string,
 	options: { broker: CheckoutMemberBroker; signal?: AbortSignal; runtime?: CheckoutWorkerRuntime }) {
 	const injected = !!options.runtime;
@@ -361,7 +406,9 @@ export async function runHostedCheckoutMember(raw: unknown, expectedHead: string
 		context.on('page', onPage); context.on('console', onConsole); context.on('weberror', onError); context.on('response', onResponse); context.on('requestfailed', onFailedRequest);
 		listeners.push(() => { context?.off('page', onPage); context?.off('console', onConsole); context?.off('weberror', onError); context?.off('response', onResponse); context?.off('requestfailed', onFailedRequest); });
 		await run.wait(page.goto(input.proof.url, { waitUntil: 'domcontentloaded', timeout: 30000 }));
-		const surface = await run.wait(observeSurface(page, counters, runtime.now())); protocol.observeSurface(surface, runtime.now());
+		const surface = await run.wait(waitForHostedCheckoutSurface(() => observeSurface(page!, counters, runtime.now()), { signal, now: runtime.now }));
+		validateProof(input.proof, protocol.manifest, 'open', runtime.now());
+		protocol.observeSurface(surface, runtime.now());
 		if (protocol.state === 'ack-required') {
 			phase = 'acknowledgment'; const intent = protocol.acknowledgmentIntent();
 			const durable = await run.perform(() => options.broker.writeIntent(Object.freeze(structuredClone(intent)), signal)); run.check();
@@ -377,12 +424,8 @@ export async function runHostedCheckoutMember(raw: unknown, expectedHead: string
 			validateProof(input.proof, protocol.manifest, 'open', runtime.now());
 			validateAcknowledgmentSurface(await run.wait(observeSurface(page, counters, runtime.now())), runtime.now());
 			await run.wait(ackClick.perform(String(protocol.state) === 'ack-intent-written', signal, () => checkbox!.click({ timeout: 10000 })));
-			const until = runtime.now() + 15000; let post: CheckoutSurface | undefined;
-			while (runtime.now() < until) {
-				post = await run.wait(observeSurface(page, counters, runtime.now()));
-				if (post.panelCount === 0 && post.visibleCard && post.testModeLabel) break;
-				await run.wait(page.waitForTimeout(250));
-			}
+			const post = await run.wait(waitForHostedCheckoutSurface(() => observeSurface(page!, counters, runtime.now()), { signal, now: runtime.now, afterNotice: true }));
+			validateProof(input.proof, protocol.manifest, 'open', runtime.now());
 			protocol.recordAcknowledgment('transition-observed', post, runtime.now());
 		}
 		phase = 'fixture'; const frames = await run.wait(visibleFrames(page));

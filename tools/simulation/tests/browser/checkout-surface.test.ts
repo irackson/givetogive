@@ -3,13 +3,31 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { chromium, type Browser, type Page } from 'playwright';
-import { observeSurface, SurfaceReadUnavailable, validateNativeSurface, validateAcknowledgmentSurface, validateCardSelectionSurface, type Counters } from '../../src/hosted-checkout-worker.ts';
+import { observeSurface, waitForHostedCheckoutSurface, SurfaceReadUnavailable, validateNativeSurface, validateAcknowledgmentSurface, validateCardSelectionSurface, type Counters } from '../../src/hosted-checkout-worker.ts';
 import { StripeCheckoutDriver, checkoutBrowserEnvironment } from '../../src/stripe-checkout-driver.ts';
 import { allowedPassiveCheckoutWalletScript } from '../../src/sandbox-policy.ts';
 import { requestAllowed } from '../../src/hosted-checkout-policy.ts';
 
 const base = '<p>Test mode</p><input name="cardNumber"><input name="cardExpiry"><input name="cardCvc">';
 const counters = (): Counters => ({ consoleErrors: 0, pageErrors: 0, httpErrors: 0, blockedRequests: 0, failedRequests: 0, unexpectedPages: 0 });
+
+test('actual Chromium waits for asynchronous clean test-card rendering without filling or clicking', async () => {
+  await fixture('<p>Loading payment form</p><div id="fields"></div><script>setTimeout(()=>{document.querySelector("#fields").innerHTML=' + JSON.stringify(base) + ';},600)</script>', async page => {
+    assert.equal((await observeSurface(page, counters(), Date.now())).visibleCard, false);
+    const surface = await waitForHostedCheckoutSurface(() => observeSurface(page, counters(), Date.now()),
+      { signal: new AbortController().signal, now: Date.now, timeoutMs: 3000 });
+    assert.doesNotThrow(() => validateNativeSurface(surface, Date.now()));
+    assert.equal(await page.locator('input[name="cardNumber"]').inputValue(), '');
+  });
+});
+
+test('actual Chromium renderer wait stops at an unknown alert before a later healthy-looking state', async () => {
+  await fixture('<p>Loading payment form</p><div role="alert">Unreviewed condition</div><script>setTimeout(()=>{document.body.innerHTML=' + JSON.stringify(base) + ';},1500)</script>', async page => {
+    await assert.rejects(waitForHostedCheckoutSurface(() => observeSurface(page, counters(), Date.now()),
+      { signal: new AbortController().signal, now: Date.now, timeoutMs: 3000 }));
+    assert.equal(await page.locator('[role="alert"]').count(), 1);
+  });
+});
 
 test('real secret-free Chromium can be acquired and closed before any Checkout or member mutation', async () => {
   const driver = new StripeCheckoutDriver('public-fixture-bypass'.repeat(2), 'resource-fixture@givetogive.invalid');
