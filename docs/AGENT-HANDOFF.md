@@ -1,5 +1,33 @@
 # Resume here: payments and simulation checkpoint
 
+## Deployment quota and credential-free capability separation
+
+Email commit `4160e62` hosted run **37878835417** passed the app units/types/build,
+474 Linux simulator tests and public/intercepted browser checks. Its final source
+preflight correctly rejected the unpublished app against the old staging binding.
+Credential-free capability now reports `stagedSourceMatches` explicitly and may
+observe unpublished sources; strict `currentCheckoutSourceEvidence` and financial
+profile validation still reject an app/lock mismatch. No financial approval was
+extended, no staging binding was changed, and historical policy remains untouched.
+Local full simulator verification after this separation: **475 tests, 474 pass,
+one Linux-only skip, zero failures**, and simulation TypeScript passes. A fresh
+exact-head hosted verification must still be observed after pushing this fix.
+
+Two CLI deployment attempts were rejected before creation by Vercel's free-tier
+**100 deployments/day** limit (`api-deployments-free-per-day`, retry in 24 hours).
+Readback after the first confirms canonical staging remains
+`dpl_CN1fLhs5nKqXnPK7UMKxKZrQYn5z`, app `f7301db`; reconcile again before any next
+deployment attempt. Do not bypass quota, use another project to evade it, or buy
+a plan without user approval. Sender settings are stored but old deployments do
+not use them. Actual automatic AgentMail receipt remains untested.
+
+Ignored `tmp/staging-auth-real-delivery-test.mjs` prepares normal member reset
+testing on the existing dad AgentMail fixture, NOT Ian's account. No request was
+sent yet. Its durable private intent prevents repeat sends after uncertainty;
+actual AgentMail receipt is required before completion. Laptop free RAM was
+2.29 GiB, below the 2.5 GiB browser startup floor. Existing verified accounts mean
+resend should send no email; do not clear verification in SQL to force a test.
+
 ## Staging email delivery: exact-recipient opt-in implemented
 
 The latest simulator adapter follow-up `752c440` passed hosted run

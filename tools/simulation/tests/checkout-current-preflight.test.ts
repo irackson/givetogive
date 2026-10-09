@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { checkoutReleaseBinding } from '../../../scripts/checkout-release-inspect.mjs';
-import { currentCheckoutSourceEvidence, validateCurrentCheckoutPreflightContext } from '../src/checkout-current-preflight.ts';
+import { currentCheckoutCapabilityEvidence, currentCheckoutSourceEvidence, validateCurrentCheckoutPreflightContext } from '../src/checkout-current-preflight.ts';
 
 const head = 'a'.repeat(40);
 const env = { GITHUB_REPOSITORY:'irackson/givetogive',GITHUB_REF:'refs/heads/main',GITHUB_JOB:'verify',
@@ -41,6 +41,25 @@ test('fresh source evidence must match the staged canonical app and lock, withou
  assert.throws(()=>currentCheckoutSourceEvidence({...source,canonicalSourceDigest:'c'.repeat(64)},head));
  assert.throws(()=>currentCheckoutSourceEvidence({...source,rootLockDigest:'c'.repeat(64)},head));
  assert.throws(()=>currentCheckoutSourceEvidence(source,'invalid'));
+});
+
+test('credential-free capability observes unpublished sources without admitting a financial profile', () => {
+ const unpublished = {canonicalSourceDigest:'c'.repeat(64),rootLockDigest:checkoutReleaseBinding.lockDigest,runnerDigest:'b'.repeat(64)};
+ const observation = currentCheckoutCapabilityEvidence(unpublished,head);
+ assert.equal(observation.stagedSourceMatches,false);
+ assert.equal(observation.canonicalSourceDigest,unpublished.canonicalSourceDigest);
+ assert.equal(observation.financialSourceApprovalStillRequired,true);
+ assert.equal(observation.nativeWaitingParent,false);
+ assert.equal(observation.memberActions,0);
+ assert.equal(observation.checkoutPrepared,false);
+ assert.equal(observation.financialAdmission,false);
+ assert.equal(observation.paymentAccepted,false);
+ assert.throws(()=>currentCheckoutSourceEvidence(unpublished,head));
+ assert.throws(()=>currentCheckoutCapabilityEvidence({...unpublished,runnerDigest:'invalid'},head));
+ assert.throws(()=>currentCheckoutCapabilityEvidence({...unpublished,extra:true} as never,head));
+ assert.throws(()=>currentCheckoutCapabilityEvidence(unpublished,'invalid'));
+ const matching={...unpublished,canonicalSourceDigest:checkoutReleaseBinding.canonicalSourceDigest};
+ assert.equal(currentCheckoutCapabilityEvidence(matching,head).stagedSourceMatches,true);
 });
 test('preflight import and default command are inert; unsupported financial commands reject', () => {
  const url=new URL('../src/checkout-current-preflight.ts',import.meta.url),path=fileURLToPath(url);

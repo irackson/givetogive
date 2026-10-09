@@ -20,27 +20,39 @@ export function validateCurrentCheckoutPreflightContext(env: NodeJS.ProcessEnv, 
  guard(!Object.keys(env).some(key => /^(STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|CHECKOUT_BUNDLE_KEY|CHECKOUT_GITHUB_TOKEN|COMMUNITY_BUNDLE_KEY|COMMUNITY_RECOVERY_TOKEN|SIM_CREDENTIALS|SIM_RUNNER_TOKEN|GOOGLE_REFRESH_TOKEN|RESEND_API_KEY|VERCEL_TOKEN)$/.test(key) && env[key]));
  return env.GITHUB_SHA!;
 }
-export function currentCheckoutSourceEvidence(source: {
+/** Capability observation can describe unpublished code. It is never financial
+ * source approval; the separate strict validator below still requires staging. */
+export function currentCheckoutCapabilityEvidence(source: {
  canonicalSourceDigest: string; rootLockDigest: string; runnerDigest: string;
 }, headSha: string) {
  guard(/^[a-f0-9]{40}$/.test(headSha) &&
   Object.keys(source).sort().join(',') === 'canonicalSourceDigest,rootLockDigest,runnerDigest' &&
-  [source.canonicalSourceDigest,source.rootLockDigest,source.runnerDigest].every(value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)) &&
-  source.canonicalSourceDigest === checkoutReleaseBinding.canonicalSourceDigest &&
-  source.rootLockDigest === checkoutReleaseBinding.lockDigest && !approvedSourceTuple(source));
+  [source.canonicalSourceDigest,source.rootLockDigest,source.runnerDigest].every(value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)));
+ const stagedSourceMatches = source.canonicalSourceDigest === checkoutReleaseBinding.canonicalSourceDigest &&
+  source.rootLockDigest === checkoutReleaseBinding.lockDigest;
  return Object.freeze({ kind: 'current-checkout-source-preflight', headSha, ...source,
-  stagedDeploymentId: checkoutReleaseBinding.deploymentId, historicalApprovalReused: false,
+  stagedDeploymentId: checkoutReleaseBinding.deploymentId, stagedSourceMatches,
+  historicalApprovalReused: false,
   financialSourceApprovalStillRequired: true, nativeWaitingParent: false,
   memberActions: 0, checkoutPrepared: false, financialAdmission: false, paymentAccepted: false });
+}
+/** Financial-profile validation remains fail-closed until the exact app and lock
+ * are independently deployed/reviewed. Capability output cannot substitute. */
+export function currentCheckoutSourceEvidence(source: {
+ canonicalSourceDigest: string; rootLockDigest: string; runnerDigest: string;
+}, headSha: string) {
+ const observation = currentCheckoutCapabilityEvidence(source, headSha);
+ guard(observation.stagedSourceMatches && !approvedSourceTuple(source));
+ return observation;
 }
 export async function executeCurrentCheckoutPreflight() {
  guard(process.argv.length === 3 && process.argv[2] === '--execute-credential-free');
  const headSha = validateCurrentCheckoutPreflightContext(process.env, process.platform, Number(process.versions.node.split('.')[0]));
  checkMemory(freemem(), true);
- const before = currentCheckoutSourceEvidence(checkoutParentSourceSnapshot(headSha), headSha);
+ const before = currentCheckoutCapabilityEvidence(checkoutParentSourceSnapshot(headSha), headSha);
  await browserSmoke(); // Exact allowlisted child, intercepted fixtures and closed native Chromium.
  checkMemory(freemem(), false);
- const after = currentCheckoutSourceEvidence(checkoutParentSourceSnapshot(headSha), headSha);
+ const after = currentCheckoutCapabilityEvidence(checkoutParentSourceSnapshot(headSha), headSha);
  guard(JSON.stringify(before) === JSON.stringify(after));
  return { ...after, credentialFreeNativeBrowserVerified: true, sourceUnchangedAcrossBrowser: true,
   externalRequests: 0, freeBytesObserved: freemem() };
