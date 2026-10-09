@@ -6,6 +6,7 @@ import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { checkoutBrowserEnvironment } from './stripe-checkout-driver.ts';
 import { allowedPassiveCheckoutWalletScript } from './sandbox-policy.ts';
+import { requestAllowed } from './hosted-checkout-policy.ts';
 
 export const publicWalletScripts = [
   'https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js',
@@ -42,7 +43,9 @@ export async function probePublicWalletSdks() {
         return;
       }
       if (!publicWalletScripts.includes(request.url() as typeof publicWalletScripts[number]) ||
-        !allowedPassiveCheckoutWalletScript(request.url(), request.isNavigationRequest(), request.resourceType(), request.method()) || admittedRequests >= 20) {
+        !allowedPassiveCheckoutWalletScript(request.url(), request.isNavigationRequest(), request.resourceType(), request.method()) ||
+        !requestAllowed(request.url(), request.method(), request.isNavigationRequest(), request.frame().url(), 'opening',
+          undefined, undefined, undefined, request.postData(), request.resourceType()) || admittedRequests >= 20) {
         blockedRequests++; await route.abort(); return;
       }
       admittedRequests++;

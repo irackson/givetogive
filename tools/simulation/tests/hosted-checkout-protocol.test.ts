@@ -7,6 +7,29 @@ import { seal, unseal } from '../src/hosted-community-bundle.ts';
 
 // All identifiers/passwords/keys below are synthetic OFFLINE fixture values, never actual receipts.
 const NOW = Date.parse('2026-10-03T12:00:00.000Z'), HEAD = 'b'.repeat(40), KEY = Buffer.alloc(32, 7);
+test('hosted member admits shared static wallet scripts only with actual script facts, owned provider frames and no body', () => {
+	const urls = ['https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js',
+		'https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-button.js',
+		'https://applepay.cdn-apple.com/jsapi/1.latest/apple-wallet-sdk.js',
+		'https://static-na.payments-amazon.com/checkout.js', 'https://static-na.payments-amazon.com/cPSPcheckout.js'];
+	for (const url of urls) {
+		for (const method of ['GET', 'HEAD'])
+			assert.equal(requestAllowed(url, method, false, 'https://checkout.stripe.com', 'opening', undefined, undefined, undefined, null, 'script'), true);
+		for (const method of ['POST', 'OPTIONS', 'PUT'])
+			assert.equal(requestAllowed(url, method, false, 'https://checkout.stripe.com', 'opening', undefined, undefined, undefined, null, 'script'), false);
+		for (const resource of [undefined, 'fetch', 'document', 'image'])
+			assert.equal(requestAllowed(url, 'GET', false, 'https://checkout.stripe.com', 'opening', undefined, undefined, undefined, null, resource), false);
+		for (const frame of [approved.origin, 'https://evil.example', 'about:blank'])
+			assert.equal(requestAllowed(url, 'GET', false, frame, 'opening', undefined, undefined, undefined, null, 'script'), false);
+		assert.equal(requestAllowed(url, 'GET', true, 'https://checkout.stripe.com', 'opening', undefined, undefined, undefined, null, 'script'), false);
+		assert.equal(requestAllowed(url, 'GET', false, 'https://checkout.stripe.com', 'cleanup', undefined, undefined, undefined, null, 'script'), false);
+		assert.equal(requestAllowed(url, 'GET', false, 'https://checkout.stripe.com', 'opening', undefined, undefined, undefined, 'private-fixture-body', 'script'), false);
+		assert.equal(requestAllowed(url + '?private-fixture=1', 'GET', false, 'https://checkout.stripe.com', 'opening', undefined, undefined, undefined, null, 'script'), false);
+	}
+	for (const url of ['https://smp-paymentservices.apple.com/paymentservices/v3/checkStatus/merchant/private-fixture',
+		'https://pay.apple.com', 'https://static-na.payments-amazon.com/login', 'https://applepay.cdn-apple.com/jsapi/1.latest/arbitrary.js'])
+		assert.equal(requestAllowed(url, 'GET', false, 'https://checkout.stripe.com', 'opening', undefined, undefined, undefined, null, 'script'), false);
+});
 function manifest(): Manifest {
 	return { protocol: 1, purpose: 'one-member-test-checkout-policy',
 		job: { repository: approved.repository, actor: approved.actor, triggeringActor: approved.actor,

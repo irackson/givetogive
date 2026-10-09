@@ -153,7 +153,7 @@ function fakeExecution(settings: { panel?: boolean; badDurable?: boolean; badAss
 	const page = { frames: () => [frame], mainFrame: () => frame, goto: async () => {
 		if (route) await route({ abort: async () => { order.push('route-blocked'); }, continue: async (options: { headers: Record<string, string> }) => {
 			assert.equal(Object.keys(options.headers).some(key => key.toLowerCase() === 'x-vercel-protection-bypass'), false);
-		} }, { frame: () => frame, isNavigationRequest: () => true, postData: () => null, url: () => settings.blockedNavigation ? 'https://evil.example' : value.proof.url,
+		} }, { frame: () => frame, resourceType: () => 'document', isNavigationRequest: () => true, postData: () => null, url: () => settings.blockedNavigation ? 'https://evil.example' : value.proof.url,
 			method: () => 'GET', headers: () => ({ 'x-vercel-protection-bypass': 'PRIVATE-MARKER' }) });
 	}, waitForTimeout: async () => {}, close: async () => {} };
 	const context = { request: api, newPage: async () => page, route: async (__scope: string, callback: typeof route) => { route = callback; }, routeWebSocket: async () => {},

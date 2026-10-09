@@ -346,7 +346,7 @@ export async function runHostedCheckoutMember(raw: unknown, expectedHead: string
 				const frame = request.frame(), top = request.isNavigationRequest() && frame === page?.mainFrame();
 				const body = request.postData() ?? undefined;
 				if (signal.aborted || !requestAllowed(request.url(), request.method(), top, frame.url(), phase,
-					undefined, undefined, input.proof.sessionId, body)) { counters.blockedRequests++; await route.abort(); return; }
+					undefined, undefined, input.proof.sessionId, body, request.resourceType())) { counters.blockedRequests++; await route.abort(); return; }
 				await route.continue({ headers: scopedHeaders(request.url(), request.headers(), input.stagingBypass) });
 			} catch { counters.blockedRequests++; await route.abort().catch(() => {}); }
 		};

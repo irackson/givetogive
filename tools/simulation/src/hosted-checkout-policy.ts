@@ -2,6 +2,7 @@
  * All provider/source/private-retention/durability flags are ADAPTER evidence, not proof obtained here. */
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import { allowedPassiveCheckoutWalletScript } from './sandbox-policy.ts';
 
 export const approved = Object.freeze({
 	repository: 'irackson/givetogive', actor: 'irackson', origin: 'https://givetogive-staging.vercel.app',
@@ -186,7 +187,7 @@ export function memberQueryRequestAllowed(rawUrl: string, method: string, phase:
 }
 /** Browser adapter must supply genuine frame/decoded-query facts; this is not an HTTP client. */
 export function requestAllowed(rawUrl: string, method: string, topLevel: boolean, frameOrigin: string,
-	phase: string, __procedure?: string, __decodedInput?: unknown, sessionId?: string, body?: unknown): boolean {
+	phase: string, __procedure?: string, __decodedInput?: unknown, sessionId?: string, body?: unknown, resourceType?: string): boolean {
 	let url: URL; try { url = new URL(rawUrl); } catch { return false; }
 	if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443')) return false;
 	if (url.origin === approved.origin) {
@@ -221,7 +222,8 @@ export function requestAllowed(rawUrl: string, method: string, topLevel: boolean
 	}
 	if (!owned(frame) || !['GET', 'HEAD', 'POST'].includes(method)
 		|| !['opening', 'acknowledgment', 'fixture', 'submission', 'observation'].includes(phase)) return false;
-	return owned(url) || url.hostname === 'm.stripe.network' || url.hostname === 'hcaptcha.com' || url.hostname.endsWith('.hcaptcha.com');
+	return owned(url) || url.hostname === 'm.stripe.network' || url.hostname === 'hcaptcha.com' || url.hostname.endsWith('.hcaptcha.com')
+		|| (body == null && allowedPassiveCheckoutWalletScript(rawUrl, false, resourceType ?? '', method));
 }
 export function bypassDestinationAllowed(rawUrl: string): boolean {
 	try { const url = new URL(rawUrl); return url.origin === approved.origin && !url.username && !url.password; } catch { return false; }

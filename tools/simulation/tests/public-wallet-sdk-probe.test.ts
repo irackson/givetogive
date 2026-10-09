@@ -22,6 +22,7 @@ test('public SDK probe limits requests to five static assets and cannot become a
   const source = readFileSync(new URL('../src/public-wallet-sdk-probe.ts', import.meta.url), 'utf8');
   const workflow = readFileSync(new URL('../../../.github/workflows/checkout-public-sdk.yml', import.meta.url), 'utf8');
   assert.match(source, /maxRedirects: 0, maxRetries: 0/);
+  assert.match(source, /!requestAllowed\(request\.url\(\), request\.method\(\)/);
   assert.doesNotMatch(source, /\.(?:click|fill|submit|createCheckout|canMakePayments|applePayCapabilities)\(/);
   assert.doesNotMatch(workflow, /secrets\.|upload-artifact|save-cache|STRIPE_|DATABASE_|GITHUB_TOKEN/);
   assert.match(workflow, /contents: read/);

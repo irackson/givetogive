@@ -6,6 +6,7 @@ import { chromium, type Browser, type Page } from 'playwright';
 import { observeSurface, SurfaceReadUnavailable, validateNativeSurface, validateAcknowledgmentSurface, validateCardSelectionSurface, type Counters } from '../../src/hosted-checkout-worker.ts';
 import { StripeCheckoutDriver, checkoutBrowserEnvironment } from '../../src/stripe-checkout-driver.ts';
 import { allowedPassiveCheckoutWalletScript } from '../../src/sandbox-policy.ts';
+import { requestAllowed } from '../../src/hosted-checkout-policy.ts';
 
 const base = '<p>Test mode</p><input name="cardNumber"><input name="cardExpiry"><input name="cardCvc">';
 const counters = (): Counters => ({ consoleErrors: 0, pageErrors: 0, httpErrors: 0, blockedRequests: 0, failedRequests: 0, unexpectedPages: 0 });
@@ -134,6 +135,8 @@ test('actual Chromium admits only intercepted official wallet SDK script loads w
       } else {
         assert.ok(scripts.includes(request.url()));
         assert.equal(allowedPassiveCheckoutWalletScript(request.url(), request.isNavigationRequest(), request.resourceType(), request.method()), true);
+        assert.equal(requestAllowed(request.url(), request.method(), request.isNavigationRequest(), request.frame().url(), 'opening',
+          undefined, undefined, undefined, request.postData(), request.resourceType()), true);
         await route.fulfill({ status: 200, contentType: 'application/javascript', body: 'window.fixtureWalletSdkLoads=(window.fixtureWalletSdkLoads||0)+1;' });
       }
     });
