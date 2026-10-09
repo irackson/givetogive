@@ -1,6 +1,6 @@
 import { chromium, type Browser, type BrowserContext, type Frame, type Locator, type Page } from 'playwright';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { allowedCheckoutRequest, sandboxOrigin, stripeOwnedOrigin, type CheckoutScenario, type VerifiedCheckout } from './sandbox-policy.ts';
+import { allowedCheckoutRequest, allowedPassiveCheckoutWalletScript, sandboxOrigin, stripeOwnedOrigin, type CheckoutScenario, type VerifiedCheckout } from './sandbox-policy.ts';
 import { protectionHeaders } from './protection.ts';
 import { freemem } from 'node:os';
 import { observeSurface, SurfaceReadUnavailable, validateAcknowledgmentSurface, validateNativeSurface, OneNativeClick, type Counters, type CheckoutSurface, type SurfaceReadPhase } from './hosted-checkout-worker.ts';
@@ -114,7 +114,8 @@ export class StripeCheckoutDriver implements CheckoutDriver {
     await this.context.route('**/*', async route => {
       const request = route.request(); const url = new URL(request.url());
       const top = request.isNavigationRequest() && request.frame().parentFrame() === null;
-      const destinationRejected = !allowedCheckoutRequest(request.url(), top, checkout);
+      const destinationRejected = !allowedCheckoutRequest(request.url(), top, checkout) &&
+        !allowedPassiveCheckoutWalletScript(request.url(), top, request.resourceType(), request.method());
       if (destinationRejected || (url.origin === sandboxOrigin && !['GET', 'HEAD'].includes(request.method()))) {
         this.blockedHosts.add(url.hostname); this.counters.blockedRequests++;
         const category = checkoutRequestCategory(request.url(), request.resourceType(), top);

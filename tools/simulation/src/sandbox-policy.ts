@@ -48,6 +48,19 @@ export function allowedCheckoutRequest(rawUrl: string, topLevelNavigation: boole
   return !topLevelNavigation || (url.origin === 'https://checkout.stripe.com' && url.pathname === `/c/pay/${checkout.sessionId}`);
 }
 
+/** Passive wallet SDKs observed on genuine Checkout, verified against Apple and
+ * Amazon developer docs. Never grants wallet login, navigation or payment APIs.
+ * https://developer.apple.com/documentation/applepayontheweb/loading-the-latest-version-of-apple-pay-js
+ * https://developer.amazon.com/docs/amazon-pay-checkout/amazon-pay-script.html */
+export function allowedPassiveCheckoutWalletScript(rawUrl: string, topLevelNavigation: boolean, resourceType: string, method: string) {
+  if (topLevelNavigation || resourceType !== 'script' || !['GET', 'HEAD'].includes(method)) return false;
+  let url: URL; try { url = new URL(rawUrl); } catch { return false; }
+  if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') || url.search || url.hash) return false;
+  if (url.hostname === 'applepay.cdn-apple.com')
+    return /^\/jsapi\/(?:v?1(?:\.\d+\.\d+)?|1\.latest)\/apple-pay-sdk\.js$/.test(url.pathname);
+  return ['static-na.payments-amazon.com', 'static-eu.payments-amazon.com', 'static-fe.payments-amazon.com'].includes(url.hostname) && url.pathname === '/checkout.js';
+}
+
 export const checkoutOutcomeSchema = z.object({
   operationId: z.uuid(), actorId: z.string(), livemode: z.literal(false),
   databaseStatus: z.string(), providerPaymentStatus: z.string(), providerErrorCode: z.string().nullable(),

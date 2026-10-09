@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { allowedCheckoutRequest, sandboxOrigin, validateCheckoutContext, type SandboxBoundary, type CheckoutScenario } from '../src/sandbox-policy.ts';
+import { allowedCheckoutRequest, allowedPassiveCheckoutWalletScript, sandboxOrigin, validateCheckoutContext, type SandboxBoundary, type CheckoutScenario } from '../src/sandbox-policy.ts';
 import { SandboxLedger } from '../src/sandbox-ledger.ts';
 import { SandboxCheckoutExecutor } from '../src/sandbox-checkout.ts';
 import { StripeCheckoutDriver, checkoutBrowserEnvironment, checkoutRequestCategory, checkoutFailureCategory, checkoutDependencySuffix, type CheckoutDriver } from '../src/stripe-checkout-driver.ts';
@@ -80,6 +80,24 @@ test('dependency suffix diagnostics strip private subdomains, credentials, paths
   for (const value of ['https://private-user:private-password@stripe.com/private-path', 'http://private.example.invalid/private-path',
     'https://127.0.0.1/private-path', `https://${'a'.repeat(64)}.com/private-path`, 'https://cs_test_secret.com/private-path',
     'https://provider123.com/private-path', 'private-url']) assert.equal(checkoutDependencySuffix(value), 'withheld');
+});
+test('only official passive Apple/Amazon SDK scripts are allowed, never wallet login/navigation/payment or arbitrary CDN assets', () => {
+  for (const url of ['https://applepay.cdn-apple.com/jsapi/v1/apple-pay-sdk.js',
+    'https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js', 'https://applepay.cdn-apple.com/jsapi/v1.3.8/apple-pay-sdk.js',
+    'https://static-na.payments-amazon.com/checkout.js', 'https://static-eu.payments-amazon.com/checkout.js', 'https://static-fe.payments-amazon.com/checkout.js']) {
+    assert.equal(allowedPassiveCheckoutWalletScript(url, false, 'script', 'GET'), true);
+    assert.equal(allowedPassiveCheckoutWalletScript(url, false, 'script', 'HEAD'), true);
+    assert.equal(allowedPassiveCheckoutWalletScript(url, true, 'script', 'GET'), false);
+    assert.equal(allowedPassiveCheckoutWalletScript(url, false, 'document', 'GET'), false);
+    assert.equal(allowedPassiveCheckoutWalletScript(url, false, 'fetch', 'GET'), false);
+    assert.equal(allowedPassiveCheckoutWalletScript(url, false, 'script', 'POST'), false);
+    assert.equal(allowedPassiveCheckoutWalletScript(`${url}?private-fixture=1`, false, 'script', 'GET'), false);
+  }
+  for (const url of ['http://static-na.payments-amazon.com/checkout.js', 'https://static-na.payments-amazon.com.evil.invalid/checkout.js',
+    'https://private-user@static-na.payments-amazon.com/checkout.js', 'https://static-na.payments-amazon.com:444/checkout.js',
+    'https://static-na.payments-amazon.com/login', 'https://static-na.payments-amazon.com/pay',
+    'https://applepay.cdn-apple.com/jsapi/v1/arbitrary.js', 'https://other.cdn-apple.com/jsapi/v1/apple-pay-sdk.js',
+    'https://d37ugbyn3rpeym.cloudfront.net/checkout.js']) assert.equal(allowedPassiveCheckoutWalletScript(url, false, 'script', 'GET'), false);
 });
 test('read-only frame observation may reread a transient tree without performing a control action', async () => {
   const observed = new StripeCheckoutDriver('public-fixture-bypass'.repeat(2), 'readonly@givetogive.invalid');
