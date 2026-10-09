@@ -5,7 +5,7 @@ import { mkdtempSync,readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ChildProcess } from 'node:child_process';
-import { prepareCurrentCheckoutParent,inspectPreparedCurrentCheckoutParent,runCurrentCheckoutParent,closePreparedCurrentCheckoutParent,type CurrentParentRuntime } from '../src/checkout-current-parent.ts';
+import { prepareCurrentCheckoutParent,inspectPreparedCurrentCheckoutParent,runCurrentCheckoutParent,closePreparedCurrentCheckoutParent,CurrentParentReadinessFailure,type CurrentParentRuntime } from '../src/checkout-current-parent.ts';
 import { createCurrentMemberClient } from '../src/checkout-current-ipc.ts';
 import type { CheckoutIpcPeer } from '../src/checkout-broker-ipc.ts';
 import { currentProfile,currentInput,head,source,now } from './fixtures/current-checkout.ts';
@@ -69,6 +69,16 @@ test('protocol readiness without an actual owned browser rejects before private 
  for(const options of [{browser:false},{wrongReady:true},{reuse:true},{output:true}]){
   const h=harness(options);await assert.rejects(()=>h.prepare());assert.equal(h.counters().transfers,0);assert.equal(h.counters().launches,1);
  }
+});
+
+test('readiness failure retains only fixed phases and bounded process counts, never worker output',async()=>{
+ const h=harness({output:true});
+ await assert.rejects(()=>h.prepare(),error=>{
+  assert.ok(error instanceof CurrentParentReadinessFailure);assert.equal(error.diagnostic.paymentAccepted,false);
+  assert.equal(error.diagnostic.retryAllowed,false);assert.equal(error.diagnostic.childLaunched,true);
+  assert.equal(error.diagnostic.publicOutputBytes,Buffer.byteLength('public unexpected output'));
+  assert.doesNotMatch(JSON.stringify(error.diagnostic),/public unexpected output|password|cookie|token/);return true;
+ });assert.equal(h.counters().transfers,0);
 });
 test('preflight rejects secret environments, low memory, changed source and abort before any child launch',async()=>{
  for(const kind of ['environment','memory','source','abort'] as const){const h=harness();

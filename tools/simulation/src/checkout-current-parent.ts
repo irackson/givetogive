@@ -22,6 +22,15 @@ import { CheckoutProcessObservation,readCheckoutProcessTable,type CheckoutProces
 
 const fail=()=>new Error('Current Checkout parent stopped; no retry; private details withheld.');
 function guard(value:unknown):asserts value{if(!value)throw fail();}
+const parentStages=z.enum(['input','source','memory','namespace','child-launch','process-ownership','public-transfer','waiting-browser-readiness','browser-ownership','readiness-retention']);
+export const parentReadinessDiagnosticSchema=z.object({phase:parentStages,childLaunched:z.boolean(),readyReceived:z.boolean(),
+ publicOutputBytes:z.number().int().nonnegative(),escapedDescendantObserved:z.boolean(),detachedBrowserChildren:z.number().int().nonnegative(),
+ cleanupConfirmed:z.boolean(),paymentAccepted:z.literal(false),retryAllowed:z.literal(false)}).strict();
+export class CurrentParentReadinessFailure extends Error {
+ readonly diagnostic:z.infer<typeof parentReadinessDiagnosticSchema>;
+ constructor(diagnostic:z.infer<typeof parentReadinessDiagnosticSchema>){super('Current Checkout parent readiness stopped; private details withheld; no retry.');
+  this.diagnostic=Object.freeze(parentReadinessDiagnosticSchema.parse(diagnostic));}
+}
 const readySchema=z.object({protocol:z.literal(1),purpose:z.literal('current-member-browser-ready'),connectionNonce:z.string().regex(/^[a-f0-9]{32}$/),
  profileDigest:z.string().regex(/^[a-f0-9]{64}$/),freeBytes:z.number().finite(),browserConnected:z.literal(true),memberSignIns:z.literal(0),
  paymentAccepted:z.literal(false),retryAllowed:z.literal(false),executionEvidence:z.enum(['native-playwright-adapter','injected-offline'])}).strict();
@@ -88,13 +97,16 @@ async function send(resource:Resource,value:unknown){active(resource);guard(Buff
  * root financial preparation occurs inside this function. */
 export async function prepareCurrentCheckoutParent(raw:unknown,head:string,source:CurrentCheckoutSource,options:{root:string;memberEnvironment:unknown;signal:AbortSignal;runtime?:CurrentParentRuntime}):Promise<Prepared>{
  const injected=options.runtime!==undefined,runtime=options.runtime??nativeRuntime();let resource:Resource|undefined,child:ChildProcess|undefined;
+ let phase:z.infer<typeof parentStages>='input';
  try{
   if(!injected)guard(process.platform==='linux'&&process.versions.node.split('.')[0]==='24');
   const profile=validateCurrentCheckoutProfile(raw,head,source,runtime.now()),environment=validateChildEnvironment(options.memberEnvironment);
-  runtime.verifySources(head,source);checkMemory(runtime.freeBytes(),true);options.signal.throwIfAborted();
+  phase='source';runtime.verifySources(head,source);phase='memory';checkMemory(runtime.freeBytes(),true);options.signal.throwIfAborted();
+  phase='namespace';
   const directory=join(resolve(options.root),`current-checkout-${profile.runId}-${profile.operationId}`);contained(directory);guard(lstatSync(dirname(directory)).isDirectory());
   mkdirSync(directory,{mode:0o700});flushDirectory(dirname(directory));retain(directory,'launch-lease.json',{profileDigest:currentProfileDigest(profile),head,source,maximumMemberLaunches:1,paymentAccepted:false,retryAllowed:false});
-  child=runtime.launch(environment);guard(child.pid);let root:CheckoutProcessIdentity|undefined;const start=runtime.now();
+  phase='child-launch';child=runtime.launch(environment);guard(child.pid);let root:CheckoutProcessIdentity|undefined;const start=runtime.now();
+  phase='process-ownership';
   while(!root&&runtime.now()-start<5000){root=runtime.processes().find(row=>row.pid===child!.pid);if(!root)await runtime.pause(25);}guard(root);
   const controller=new AbortController(),signal=AbortSignal.any([options.signal,controller.signal,AbortSignal.timeout(900000)]);
   resource={runtime,source,head,directory,child,root,observation:new CheckoutProcessObservation(root,runtime.parentPid),profile,
@@ -112,12 +124,24 @@ export async function prepareCurrentCheckoutParent(raw:unknown,head:string,sourc
   }catch{owned.failed=true;stop(owned);}};
   child.on('message',owned.message);const aborted=()=>{stop(owned);void close(owned).catch(()=>{owned.failed=true;});};signal.addEventListener('abort',aborted,{once:true});owned.removeAbort=()=>signal.removeEventListener('abort',aborted);
   owned.interval=setInterval(()=>{if(owned.exited)return;try{active(owned);}catch{owned.failed=true;stop(owned);}},100);
-  await send(owned,{protocol:1,kind:'current-member-prepare',headSha:head,source,profile});
-  const until=runtime.now()+45000;while(!owned.ready&&runtime.now()<until){active(owned);await runtime.pause(25);}guard(owned.ready);browserObserved(owned);
+  phase='public-transfer';await send(owned,{protocol:1,kind:'current-member-prepare',headSha:head,source,profile});
+  phase='waiting-browser-readiness';const until=runtime.now()+45000;while(!owned.ready&&runtime.now()<until){active(owned);await runtime.pause(25);}guard(owned.ready);
+  phase='browser-ownership';browserObserved(owned);
+  phase='readiness-retention';
   retain(directory,'browser-readiness.json',{ready:owned.ready,parentEvidence:injected?'injected-offline':'native-linux-parent',browserExecutableObserved:true,liveGitHubRootReviewStillRequired:true,paymentAccepted:false});
   const prepared=Object.freeze({profile,ready:owned.ready,parentEvidence:injected?'injected-offline' as const:'native-linux-parent' as const,browserExecutableObserved:true as const,paymentAccepted:false as const,retryAllowed:false as const});
   resources.set(prepared,owned);return prepared;
- }catch{if(resource)await close(resource);else if(child?.connected)child.disconnect();throw fail();}
+ }catch{
+  let escaped=false,detachedBrowserChildren=0,cleanupConfirmed=false;
+  if(resource){try{const table=runtime.processes();escaped=resource.observation.inspect(table).escapedDescendantObserved;
+   detachedBrowserChildren=table.filter(row=>row.parentPid===resource!.root.pid&&live(row)&&runtime.browserExecutable(row)&&
+    (row.processGroup!==resource!.root.processGroup||row.session!==resource!.root.session)).length;
+   }catch{/* No positive process/closure claim from unavailable observations. */}
+   const cleanup=await close(resource);cleanupConfirmed=cleanup.ownedGroupClosed&&cleanup.exitObserved&&!cleanup.escapedDescendantObserved;
+  }else if(child?.connected)child.disconnect();
+  throw new CurrentParentReadinessFailure({phase,childLaunched:!!child,readyReceived:!!resource?.ready,
+   publicOutputBytes:resource?.outputBytes??0,escapedDescendantObserved:escaped,detachedBrowserChildren,cleanupConfirmed,paymentAccepted:false,retryAllowed:false});
+ }
 }
 export async function closePreparedCurrentCheckoutParent(prepared:Prepared){const resource=resources.get(prepared);guard(resource);return close(resource);}
 /** Fresh local process/browser observation, not a serialized readiness assertion. */

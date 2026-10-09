@@ -13,7 +13,7 @@ import { checkoutReleaseBinding } from '../../../scripts/checkout-release-inspec
 import { checkoutParentSourceSnapshot } from './hosted-checkout-parent.ts';
 import { checkMemory,validateChildEnvironment,assetName,limits } from './hosted-checkout-policy.ts';
 import { checkoutBrowserCacheRoot } from './checkout-bootstrap.ts';
-import { prepareCurrentCheckoutParent,inspectPreparedCurrentCheckoutParent,runCurrentCheckoutParent,closePreparedCurrentCheckoutParent } from './checkout-current-parent.ts';
+import { prepareCurrentCheckoutParent,inspectPreparedCurrentCheckoutParent,runCurrentCheckoutParent,closePreparedCurrentCheckoutParent,CurrentParentReadinessFailure,parentReadinessDiagnosticSchema } from './checkout-current-parent.ts';
 import { observeCurrentCheckoutJob } from './checkout-current-job.ts';
 import { currentProfileDigest,currentPhaseNames } from './checkout-current-phase.ts';
 import { CurrentCheckoutPrivateDraft } from './checkout-current-draft.ts';
@@ -32,8 +32,9 @@ const bootstrapStages=z.enum(['configuration','memory','source','job','profile',
  'readiness-publication','association','input-transfer','input-validation','member-execution','final-retention','diagnostic-cleanup']);
 /** Fixed stage codes only: never forward exception text, environment values,
  * provider URLs, cookies or worker output into a public diagnostic. */
-export function currentBootstrapFailureDiagnostic(phase:unknown,diagnosticOnly:unknown,retained:unknown){
+export function currentBootstrapFailureDiagnostic(phase:unknown,diagnosticOnly:unknown,retained:unknown,parentReadiness?:unknown){
  return {nativeBootstrapFailed:true,phase:bootstrapStages.parse(phase),diagnosticOnly:z.boolean().parse(diagnosticOnly),
+ ...(parentReadiness===undefined?{}:{parentReadiness:parentReadinessDiagnosticSchema.parse(parentReadiness)}),
  privateFinalRetentionVerified:z.boolean().parse(retained),independentClosureAndSettlementRequired:true,
  paymentAccepted:false,retryAllowed:false,privateDetailsWithheld:true};
 }
@@ -190,13 +191,13 @@ export async function executeCurrentCheckoutBootstrap(diagnosticOnly=false){
  parent:result,independentClosureAndSettlementRequired:true,paymentAccepted:false,retryAllowed:false});
  phase='final-retention';await retainCurrentBootstrapFinal(directory,profile,key,config.releaseId,draft,signal);retained=true;guard(!result.failed);
  return {nativeBootstrap:true,privateFinalRetentionVerified:true,independentClosureAndSettlementRequired:true,paymentAccepted:false,retryAllowed:false};
- }catch{if(prepared)try{const cleanup=await closePreparedCurrentCheckoutParent(prepared);
+ }catch(error){if(prepared)try{const cleanup=await closePreparedCurrentCheckoutParent(prepared);
  if(directory&&result===undefined)record(directory,'bootstrap-result.json',{protocol:1,failed:true,cleanup,independentClosureAndSettlementRequired:true,paymentAccepted:false,retryAllowed:false});
  }catch{/* Never claim successful cleanup from an exception. */}
  // No automatic second final upload. Uncertain transfer preserves its intent.
  if(directory&&profile&&key&&draft&&releaseId&&!existsSync(join(directory,'final-upload.intent.json'))&&existsSync(join(directory,'bootstrap-result.json'))){
  try{await retainCurrentBootstrapFinal(directory,profile,key,releaseId,draft,AbortSignal.timeout(180000));retained=true;}catch{/* Private original failure is retained locally. */}}
- console.error(JSON.stringify(currentBootstrapFailureDiagnostic(phase,diagnosticOnly,retained)));return fail();
+ console.error(JSON.stringify(currentBootstrapFailureDiagnostic(phase,diagnosticOnly,retained,error instanceof CurrentParentReadinessFailure?error.diagnostic:undefined)));return fail();
  }finally{exchange?.close();key?.fill(0);inputBytes?.fill(0);process.off('SIGTERM',stop);process.off('SIGINT',stop);}
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){

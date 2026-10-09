@@ -1,5 +1,23 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 15:58 UTC: nonfinancial probe isolates browser readiness
+
+Signed `ba384bd` full hosted verification `37955011518` passed. Separate
+readiness-only diagnostic `37955614401` failed at `browser-readiness`; the
+configuration, memory, source, live-job, profile, filesystem and browser-path
+checks passed. This run had no readiness publication/association, member input,
+sign-in or financial action. The financial run `37953768787` remains failed and
+unchanged; it is not retried or relabeled by this diagnostic.
+
+The installed Playwright launcher explicitly uses a separate process group on
+Linux. The current owner guard assumes one group, but this is only a possible
+cause until actual process diagnostics establish it. Allowlisted parent-phase,
+output-byte and detached-browser counts now diagnose that boundary without
+revealing worker output or claiming closure/payment success. Changed regressions
+pass; obtain a fresh signed checkpoint and a separate readiness-only probe.
+Do not weaken ownership guards based on an inference or reset an original
+financial namespace. No new Vercel release is needed for these tooling changes.
+
 ## October 9 15:46 UTC: native readiness failure before financial preparation
 
 Signed main `aed43e3` full verification `37952962697` passed, including actual

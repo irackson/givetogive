@@ -26,6 +26,7 @@ test('bootstrap diagnostics accept only fixed non-secret stage codes and never f
   assert.throws(()=>currentBootstrapFailureDiagnostic(raw,true,false));
  assert.throws(()=>currentBootstrapFailureDiagnostic('source','true',false));
  assert.throws(()=>currentBootstrapFailureDiagnostic('source',false,'true'));
+ assert.throws(()=>currentBootstrapFailureDiagnostic('browser-readiness',true,false,{phase:'secret-key'}));
 });
 test('current bootstrap config is exact, separate from historical admission and excludes root credentials',()=>{
  assert.equal(currentCheckoutBootstrapConfiguration(environment,'linux',24).releaseId,42);
