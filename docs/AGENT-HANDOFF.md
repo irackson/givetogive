@@ -1,5 +1,60 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 19:31 UTC: genuine paid Sustainer lifecycle and first renewal passed
+
+This supersedes the older unpaid checkpoint below. Canonical staging and
+production still run application source `c8044c1`; tooling-only pushes have not
+created additional Vercel releases. Production financial gates remain OFF.
+
+The normal UI prepared operation `2fe801fa-dcea-47c9-8f3b-5025d2959a25` for the
+second member of cohort `d55a7bc3-31db-48c7-8877-52fa4328b76e`. One native Card
+selection and one physical sandbox Subscribe click paid the $15 Sustainer plan.
+Independent provider/app readback confirmed paid invoice, succeeded intent and
+app payment, processed owned signed events, two balanced journals, applied
+coverage and actual Sustainer recognition. The protected return reached Vercel
+SSO rather than the app: this is a genuine lost-return outcome, not successful
+return-page acceptance. The owned Checkout tab was closed; other tabs were not.
+
+Four normal member preview/confirm pairs then settled: cancel at period end,
+resume, schedule downgrade, undo downgrade. Each preserved paid Sustainer
+coverage; no immediate charge or new invoice was created. A local assertion
+initially expected a single revision increment, but admission plus provider sync
+increment it twice. The succeeded cancellation was NOT replayed: independent
+readback and a separate once-only continuation consumed only the three remaining
+original operation IDs. Original intents and results are retained under
+`tmp/supporter-lifecycle-20261009/d55a7bc3-31db-48c7-8877-52fa4328b76e/`.
+
+The original test clock advanced exactly once to `1794255352`. The same actual
+subscription renewed for $15: invoice `in_1UOjUNDed7vKVaptDhiy8MvM` is paid,
+payment `012eaa24-af51-4fbd-ab8f-47cbd5545219` succeeded, two balanced journals
+and new applied coverage were verified, and Sustainer recognition was retained.
+Original finite advance intent and readbacks are under
+`tmp/supporter-renewal-20261009/d55a7bc3-31db-48c7-8877-52fa4328b76e/`.
+Do not advance again, recreate the clock, reset holds or rerun consumed operators.
+
+All three original Checkout preparations are now consumed. Cases 1 and 3 stopped
+before card entry/submission and retain their original ambiguous holds; neither
+is a decline. Actual read-only case-3 DOM revealed a visible native Card tile
+bound to a zero-size screen-reader control. The adapter now selects only that
+exact validated visible label, never force-clicks the hidden button, and still
+refuses CAPTCHA, wallets, attestation, unknown notices and ambiguous controls.
+Local tool types, 615 simulation tests (three opt-in skips), and all 39 native
+synthetic DOM tests passed. Synthetic guards are not a second provider payment.
+
+Paid desktop Support, Billing and one historical change dialog were captured;
+the full paid/mobile/history lane remains incomplete. Repeated normal operator
+sign-ins hit the ordinary cooldown: allow it to expire, never reset/bypass it.
+Test-clock list-all results omit clock objects; retrieve exact owned invoice IDs
+and use subscription/clock-scoped reads, not an empty account-only list as proof
+of absence. The generic legacy proof reader still needs that hardening before
+fresh financial admission. Original three-case source approvals remain unchanged.
+
+Temporary Development-test wallet preferences are still awaiting their once-only
+verified restoration after this lane. Remaining acceptance includes fresh paid
+Supporter/decline/3DS and recovery cases, Ask/fund financial paths, the genuinely
+paid 253-member continuous hour, complete views/dialogs, and the final PDF.
+The goal remains active and incomplete; no live-money enablement is authorized.
+
 ## October 9 18:39 UTC: native Sandbox/Card controls corrected; no paid acceptance yet
 
 Signed `71f7353` full verification `37970445127` passed. The fresh isolated

@@ -21,6 +21,21 @@ Tags describe origin, not deployment or acceptance:
 
 ## Current reviewed checkpoint - October 9, 2026
 
+**19:31 UTC refresh:** Genuine normal-UI $15 Sustainer signup is paid and mapped
+to the app, with signed events, balanced journals, paid coverage and actual
+recognition. Cancel/resume and scheduled downgrade/undo passed through normal
+member APIs without an immediate charge. The original clock advanced once and
+the first $15 renewal independently settled into the app with new paid coverage.
+The Checkout return reached protected SSO, so only lost-return settlement, not
+the happy return view, is verified. The other two original preparations failed
+before submission and retain their holds; none was retried or called a decline.
+The native Card-tile adapter fix passes 39 offline Chromium guard tests; 615
+simulation tests pass with three explicit skips. Production payments remain OFF;
+no additional application deployment was needed. Full payment-path acceptance,
+the continuous paid community hour, complete paid/mobile/modal captures and final
+PDF remain open. See the latest [handoff](AGENT-HANDOFF.md) for immutable evidence
+and consumed-operator restrictions. The dated notes below are historical.
+
 **18:39 UTC refresh:** A fresh three-member test cohort now has real authenticated
 accounts and canonical Accounts v2 customers on one test clock. All remain
 Neighbor. Its first Checkout stopped before card entry or submission; its

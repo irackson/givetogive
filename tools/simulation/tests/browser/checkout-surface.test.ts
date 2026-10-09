@@ -10,6 +10,63 @@ import { requestAllowed } from '../../src/hosted-checkout-policy.ts';
 
 const base = '<p>Test mode</p><input name="cardNumber"><input name="cardExpiry"><input name="cardCvc">';
 const counters = (): Counters => ({ consoleErrors: 0, pageErrors: 0, httpErrors: 0, blockedRequests: 0, failedRequests: 0, unexpectedPages: 0 });
+const nativeCardTile = '<div class="AccordionItemHeader-content"><div id="payment-method-label-card" onclick="window.cardSelections=(window.cardSelections||0)+1;document.querySelector(\'#fields\').hidden=false">Card</div>' +
+  '<button type="button" aria-label="Pay with card" style="width:0;height:0;padding:0;border:0;overflow:hidden"></button></div>';
+const tileFields = '<div id="fields" hidden><input name="cardNumber"><input name="cardExpiry"><input name="cardCvc"></div>';
+
+test('actual driver selects only the observed native Card tile, never its zero-size screen-reader button', async () => {
+  await fixture('<span>Sandbox</span>' + nativeCardTile + tileFields, async page => {
+    const before = await observeSurface(page, counters(), Date.now(), { cardChoice: true });
+    assert.equal(before.cardChoiceKind, 'tile');
+    assert.equal(before.cardChoiceCount, 1);
+    assert.doesNotThrow(() => validateCardSelectionSurface(before, Date.now()));
+    const driver = new StripeCheckoutDriver('', 'tile-card-fixture@givetogive.invalid');
+    Object.assign(driver, { page });
+    await driver.fillFixture('success');
+    assert.equal(driver.diagnostics().cardSelectionClickAttempts, 1);
+    assert.equal(driver.diagnostics().noticeClickAttempts, 0);
+    assert.equal(await page.evaluate(() => (window as unknown as { cardSelections: number }).cardSelections), 1);
+    assert.equal((await page.locator('input[name="cardNumber"]').inputValue()).length, 16);
+    const after = await observeSurface(page, counters(), Date.now());
+    assert.doesNotThrow(() => validateNativeSurface(after, Date.now()));
+  });
+});
+
+test('actual hosted adapter reveals the native Card tile exactly once and strips adapter-only fields', async () => {
+  await fixture('<span>Sandbox</span>' + nativeCardTile + tileFields, async page => {
+    const selection = new OneNativeClick();
+    const surface = await prepareHostedCheckoutSurface(page, counters(), {
+      signal: new AbortController().signal, now: Date.now, selection, beforeSelection: () => {},
+    });
+    assert.doesNotThrow(() => validateNativeSurface(surface, Date.now()));
+    assert.equal(selection.attempts, 1);
+    for (const field of ['cardChoiceCount', 'cardChoiceKind', 'cardChoiceUnchecked']) assert.equal(field in surface, false);
+    assert.equal(await page.locator('input[name="cardNumber"]').inputValue(), '');
+    await prepareHostedCheckoutSurface(page, counters(), {
+      signal: new AbortController().signal, now: Date.now, selection, beforeSelection: () => {},
+    });
+    assert.equal(selection.attempts, 1);
+  });
+});
+
+for (const [name, html] of [
+  ['disabled bound control', nativeCardTile.replace('type="button"', 'type="button" disabled')],
+  ['ARIA-disabled bound control', nativeCardTile.replace('type="button"', 'type="button" aria-disabled="true"')],
+  ['wrong underlying method', nativeCardTile.replace('Pay with card', 'Pay with cash')],
+  ['missing underlying control', '<div class="AccordionItemHeader-content"><div id="payment-method-label-card">Card</div></div>'],
+  ['unbound merchant Card label', '<div id="payment-method-label-card">Card</div>'],
+  ['unreviewed header', nativeCardTile.replace('AccordionItemHeader-content', 'MerchantPromotion')],
+  ['duplicate native tiles', nativeCardTile + nativeCardTile],
+  ['conflicting Card button and tile', '<button>Card</button>' + nativeCardTile],
+  ['visible screen-reader control', nativeCardTile.replace('width:0;height:0;padding:0;border:0;overflow:hidden', 'width:100px;height:30px')],
+]) test(`actual Chromium refuses native Card tile selection with ${name}`, async () => {
+  await fixture('<span>Sandbox</span>' + html + tileFields, async page => {
+    const surface = await observeSurface(page, counters(), Date.now(), { cardChoice: true });
+    assert.throws(() => validateCardSelectionSurface(surface, Date.now()));
+    assert.equal(await page.locator('input[name="cardNumber"]').inputValue(), '');
+    assert.equal(await page.evaluate(() => (window as unknown as { cardSelections?: number }).cardSelections ?? 0), 0);
+  });
+});
 
 test('actual Chromium waits for asynchronous clean test-card rendering without filling or clicking', async () => {
   await fixture('<p>Loading payment form</p><div id="fields"></div><script>setTimeout(()=>{document.querySelector("#fields").innerHTML=' + JSON.stringify(base) + ';},600)</script>', async page => {

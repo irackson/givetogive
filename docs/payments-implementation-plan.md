@@ -5,6 +5,16 @@ verification, fixes, deployment, and truthful reporting of external blockers.
 Baseline: `f6638fe` on `main`. This checklist does not redefine the goal around
 whatever happens to be implemented. Unchecked requirements remain unfinished.
 
+**October 9, 19:31 UTC acceptance update:** Normal-UI Sustainer initial payment,
+cancel/resume, scheduled downgrade/undo and the first test-clock renewal now have
+genuine provider-to-app settlement evidence. Paid coverage and balanced journals
+were verified; no direct provider-created subscription was substituted for member
+signup. The protected return did not reach the app. Original failed preparations
+remain consumed and are not declines. This advances P03/T03/T05 only for these
+specific cases; Supporter signup, upgrade/recovery, decline/3DS, Ask/fund money
+paths, paid population/hour and final walkthrough remain unfinished. Older table
+observations below are historical; use the latest handoff for current evidence.
+
 ## Product decisions
 
 - Preserve the existing editorial design, five Ask types, authentication,

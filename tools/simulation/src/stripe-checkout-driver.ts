@@ -3,7 +3,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { allowedCheckoutRequest, allowedPassiveCheckoutWalletScript, sandboxOrigin, stripeOwnedOrigin, type CheckoutScenario, type VerifiedCheckout } from './sandbox-policy.ts';
 import { protectionHeaders } from './protection.ts';
 import { freemem } from 'node:os';
-import { observeSurface, SurfaceReadUnavailable, validateAcknowledgmentSurface, validateCardSelectionSurface, validateNativeSurface, OneNativeClick, type Counters, type CheckoutSurface, type SurfaceReadPhase } from './hosted-checkout-worker.ts';
+import { observeSurface, cardChoiceLocator, cardChoiceCandidateState, SurfaceReadUnavailable, validateAcknowledgmentSurface, validateCardSelectionSurface, validateNativeSurface, OneNativeClick, type Counters, type CheckoutSurface, type SurfaceReadPhase } from './hosted-checkout-worker.ts';
 import { approved } from './hosted-checkout-policy.ts';
 
 export interface CheckoutDriver {
@@ -315,13 +315,14 @@ export class StripeCheckoutDriver implements CheckoutDriver {
         validateCardSelectionSurface(surface, Date.now());
         let choice: Locator | undefined;
         for (const frame of this.frames()) {
-          const choices = frame.getByRole(surface.cardChoiceKind ?? 'button', { name: 'Card', exact: true });
+          const choices = cardChoiceLocator(frame, surface.cardChoiceKind);
           const count = await choices.count();
           if (count > 16) throw new Error('Card choice bound exceeded.');
           for (let index = 0; index < count; index++) {
             const candidate = choices.nth(index);
-            if (await candidate.isVisible()) {
-              if (choice || !await candidate.isEnabled() || (surface.cardChoiceKind === 'radio' && await candidate.isChecked())) throw new Error('Card choice changed.');
+            const state = await cardChoiceCandidateState(candidate, surface.cardChoiceKind ?? 'button');
+            if (state.visible) {
+              if (choice || !state.enabled || !state.unchecked) throw new Error('Card choice changed.');
               choice = candidate;
             }
           }

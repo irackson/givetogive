@@ -73,6 +73,16 @@ test('Card radios must be unselected and malformed passive-abort accounting fail
   for(const patch of [{nonBlockingRequestAborts:2},{nonBlockingRequestAborts:-1},{failedRequests:NaN},{nonBlockingRequestAborts:0.5}]) assert.throws(()=>checkoutSurfaceHttpErrors({...counters,...patch}));
 });
 
+test('native Card tiles require verified binding state and never qualify as editable fields', () => {
+	const tile = { ...cardSurface, visibleCard: false, cardChoiceCount: 1, cardChoiceVisible: true,
+		cardChoiceEnabled: true, cardChoiceKind: 'tile', cardChoiceUnchecked: true };
+	assert.doesNotThrow(() => validateCardSelectionSurface(tile, NOW));
+	assert.throws(() => validateNativeSurface(tile, NOW));
+	for (const patch of [{ cardChoiceEnabled: false }, { cardChoiceUnchecked: false },
+		{ cardChoiceUnchecked: undefined }, { cardChoiceCount: 2 }, { cardChoiceKind: 'label' }])
+		assert.throws(() => validateCardSelectionSurface({ ...tile, ...patch }, NOW));
+});
+
 test('actual session and billing-management response shape derives exact neighbor identity, including SuperJSON Date', () => {
 	const identity = deriveMemberIdentity(session, session, availability, overview, [], payment, proof(), NOW, '8'.repeat(32));
 	assert.equal(identity.userId, approved.actorId); assert.equal(identity.verified, true); assert.equal(identity.frozen, false);
@@ -165,7 +175,7 @@ function fakeExecution(settings: { panel?: boolean; badDurable?: boolean; badAss
 		},
 	});
 	const frame = { url: () => value.proof.url, parentFrame: () => null,
-		locator: (selector: string) => locator(selector),
+		locator: (selector: string) => locator(selector, selector === '#payment-method-label-card' ? 'absent' : undefined),
 		getByText: () => locator('', 'absent'),
 		getByRole: (role: string, options?: { name?: string }) => locator('', role === 'radio' ? 'absent' : role === 'checkbox' ? 'checkbox' : options?.name === 'Card' ? 'card' : 'submit'),
 		evaluate: async () => ({ panels: Number(panel), hash: panel ? approved.panelDigest : null, controls: Number(panel),

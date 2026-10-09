@@ -33,7 +33,7 @@ export interface CheckoutSurface {
 	enabled: boolean; unchecked: boolean; optionalLinkDeferred: true;
 	requiresCaptchaOrWalletOrAttestation: boolean; unknownInstructions: boolean;
 	cardChoiceCount?: number; cardChoiceVisible?: boolean; cardChoiceEnabled?: boolean;
-	cardChoiceKind?: 'button' | 'radio'; cardChoiceUnchecked?: boolean;
+	cardChoiceKind?: 'button' | 'radio' | 'tile'; cardChoiceUnchecked?: boolean;
 	consoleErrors: number; pageErrors: number; httpErrors: number;
 }
 export type Counters = { consoleErrors: number; pageErrors: number; httpErrors: number; blockedRequests: number; failedRequests: number; unexpectedPages: number; nonBlockingRequestAborts?: number };
@@ -132,7 +132,31 @@ export function validateCardSelectionSurface(raw: unknown, now: number): void {
 		&& value.consoleErrors === 0 && value.pageErrors === 0 && value.httpErrors === 0
 		&& value.cardChoiceCount === 1 && value.cardChoiceVisible === true && value.cardChoiceEnabled === true);
 	requirePolicy(value.cardChoiceKind === undefined || value.cardChoiceKind === 'button' ||
-		(value.cardChoiceKind === 'radio' && value.cardChoiceUnchecked === true));
+		((value.cardChoiceKind === 'radio' || value.cardChoiceKind === 'tile') && value.cardChoiceUnchecked === true));
+}
+/** Native Checkout's visible Card label is sometimes bound to a zero-size
+ * screen-reader button. Never force-click that button or arbitrary Card text.
+ * Only the observed exact label/header/control binding qualifies as a tile. */
+export function cardChoiceLocator(frame: Frame, kind: CheckoutSurface['cardChoiceKind']) {
+	return kind === 'tile' ? frame.locator('#payment-method-label-card') :
+		frame.getByRole(kind ?? 'button', { name: 'Card', exact: true });
+}
+export async function cardChoiceCandidateState(choice: Locator, kind: NonNullable<CheckoutSurface['cardChoiceKind']>) {
+	const visible = await choice.isVisible();
+	if (!visible) return { visible: false, enabled: false, unchecked: false };
+	if (kind === 'tile') {
+		const bound = await choice.evaluate(element => {
+			const header = element.closest('.AccordionItemHeader-content');
+			const buttons = header?.querySelectorAll<HTMLButtonElement>('button[type="button"][aria-label="Pay with card"]');
+			if (!header || header.querySelectorAll('#payment-method-label-card').length !== 1 ||
+				element.textContent?.trim() !== 'Card' || buttons?.length !== 1 ||
+				buttons[0]!.matches(':disabled') || buttons[0]!.closest('[aria-disabled="true"],[inert]')) return false;
+			const rectangle = buttons[0]!.getBoundingClientRect();
+			return rectangle.width === 0 && rectangle.height === 0;
+		});
+		return { visible, enabled: bound && await choice.isEnabled(), unchecked: bound };
+	}
+	return { visible, enabled: await choice.isEnabled(), unchecked: kind === 'button' || !await choice.isChecked() };
 }
 function ownedProvider(raw: string): boolean {
 	try { const url = new URL(raw); return url.protocol === 'https:' && !url.username && !url.password
@@ -243,14 +267,14 @@ async function observeSurfaceBody(page: Page, counters: Counters, now: number, o
 	const cards = panelCount ? undefined : await uniqueVisible(frames, cardFields.number, true);
 	const expiry = panelCount ? undefined : await uniqueVisible(frames, cardFields.expiry, true);
 	const cvc = panelCount ? undefined : await uniqueVisible(frames, cardFields.cvc, true);
-	let cardChoiceCount = 0, cardChoiceEnabled = false, cardChoiceKind: 'button' | 'radio' | undefined, cardChoiceUnchecked = false;
+	let cardChoiceCount = 0, cardChoiceEnabled = false, cardChoiceKind: CheckoutSurface['cardChoiceKind'], cardChoiceUnchecked = false;
 	for (const frame of options.cardChoice ? frames : []) {
-		for (const kind of ['button', 'radio'] as const) {
-			const choices = frame.getByRole(kind, { name: 'Card', exact: true });
+		for (const kind of ['button', 'radio', ...(!panelCount && !cards ? ['tile' as const] : [])] as const) {
+			const choices = cardChoiceLocator(frame, kind);
 			const count = await choices.count(); requirePolicy(count <= 16);
 			for (let index = 0; index < count; index++) {
-				const choice = choices.nth(index);
-				if (await choice.isVisible()) { cardChoiceCount++; cardChoiceEnabled = await choice.isEnabled(); cardChoiceKind = kind; cardChoiceUnchecked = kind === 'button' || !await choice.isChecked(); }
+				const state = await cardChoiceCandidateState(choices.nth(index), kind);
+				if (state.visible) { cardChoiceCount++; cardChoiceEnabled = state.enabled; cardChoiceKind = kind; cardChoiceUnchecked = state.unchecked; }
 			}
 		}
 	}
@@ -349,12 +373,13 @@ export async function prepareHostedCheckoutSurface(page: Page, counters: Counter
 		validateCardSelectionSurface(surface, options.now()); options.beforeSelection();
 		let selected: Locator | undefined;
 		for (const frame of await visibleFrames(page)) {
-			const choices = frame.getByRole(surface.cardChoiceKind ?? 'button', { name: 'Card', exact: true });
+			const choices = cardChoiceLocator(frame, surface.cardChoiceKind);
 			const count = await choices.count(); requirePolicy(count <= 16);
 			for (let index = 0; index < count; index++) {
 				const candidate = choices.nth(index);
-				if (await candidate.isVisible()) {
-					requirePolicy(!selected && await candidate.isEnabled() && (surface.cardChoiceKind !== 'radio' || !await candidate.isChecked())); selected = candidate;
+				const state = await cardChoiceCandidateState(candidate, surface.cardChoiceKind ?? 'button');
+				if (state.visible) {
+					requirePolicy(!selected && state.enabled && state.unchecked); selected = candidate;
 				}
 			}
 		}
