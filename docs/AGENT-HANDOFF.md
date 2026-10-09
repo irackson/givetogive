@@ -1,5 +1,43 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 UTC: full build gate and source-map patch
+
+Signed code head `04f65effb067af2152879ee346d6b7570e809c1c` integrates PR 38's
+exact source-map-js 1.2.1 to 1.2.2 lockfile patch. Hosted read-only verification
+now additionally runs the actual `npm run build`, not only route typegen/types.
+It uses the existing placeholder configuration, invalid database endpoint, no
+provider secrets and unchanged financial gates. Next telemetry is disabled.
+Installed Next CLI guide and Vercel deployment skill were read before changing
+the verification workflow. This is not a replacement for real staging acceptance.
+
+Exact-head run **37870405174 SUCCESS/terminal**, job **113627167416**, passes
+the full production build, application/simulator tests/types, published public
+smoke and all 21 intercepted Chromium tests under both native TypeScript and
+tsx. PR 38 is CLOSED and its exact remote branch is absent at readback after
+direct integration; no separate deletion/replay was necessary. Original commit
+`ab1db634adff846776194e7a56456b7abbc9bb98` remains recorded for recovery.
+Vercel production deployment **dpl_BMHmGXqX4FR2ENvAsRXQESv4NF19** is READY at
+this exact commit, under the verified production project/team, with
+`givetogive.vercel.app` in its aliases. Read-only public billing availability
+confirms production subscriptions, Ask payments and funds remain false.
+No migration, database write, environment change or payment action occurred.
+
+PR 40's package-only Tailwind v3 to v4 proposal was reviewed and deferred in
+`payments-implementation-plan.md` Icebox: current PostCSS uses the v3 plugin;
+v4 requires a dedicated plugin and CSS/config/visual migration. PR is CLOSED
+and exact branch `dependabot/npm_and_yarn/multi-d49ef80a9c` is removed, confirmed
+by remote readback. Original commit `302e5ac7648a470505e2ff6d643881f25d9bd357`
+is recorded for recovery. This does not claim that Tailwind v4 was implemented.
+
+Root lockfile changed, so old staging source/lock approvals cannot be mixed with
+this new application binding. Inspect/rebuild protected staging with a newly
+reviewed source receipt before fresh financial acceptance. Historical operations
+remain consumed; untouched decline stays untouched. Remaining dependency work:
+sharp PR 37 and Next PR 39. Remote readback contains exactly those two branches
+plus main; local remains main-only. Full goal
+remains active/incomplete, including actual paid acceptance, full cohort hour,
+final paid-state walkthrough and main-only remote cleanup.
+
 ## October 9 UTC: simulator dependency integration and branch cleanup
 
 Signed `05e990c8101acb12f87849c45abae215f7619af0` integrates Dependabot PR 36's

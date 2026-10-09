@@ -295,6 +295,16 @@ work. Never call an unapproved live-money rollout complete.
 
 ## Icebox
 
+- **Tailwind v4 migration — deferred after dependency review, October 9 UTC.**
+  Dependabot PR 40 updates package/lock only; the app still uses the v3
+  `tailwindcss` PostCSS plugin and v3 stylesheet/config conventions. A v4
+  migration needs `@tailwindcss/postcss`, CSS/config migration and all-view
+  visual regression checks, not a package-only merge. Keep the current styling
+  intact while completing payment/simulation acceptance. Reviewed PR 40 was
+  closed and its branch removed; original commit
+  `302e5ac7648a470505e2ff6d643881f25d9bd357` preserves the proposed update.
+  Reference: https://tailwindcss.com/docs/upgrade-guide.
+
 - **Ian's personal admin MFA enrollment — deferred by Ian, October 8, 2026.**
   Dashboard viewing uses normal authentication and a fresh database identity
   check: only the verified, unfrozen `inasusr@gmail.com` real account is allowed.
