@@ -1,5 +1,31 @@
 # Resume here: payments and simulation checkpoint
 
+## Real AgentMail registration/resend and hosted verification (October 9)
+
+Hosted read-only verification **37890909986 SUCCESS/terminal** at `e83fed1`
+passed application units/types/build, simulator tests/types, public browser smoke,
+synthetic DOM guards and credential-free native preflight. Actual protected-stage
+email acceptance advanced separately: a harmless tagged-address routing probe
+arrived in an existing AgentMail inbox, so one fresh ordinary staging fixture was
+registered through the current real user-router HTTP adapter. Both registration
+and resend emails actually arrived; no manual relay, new inbox or captured-token
+grant. Real mobile hosted UI rejected the superseded link, verified the received
+replacement, and rejected reuse without asking for a second email. Independent
+normal browser sign-in with explicit `/asks` callback passed with exact member
+session readback and zero console/page/HTTP errors. A verified-account resend
+created zero new tokens; bounded mailbox read still contained only the two emails.
+
+Details/boundaries: `docs/staging-auth-email.md`. Private receipts and one owned
+fixture live under ignored `tmp/agentmail-tagged-*`; never print/commit them or
+replay once-only registration/resend/browser intents. Original three inbox members
+and owner's account were untouched. The original verification browser receipt
+retains its failed post-verification sign-in assertion (harness assumed `/asks`
+instead of default `/`); the separate explicit-callback login is genuine success,
+not a rewritten receipt. No app code change was necessary for that harness error.
+Pending staging publication/source review, actual hosted signup/resend on the new
+handler, expired-link/owner-dashboard checks and full financial/community/PDF
+acceptance remain. Do not relax original financial release or journal gates.
+
 ## Fresh anonymous published walkthrough capture (October 9)
 
 At production app head `93a3a4c`, the read-only browser pass completed **40 PNG
