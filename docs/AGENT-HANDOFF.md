@@ -1,5 +1,37 @@
 # Resume here: payments and simulation checkpoint
 
+## Fixed CURRENT dispatch-to-association startup race (October 9)
+
+Readiness head `6d8f71e` hosted verification **37885558926 SUCCESS/terminal**
+was checked directly. During native assembly review, a real ordering defect was
+found: worker nonce/profile exist only after dispatch, but bootstrap immediately
+called strict draft input download before root could patch the association body.
+The pending body would be rejected instead of allowing root's normal binding.
+
+Bootstrap now durably records a read-only association wait before input download.
+`checkout-current-association.ts` allows only an empty private pending draft with
+exact repository/run/operation/head/tag/ID. It waits at most two minutes for the
+exact initial profile/job/nonce association; foreign bodies/assets, wrong nonce,
+public/published drafts and changed context reject immediately. Native callback
+rechecks the actual live job and owned parent/browser while waiting. Once bound,
+the existing strict draft transport still validates inventory/input; pending
+does not confer member or financial authority. No write or submission is retried.
+New originals are included in the fixed encrypted final evidence inventory.
+
+Verification: five injected-GitHub regression tests, full simulator **557 tests /
+555 pass / two Linux-only skips / zero failures**, TypeScript and zero-warning
+lint pass. No real draft creation, dispatch, candidate preparation or payment
+occurred. This fixes a startup defect but is not native end-to-end acceptance.
+The original financial journals were untouched; historical replay remains forbidden.
+
+Native operator must create the empty pending body with
+purpose `current-cohort-private-checkout-pending` plus exact protocol/repository/
+runId/operationId/headSha, then durably admit ONE association PATCH to
+`CurrentCheckoutPrivateDraft.association` after exact live readiness discovery.
+Retain/read back that body before normal candidate preparation. Assemble remaining
+native operator and settlement reconciliation; staging's pending email source is
+still unpublished and must pass release review before financial execution.
+
 ## CURRENT native readiness discovery implemented (October 9)
 
 `checkout-current-readiness.ts` performs explicit GET-only discovery of the exact

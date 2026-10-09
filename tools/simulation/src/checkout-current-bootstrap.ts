@@ -17,6 +17,7 @@ import { prepareCurrentCheckoutParent,inspectPreparedCurrentCheckoutParent,runCu
 import { observeCurrentCheckoutJob } from './checkout-current-job.ts';
 import { currentProfileDigest,currentPhaseNames } from './checkout-current-phase.ts';
 import { CurrentCheckoutPrivateDraft } from './checkout-current-draft.ts';
+import { awaitCurrentDraftAssociation } from './checkout-current-association.ts';
 import { decryptCurrentCheckoutInput } from './checkout-current-input.ts';
 import { CurrentCheckoutPhaseExchange } from './checkout-current-exchange.ts';
 import { readBootstrapOriginal,writeBootstrapOriginal } from './checkout-bootstrap-retention.ts';
@@ -76,6 +77,7 @@ async function publish(profile:CurrentCheckoutProfile,ready:ReturnType<typeof in
  profileDigest:value.profileDigest,summaryDigest:digest(value),readbackVerified:true,paymentAccepted:false,retryAllowed:false});
 }
 const bootstrapNames=new Set(['bootstrap-lease.json','readiness-publication.intent.json','readiness-publication.result.json',
+ 'association-wait.intent.json','association-wait.result.json',
  'input-download.intent.json','original-input.g2genc','bootstrap-result.json']);
 const parentNames=new Set(['launch-lease.json','browser-readiness.json','input-transfer-intent.json','worker-receipt.json','parent-receipt.json']);
 const exchangeNames=new Set(['exchange-lease.json',...currentPhaseNames.flatMap(phase=>[`${phase}-request.g2genc`,`${phase}-response.g2genc`,
@@ -149,6 +151,12 @@ export async function executeCurrentCheckoutBootstrap(){
  draft=new CurrentCheckoutPrivateDraft(profile,config.headSha,source,config.releaseId,config.token);
  prepared=await prepareCurrentCheckoutParent(profile,config.headSha,source,{root:directory,memberEnvironment:environment,signal});
  await publish(profile,inspectPreparedCurrentCheckoutParent(prepared),directory,config.token,signal);
+ record(directory,'association-wait.intent.json',{profileDigest:currentProfileDigest(profile),readOnly:true,maximumAssociationWrites:0,paymentAccepted:false,retryAllowed:false});
+ const association=await awaitCurrentDraftAssociation(draft,config.releaseId,{token:config.token,signal,verifyCurrent:async scoped=>{
+  const observed=await observeCurrentCheckoutJob({headSha:config.headSha,workflowRunId:config.workflowRunId,jobId:profile!.job.jobId},{token:config.token,signal:scoped});
+  guard(observed.transportEvidence==='github-live-current-job');inspectPreparedCurrentCheckoutParent(prepared!);
+ }});
+ record(directory,'association-wait.result.json',association);
  record(directory,'input-download.intent.json',{profileDigest:currentProfileDigest(profile),maximumDownloads:1,paymentAccepted:false,retryAllowed:false});
  inputBytes=await draft.download('input',signal);writeBootstrapOriginal(directory,'original-input.g2genc',inputBytes,65536);
  const input=decryptCurrentCheckoutInput(inputBytes,key,profile,Date.now());
