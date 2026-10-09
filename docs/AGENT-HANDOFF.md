@@ -1,5 +1,33 @@
 # Resume here: payments and simulation checkpoint
 
+## Full isolated integration pass and CI network guard (October 9)
+
+Main `d2d7994` hosted verification **37895158360 SUCCESS/terminal** was observed.
+A fresh full database regression run passed **129/129**, zero failures/skips,
+with a private CI-only outbound HTTP guard. That guard is now tracked at
+`tests/integration/no-provider-network.mjs` and included in the standard
+`npm run test:integration` command. It first verifies the exact restricted CI
+database/role/marker read-only, then blocks global fetch and default/named Node
+HTTP/HTTPS request/get clients without echoing request details. Files execute
+serially to bound resources. Real mailbox/provider acceptance tools do not load it.
+
+The complete tracked-guard rerun finished **06:57:18 UTC**: **131/131** across
+21 files in 183.10 seconds, zero skips/failures/cancellations. The two added
+checks verify network denial and continued PostgreSQL availability. A separate
+wrong-environment probe rejected staging before its test body. Types and scoped
+zero-warning lint passed. Private logs/results stay ignored under
+`tmp/ci-integration-*`; no raw provider output, credentials or auth links were
+published. These are real SQL/application regressions with stubbed providers,
+not genuine Stripe settlement or hosted-browser acceptance.
+
+**Publication remains blocked:** GitHub's Vercel commit statuses for both
+`dbd33e5` and `d2d7994` reported "Deployment rate limited — retry in 24 hours."
+Read-only audit at **06:45:18 UTC** found production READY at `fa37302`, missing
+the token fix, and protected staging READY at `f7301db`, then six app files behind.
+Do not say the fix is live or retry before the provider quota opens. The new
+package command is another source difference to include in the release review.
+Original payment holds and naturally expiring AgentMail token were untouched.
+
 ## Recovery/identity regression pass (October 9)
 
 Hosted verification **37894588348** for `dbd33e5` reached **SUCCESS/terminal**.

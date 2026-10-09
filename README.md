@@ -88,6 +88,13 @@ See [the implementation contract](docs/payments-implementation-plan.md) and
 `db:seed`, `db:migrate`, and `db:push` modify the database configured in
 `.env.local`. Confirm that connection before running them.
 
+`npm run test:integration` loads `.env.ci.local`, verifies the exact restricted
+CI database/role and environment marker, and runs files serially. Its CI-only
+preload blocks `fetch` and Node HTTP/HTTPS clients; provider interactions in
+these database tests must be stubbed. This is application regression coverage,
+not actual Stripe sandbox or email-delivery acceptance. Do not import that
+preload into the separate real-provider/mailbox acceptance tools.
+
 ## End-to-end tests
 
 `npm test` first runs unit tests, then starts a local Next.js server on port

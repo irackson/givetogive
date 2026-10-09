@@ -17,7 +17,7 @@
 		"lint": "eslint .",
 		"test": "npm run test:unit && npm run test:e2e",
 		"test:unit": "node --test tests/unit/*.test.ts",
-		"test:integration": "node --env-file=.env.ci.local --import ./tests/integration/server-context.mjs --import tsx --test tests/integration/*.test.ts",
+		"test:integration": "node --env-file=.env.ci.local --import ./tests/integration/server-context.mjs --import tsx --import ./tests/integration/no-provider-network.mjs --test --test-concurrency=1 tests/integration/*.test.ts",
 		"test:e2e": "playwright test",
 		"db:generate": "dotenv -e .env.local -- drizzle-kit generate",
 		"db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",
