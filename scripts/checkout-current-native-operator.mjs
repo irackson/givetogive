@@ -70,6 +70,9 @@ export async function executeCurrentNativeOperator() {
  const { unseal } = await import('../tools/simulation/src/hosted-community-bundle.ts');
  const { validateCurrentFinalEvidence } = await import('../tools/simulation/src/checkout-current-final-evidence.ts');
  const { observeCurrentProviderDecline } = await import('../tools/simulation/src/checkout-current-decline.ts');
+ const { verifyCurrentDeclineAppSnapshot } = await import('../tools/simulation/src/checkout-current-app-decline.ts');
+ const { inspectCurrentDeclineApp } = await import('./checkout-current-app-inspect.mjs');
+ const { inspectPreparedCheckoutCandidateBudget } = await import('../tools/simulation/src/checkout-prepared-budget.ts');
  const { currentProfileDigest } = await import('../tools/simulation/src/checkout-current-phase.ts');
  process.on('SIGINT', stop); process.on('SIGTERM', stop);
  const targetFor = () => ({ headSha: head, workflowRunId: worker.workflowRunId, jobId: worker.observation.readiness.profile.job.jobId });
@@ -188,6 +191,22 @@ export async function executeCurrentNativeOperator() {
       invoicePayments: id => stripe.invoicePayments.list({ invoice: id, limit: 10 }), paymentIntent: id => stripe.paymentIntents.retrieve(id),
      }, AbortSignal.timeout(30000));
      original('provider-decline-observation.result.json', decline);
+     original('app-decline-observation.intent.json', { operationId: c.operationId, readOnly: true, paymentAccepted: false, retryAllowed: false });
+     await recheckLocalCheckoutRelease(release); await session.verifyIdentity();
+     const cookieSession = async () => {
+      const response = await session.context.get(`${c.origin}/api/auth/session`, { maxRedirects: 0, maxRetries: 0 });
+      try { guard(response.ok() && response.url() === `${c.origin}/api/auth/session`); return await response.json(); } finally { await response.dispose(); }
+     };
+     const before = await cookieSession(), availability = await session.query('billing.availability', undefined),
+      overview = await session.query('billing.myOverview', undefined), subscriptions = await session.query('billing.mySubscriptions', undefined),
+      payment = await session.query('billing.payment', { id: c.operationId });
+     const database = await inspectCurrentDeclineApp({ sessionId: input.proof.checkout.sessionId, customerAccountId: input.proof.customerAccountId,
+      invoiceId: decline.invoiceId, paymentIntentId: decline.paymentIntentId });
+     const after = await cookieSession();
+     const app = verifyCurrentDeclineAppSnapshot({ before, after, availability, overview, subscriptions, payment, database });
+     const budget = inspectPreparedCheckoutCandidateBudget(run, c.planDigest, credentials, c.operationId,
+      { headSha: head, financialState: 'submitted', noticeConsumed: validated.noticeRequests === 1 });
+     original('app-decline-observation.result.json', app); original('original-submitted-budget.result.json', budget);
      original('final-recovery.result.json', { originalRetained: true, authenticatedDecryption: true,
       ciphertextDigest: createHash('sha256').update(final).digest('hex'), paymentAccepted: false, independentClosureAndSettlementRequired: true, retryAllowed: false });
     } finally { final.fill(0); }

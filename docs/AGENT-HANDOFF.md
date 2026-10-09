@@ -1,5 +1,32 @@
 # Resume here: payments and simulation checkpoint
 
+## CURRENT ordinary-member / isolated DB decline checks wired (October 9)
+
+Previous head `3f6833c` hosted verification **37888117221 SUCCESS/terminal** was
+observed directly. After final-original authentication and provider observation,
+the native operator now brackets ordinary member billing reads with that member's
+own cookie-session reads. An explicitly read-only isolated DB transaction checks
+the exact synthetic member/agent, canonical customer, original payment/session,
+no paid payments/coverage/ledger credit and any unpaid subscription ownership.
+Pure comparison requires Neighbor recognition, matching unpaid payment statuses,
+unchanged active member identity and consistent subscription views. An incomplete
+unpaid subscription is permitted; paid recognition or coverage is not.
+
+Processed failure webhook rows and pending/failed processing are surfaced distinctly.
+They are NOT independent provider-event/signature proof or full financial acceptance.
+The original plan, UI preparation and submitted financial budget are SELECT-checked
+again, including the authenticated worker's optional notice count; all original
+holds remain preserved. No original journal is finalized, reset or initialized by
+these checks. Imports of the new native DB inspector remain inert without secrets.
+
+Verification: five offline comparison/import tests, full simulator suite,
+simulation TypeScript and native-script zero-warning lint pass. No actual financial
+preparation/submission or post-submit native DB inspection ran. Next: independently
+verify failure-event evidence, terminal job/source and canonical clock/provider
+ownership at reconciliation, then finalize only the exact original submitted
+decline journal when genuine acceptance exists. Staging publication, paid lifecycle,
+full cohort and final published walkthrough still remain open.
+
 ## Exact CURRENT decline graph observation implemented (October 9)
 
 Previous head `72e94e1` read-only hosted verification **37887191384 SUCCESS/terminal**
