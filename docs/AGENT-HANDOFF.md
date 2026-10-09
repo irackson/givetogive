@@ -1,5 +1,33 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 UTC: hosted collapsed Card interaction implemented
+
+Signed code head `5f67db497a8245bd2f90226639801c50bd667793` is pushed. The actual
+hosted worker now calls `prepareHostedCheckoutSurface` on opening and after the
+reviewed notice. It reveals only one exact, enabled, test-mode Card choice,
+rechecks the original provider proof/memory before and after selection, and
+requires actual editable fields before financial protocol admission. A failed
+click cannot retry. No card filling, financial submission, notice acknowledgment
+or new approval is authorized by the helper itself. Optional Card observations
+are removed before passing the strict original protocol surface shape.
+
+Local suite: 422 tests, 421 pass, one Linux-only skip, zero failures; simulator
+types and focused lint pass. Hosted exact-head run **37869621552 SUCCESS/terminal**,
+job **113624514152**, passes application/simulator tests/types, published public
+smoke and all 21 intercepted Chromium tests under both native TypeScript and
+tsx. New injected-worker regressions exercise
+opening and post-notice Card selection plus failed click/stale proof cleanup.
+New intercepted Chromium regressions exercise one selection/no input/no submit,
+no redundant click, strict shape, rejected approval and unhealthy selections.
+These do not prove private provider rendering or paid lifecycle acceptance.
+
+Historical fixed hosted approval is still consumed. Do not alter it or dispatch
+the old operation again. Next resolve executable fresh financial acceptance with
+the original durable operation/budget boundaries; local RAM is 2244 MiB, below
+the 2.5 GiB browser startup threshold. The original fresh decline operation is
+still untouched; successful steps 0/1 are consumed/expired. Production financial
+gates remain off and the full goal remains active/incomplete.
+
 ## October 9 UTC: bounded hosted Checkout renderer wait
 
 Signed code head `0ab44ea9ccee7add4499d44b7b952a25ecf4fc35` is pushed.
