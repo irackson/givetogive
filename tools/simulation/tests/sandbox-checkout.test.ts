@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { allowedCheckoutRequest, sandboxOrigin, validateCheckoutContext, type SandboxBoundary, type CheckoutScenario } from '../src/sandbox-policy.ts';
 import { SandboxLedger } from '../src/sandbox-ledger.ts';
 import { SandboxCheckoutExecutor } from '../src/sandbox-checkout.ts';
-import { StripeCheckoutDriver, checkoutBrowserEnvironment, checkoutRequestCategory, checkoutFailureCategory, type CheckoutDriver } from '../src/stripe-checkout-driver.ts';
+import { StripeCheckoutDriver, checkoutBrowserEnvironment, checkoutRequestCategory, checkoutFailureCategory, checkoutDependencySuffix, type CheckoutDriver } from '../src/stripe-checkout-driver.ts';
 import { SurfaceReadUnavailable } from '../src/hosted-checkout-worker.ts';
 
 function fixture() {
@@ -73,6 +73,13 @@ test('network diagnostics discard private URLs, resource names and unknown failu
   const { boundary, context } = fixture();
   assert.equal(allowedCheckoutRequest('https://fonts.googleapis.com/private-sentinel', false, validateCheckoutContext(context, boundary)), false);
   assert.equal(allowedCheckoutRequest('https://d37ugbyn3rpeym.cloudfront.net/private-sentinel', false, validateCheckoutContext(context, boundary)), false);
+});
+test('dependency suffix diagnostics strip private subdomains, credentials, paths, queries and identifier-like roots', () => {
+  assert.equal(checkoutDependencySuffix('https://cs_test_private123.logs.stripe.com/private-path?sk_test_secret=value'), 'stripe.com');
+  assert.equal(checkoutDependencySuffix('https://d37ugbyn3rpeym.cloudfront.net/private-path'), 'cloudfront.net');
+  for (const value of ['https://private-user:private-password@stripe.com/private-path', 'http://private.example.invalid/private-path',
+    'https://127.0.0.1/private-path', `https://${'a'.repeat(64)}.com/private-path`, 'https://cs_test_secret.com/private-path',
+    'https://provider123.com/private-path', 'private-url']) assert.equal(checkoutDependencySuffix(value), 'withheld');
 });
 test('read-only frame observation may reread a transient tree without performing a control action', async () => {
   const observed = new StripeCheckoutDriver('public-fixture-bypass'.repeat(2), 'readonly@givetogive.invalid');

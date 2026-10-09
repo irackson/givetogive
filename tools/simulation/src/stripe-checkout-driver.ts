@@ -51,6 +51,16 @@ export function checkoutFailureCategory(errorText: string | undefined) {
   if (['net::ERR_CONNECTION_RESET', 'net::ERR_CONNECTION_CLOSED', 'net::ERR_CONNECTION_REFUSED', 'net::ERR_NAME_NOT_RESOLVED'].includes(errorText ?? '')) return 'connection';
   return 'other';
 }
+/** Only a short alphabetic DNS suffix, never a subdomain, URL or identifier.
+ * Not a public-suffix/ownership assertion and never a request-admission rule. */
+export function checkoutDependencySuffix(rawUrl: string) {
+  try {
+    const url = new URL(rawUrl);
+    if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443')) return 'withheld';
+    const suffix = url.hostname.split('.').slice(-2).join('.');
+    return /^[a-z](?:[a-z-]{0,30}[a-z])?\.[a-z]{2,12}$/.test(suffix) ? suffix : 'withheld';
+  } catch { return 'withheld'; }
+}
 
 /** Chromium must never inherit the root observer's provider/database/auth secrets. */
 export function checkoutBrowserEnvironment(environment: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform): Record<string, string> {
@@ -72,7 +82,7 @@ export class StripeCheckoutDriver implements CheckoutDriver {
   private observedFreeBytes?: number;
   private surfaceReadFailure?: 'policy_rejected' | 'dom_read_unavailable';
   private surfaceReadPhase?: SurfaceReadPhase;
-  private readonly blockedRequestCategories = new Map<string, { category: ReturnType<typeof checkoutRequestCategory>; reason: 'destination-policy' | 'staging-write'; count: number }>();
+  private readonly blockedRequestCategories = new Map<string, { category: ReturnType<typeof checkoutRequestCategory>; reason: 'destination-policy' | 'staging-write'; domainSuffix: string; count: number }>();
   private readonly failedRequestCategories = new Map<string, { category: ReturnType<typeof checkoutRequestCategory>; failure: ReturnType<typeof checkoutFailureCategory>; count: number }>();
   private readonly admitNotice?: () => Promise<void>;
   constructor(bypass: string, syntheticEmail: string, admitNotice?: () => Promise<void>) {
@@ -108,9 +118,11 @@ export class StripeCheckoutDriver implements CheckoutDriver {
       if (destinationRejected || (url.origin === sandboxOrigin && !['GET', 'HEAD'].includes(request.method()))) {
         this.blockedHosts.add(url.hostname); this.counters.blockedRequests++;
         const category = checkoutRequestCategory(request.url(), request.resourceType(), top);
-        const reason = destinationRejected ? 'destination-policy' : 'staging-write', key = JSON.stringify({ category, reason });
+        // Keep dynamic suffix storage bounded even on a hostile provider page.
+        const domainSuffix = this.blockedRequestCategories.size < 32 ? checkoutDependencySuffix(request.url()) : 'withheld';
+        const reason = destinationRejected ? 'destination-policy' : 'staging-write', key = JSON.stringify({ category, reason, domainSuffix });
         const previous = this.blockedRequestCategories.get(key);
-        this.blockedRequestCategories.set(key, { category, reason, count: (previous?.count ?? 0) + 1 });
+        this.blockedRequestCategories.set(key, { category, reason, domainSuffix, count: (previous?.count ?? 0) + 1 });
         await route.abort(); return;
       }
       // The deployment bypass never travels to Stripe or any other external host.
