@@ -1,5 +1,30 @@
 # Resume here: payments and simulation checkpoint
 
+## CURRENT native readiness discovery implemented (October 9)
+
+`checkout-current-readiness.ts` performs explicit GET-only discovery of the exact
+current worker's readiness check. Live run/job observations bracket two identical
+check readbacks. It binds repository/manual main attempt1, reviewed head/source,
+current workflow/job, check ID/app/name/external ID, initial profile/nonce, connected
+native browser marker and freshness. Duplicate/foreign/changed markers, truncated
+inventory, stale initial publication, wrong job and historical workflow reject.
+An original recheck preserves original memory/time rather than inventing fresh RAM
+or browser proof; separate actual native observations remain mandatory. There is
+no dispatch, credential discovery, normal login, journal write or payment action.
+
+Verification: five new injected-HTTP tests; full simulator **552 tests / 550 pass /
+two Linux-only skips / zero failures**, TypeScript and zero-warning lint pass.
+No actual current financial job exists to observe yet. Preparation-head hosted
+run **37885360422** was still **in_progress** at the last direct observation;
+continue observing that run, do not restart it on an observation timeout.
+Runner closure includes the new observer; prior runner fingerprints are stale.
+
+Next: assemble actual CURRENT local operator using this observer, current input
+preparation and phase coordinator, with exact private draft association and real
+source/member/provider/original-budget verifiers. Native execution remains gated
+on the unpublished staging app source. Do not run the consumed historical operator
+or reset holds. Real paid lifecycle/hour cohort/final PDF are still not achieved.
+
 ## CURRENT ordinary-member input preparation (October 9)
 
 Coordinator head `a68ff37` hosted verification **37885032712 SUCCESS/terminal**
