@@ -1,5 +1,69 @@
 # Resume here: payments and simulation checkpoint
 
+## October 8 evening: hosted read-only inspection works; passive wallet dependencies remain
+
+Signed code head `1ef4211f9a8b255a231082462c1bee97b1c7bbbc` passed exact-head
+hosted verification **37864848377**: application/simulator tests/types, published
+public smoke, and **12 actual-Chromium intercepted-HTML tests in BOTH native
+TypeScript and tsx**. Local simulator suite: 406 pass, one Linux-only skip;
+explicit `eslint --no-ignore` and types pass. Root app/schema/lock/financial gates
+were not changed. Never equate the inspection job's success with payment acceptance.
+
+Extended the existing `checkout-diagnostic.yml`, not the financial runner, with
+an optional AES-256-GCM encrypted surface input. It reuses the existing DPAPI-
+protected transfer key with a distinct nonfinancial AAD purpose, exact signed
+head/nonce, 10-minute capture lifetime, and original provider-proof timestamp.
+It rejects live/foreign/real-user/paid/expired inputs, preserves original proof
+timestamps, and cannot become fresh financial pre-submit evidence after queue
+time. Installs receive no credentials; the browser inherits only OS variables.
+No Stripe/database/member credentials, screenshots, traces or artifacts are
+provided. The mode calls only `open`, `inspectSurface`, and `close`; no form entry,
+notice permission, payment submission, wallet login, challenge or cancellation.
+
+Actual hosted inspections **37862378712**, **37863707289**, **37864275859** and
+**37865067173** are terminal. About 14 GiB remained free, ruling out laptop RAM
+as the immediate hosted issue. Sanitized suffix diagnostics identified the two
+original blocked scripts as `cdn-apple.com` and `payments-amazon.com`, NOT the
+CloudFront/Maps/Klarna candidates found in Stripe's generic public bootstrap.
+Never broaden admission based on those disproven guesses.
+
+After checking Apple/Amazon developer documentation, permitted only passive
+GET/HEAD script loads of the exact official Apple SDK version paths and Amazon's
+three regional `/checkout.js` endpoints. Top-level navigation, other resource
+types, queries, POST, wallet login/payment APIs and arbitrary CDN files remain
+denied. Actual latest run **37865067173** observed four blocked requests: Amazon
+script 1, Apple CDN scripts 2, Apple-domain fetch 1; console errors 4, failed
+requests 6 (including two aborted hCaptcha fetches), page/HTTP errors 0. No
+test-mode card surface or notice appeared, and zero controls were clicked.
+Next identify exact remaining public SDK resource paths/methods and distinguish
+passive capability reads from wallet/payment endpoints. Do not blindly allow
+all Apple/Amazon origins, ignore errors, solve CAPTCHA or force card-only methods.
+
+Private operator files: `tmp/fresh-ui-financial-acceptance.mjs`,
+`tmp/dispatch-owned-checkout-inspection.mjs`, and `tmp/read-fresh-financial-admission.mjs`.
+`prepare-only 1` ran ONCE through normal member auth/`billing.createCheckout`.
+`prepare-hosted-inspection 1` dispatches only read-only inspection after fresh
+owned SDK/SQL/UI/release checks and exact-head passing CI, retaining each original
+encrypted dispatch intent/result privately. Both prepared Checkouts are now
+authoritatively expired; do NOT prepare, reopen or recreate either operation.
+
+Immutable run `01d34cf1-7880-4978-aec3-e3c3ccc94b67` budget remains 2500 cents,
+actor cap 1500, original plan SHA unchanged. SQLite read-only confirmation:
+- Step 0 `c89fc875-d2d2-41a9-81bd-a1cb246ad53c`: UI prepared 500; attempt ambiguous
+  500; expired at 2026-10-08 23:50:21 UTC. Never replay/reset.
+- Step 1 `92aa9a3f-d47f-4af1-a333-9456ea34b727`: UI prepared 1500; NO financial
+  attempt; expired at 2026-10-09 00:32:38 UTC. Do not repeat UI preparation.
+- Step 2 `398c5cf9-62de-4908-afb0-ce6321e8b3ad`: untouched UI/financial admission.
+  Keep unused until its decline test can actually run; do not consume it merely
+  to troubleshoot rendering. All notice permissions remain zero. UI holds total
+  2000; attempt holds total 500. No budget release/reset or paid tier grant.
+
+Fresh happy-path payment tests will need a separately bounded, reviewed phase;
+never regenerate consumed operation IDs or use a new ledger path to evade this
+run's cap. Genuine payments/lifecycle/Connect/funds/full 253-member hour, final
+published PDF/capability outline and main-only remote branch cleanup remain
+unfinished. Production financial gates stay off; goal remains active.
+
 ## October 8 Checkout callback loader mismatch fixed, paid acceptance still pending
 
 Phase-order head `51d18c8` passed hosted verification **37859651573**, including
