@@ -21,6 +21,24 @@ Tags describe origin, not deployment or acceptance:
 
 ## Current reviewed checkpoint - October 9, 2026
 
+**20:14 UTC user-requested pause checkpoint.**
+
+**Newly finished, genuinely tested in Development staging:** scheduled Sustainer
+to Supporter downgrade taking effect at the period boundary, a paid $5 renewal,
+owned webhook/app settlement, balanced ledger and effective Supporter recognition.
+This follows the earlier genuine Sustainer initial payment, cancel/resume,
+schedule/undo and $15 renewal. The same member's current tier is Supporter.
+
+**Not yet finished:** the separately planned paid upgrade (never started), fresh
+initial Supporter signup, decline/completed 3DS and recovery cases, recipient/Ask/
+fund sandbox acceptance, genuinely paid 253-member hour, and final all-view PDF.
+Earlier Sustainer screenshots retain their original capture-time meaning.
+
+Production app source matches main and is READY on Node 24. Financial gates stay
+OFF in production. Test wallet settings were restored by readback; zero simulations
+remain active. The goal is being paused at Ian's explicit request, not completed.
+See the top of `AGENT-HANDOFF.md` for exact immutable evidence and resume gates.
+
 **19:56 UTC refresh:** The genuine paid member's five views and four historical
 dialogs pass on both layouts: 18 actual captures with zero errors/mutations.
 Full verification `37981651787` passed at signed `6f69f39`; no new Vercel release.

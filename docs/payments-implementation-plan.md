@@ -5,6 +5,19 @@ verification, fixes, deployment, and truthful reporting of external blockers.
 Baseline: `f6638fe` on `main`. This checklist does not redefine the goal around
 whatever happens to be implemented. Unchecked requirements remain unfinished.
 
+**October 9, 20:14 UTC pause update:** Ian requested a safe handoff and goal pause.
+Actual normal-member scheduled downgrade now took effect after one NEW capped
+500-cent clock renewal; Supporter invoice/intent/app payment, signed owned
+webhooks, two balanced journals, paid coverage and tier recognition all passed.
+Earlier admissions were not replayed. Current member tier is Supporter. The
+separate upgrade is planned but unstarted; its provider schedule is still linked.
+Fresh main `810e99b` full first-attempt CI 37984042780 passed. Native production
+and staging release checks confirm deployed app bytes already match main, Node 24
+READY, all production financial gates OFF. Tooling/docs require no extra Vercel
+release. Temporary test wallet settings are restored and no simulations are active.
+The full payment/community/PDF contract remains incomplete; current safe resume
+requirements and immutable evidence are at the top of `AGENT-HANDOFF.md`.
+
 **October 9, 19:31 UTC acceptance update:** Normal-UI Sustainer initial payment,
 cancel/resume, scheduled downgrade/undo and the first test-clock renewal now have
 genuine provider-to-app settlement evidence. Paid coverage and balanced journals

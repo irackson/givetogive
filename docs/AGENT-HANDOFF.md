@@ -1,5 +1,89 @@
 # Resume here: payments and simulation checkpoint
 
+## October 9 20:14 UTC: user-requested pause handoff
+
+Ian explicitly requested a good pause point, production publication, then goal
+pause. Do not resume the goal without his later resume instruction. The full goal
+is NOT complete. No new financial/browser attempt or simulation should start
+during this handoff. Work stays on main; do not change other projects' deployment
+policies. Batch this project's app releases; tools/docs pushes do not need Vercel.
+
+Signed `810e99b` is pushed and exact-head first-attempt full CI **37984042780
+SUCCESS**: production build, app/simulation types and units, published anonymous
+browser/capture checks, native synthetic guard suites in normal Node and tsx,
+and credential-free hosted-browser capability. Application source has not changed
+since the two controlled releases earlier in this goal turn. Fresh 20:13 native
+provider/alias/runtime review confirms production `dpl_ARdrvbQntbLq8oacMdhKGRFyaM3w`
+and protected staging `dpl_BjjNh1yYuzNyXHLPhdja6k2xwS7X` READY on Node 24, running
+`c8044c1`. Every authored app blob matches main. Production Ask/fund/supporter
+payments remain OFF; staging enables test supporters only, never live money.
+No additional Vercel deployment was needed for test tooling or these notes.
+Receipt: `tmp/pause-release-review-20261009-1791576797718.json`.
+
+The new finite, independently admitted effective-change lane completed a genuine
+scheduled downgrade on the previously UI-paid subscription. Normal member preview
+and confirmation admitted `63f9dfee-b775-4884-ae8e-4d9dc45cef97` with zero immediate
+charge. A NEW once-only scoped clock action
+`daa170a7-f429-48a7-9c3e-869a2007c796` advanced the original named clock to
+`1796847352`, capped at ONE 500-cent renewal. Earlier lifecycle/renewal admissions
+were not replayed or rewritten. Independent readback verifies paid invoice
+`in_1UOk7iDed7vKVaptTD3NMVa8`, succeeded app payment
+`b2e8e599-f492-4d71-aef9-fb821980c1d2`, succeeded intent, two processed owned
+webhooks, two balanced journals, applied Supporter coverage and applied downgrade.
+The actual current tier of `synthetic-cc61677a37a9149f-002` is **Supporter**, not
+Sustainer; pending change and active mutation are null, revision 13. The earlier
+18 screenshot frames accurately show the paid Sustainer state at capture time;
+do not relabel them as the member's current state.
+
+Current lane: `tmp/supporter-effective-changes-20261009.mjs` and immutable
+`tmp/supporter-effective-changes-20261009/d55a7bc3-31db-48c7-8877-52fa4328b76e/`.
+`downgrade-verified.json` is PASS. Original clock is now frozen at `1796847352`;
+do NOT repeat `--advance-once`, either older advance, or the downgrade confirmation.
+The 1,500-cent capped upgrade operation
+`54c0f87c-264b-4582-8006-b139f6196845` is planned but NEVER previewed/confirmed.
+The provider still has the owned schedule `sub_sched_1UOk6VDed7vKVaptj0IsorWS`;
+review its current phase and normal application handling before any upgrade.
+The operator deliberately refuses an upgrade while that schedule remains linked.
+This is an observed prerequisite, not a verified application bug. Preserve the
+original 2,000-cent lane plan; fresh source approval must be separate from its
+historical head, not an overwrite or new budget replacing consumed intentions.
+
+The current test-wallet cycle B was restored ONCE at **20:11:12 UTC** and read
+back: Apple Pay, Amazon Pay and Link ON; Card remains enabled. No live settings
+changed. Receipt: `tmp/stripe-test-wallet-configuration-20261009b.json.restore.json.verified.json`.
+Do not replay either configure/restore cycle. Unused cohort-B decline operation
+`c501c7fa-dcda-4e8f-adb3-525bfadaa548` is still entirely uncreated/unconsumed.
+The private local operator now approves only that step at `810e99b`/CI 37984042780;
+after this docs handoff commit it requires a NEW reviewed source approval. Cases
+1/2 remain unpaid, consumed and ambiguously held; neither is a decline/3DS pass.
+Their original records and financial budgets must remain intact.
+
+20:13 isolated SQL inspection found **zero active simulations**, only the applied
+new downgrade, no unused upgrade, and no unused decline Checkout. GitHub had no
+nonterminal test job in the latest inventory. The last owned browsers are closed;
+other users' browser/Codex/ChatGPT work was preserved. RAM remains too low for a
+fresh local browser: do not lower the 2.5-GiB startup guard or close active tasks.
+Receipt: `tmp/pause-simulation-review-20261009-1791576828914.json`.
+
+Resume priorities, without weakening acceptance:
+
+1. Review latest clean signed main, current provider/app/clock/schedule state and
+   fresh source approvals. Never blindly substitute a new head in historical plans.
+2. Complete genuine Supporter initial Checkout, decline and completed 3DS, plus
+   paid upgrade/recovery/failed renewal. Prefer the existing guarded hosted runner
+   if local memory remains constrained. Account-only invoice lists omit owned
+   clock invoices; do not treat an empty list as absence proof.
+3. Finish recipient onboarding and Ask/fund financial acceptance, then genuinely
+   paid 253-member continuous-hour acceptance with normal independent UI sessions.
+   No paid-tier seeds, provider-only subscriptions or fabricated successful events.
+4. Finish all desktop/mobile views/dialogs and the truthful four-origin-tagged
+   capabilities outline and final published-site PDF. Existing PDFs are not that
+   final acceptance artifact. Retain the owned email-expiry token unconsumed until
+   its existing October 10 06:30:56 UTC natural-expiry gate.
+5. Publish one tested app batch if app source changes; verify live-money gates
+   remain dark pending actual eligibility/owner approvals. Main only, signed
+   pushes, all test actors/controllers safely drained at the next handoff.
+
 ## October 9 19:56 UTC: paid views passed; native header click area reproduced
 
 Signed `6f69f39` full first-attempt verification `37981651787` PASSED, including
