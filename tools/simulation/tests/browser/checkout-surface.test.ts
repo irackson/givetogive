@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { chromium } from 'playwright';
 import { observeSurface, SurfaceReadUnavailable, validateNativeSurface, validateAcknowledgmentSurface, type Counters } from '../../src/hosted-checkout-worker.ts';
-import { StripeCheckoutDriver } from '../../src/stripe-checkout-driver.ts';
+import { StripeCheckoutDriver, checkoutBrowserEnvironment } from '../../src/stripe-checkout-driver.ts';
+import { allowedPassiveCheckoutWalletScript } from '../../src/sandbox-policy.ts';
 
 const base = '<p>Test mode</p><input name="cardNumber"><input name="cardExpiry"><input name="cardCvc">';
 const counters = (): Counters => ({ consoleErrors: 0, pageErrors: 0, httpErrors: 0, blockedRequests: 0, failedRequests: 0, unexpectedPages: 0 });
@@ -114,4 +115,32 @@ test('actual Chromium error counters prevent native admission on an otherwise va
       assert.throws(() => validateNativeSurface(observed, Date.now()));
     }
   });
+});
+
+test('actual Chromium admits only intercepted official wallet SDK script loads while card-only controls remain readable', async () => {
+  const browser = await chromium.launch({ headless: true, env: checkoutBrowserEnvironment() });
+  const main = 'https://checkout.stripe.com/synthetic-offline-wallet-fixture';
+  const scripts = ['https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js', 'https://static-na.payments-amazon.com/checkout.js'];
+  let requests = 0;
+  try {
+    const context = await browser.newContext({ acceptDownloads: false, serviceWorkers: 'block' });
+    await context.route('**/*', async route => {
+      requests++; const request = route.request();
+      if (request.url() === main) {
+        await route.fulfill({ status: 200, contentType: 'text/html', body: `<html><head><link rel="icon" href="data:,"></head><body>${base}${scripts.map(src => `<script src="${src}"></script>`).join('')}</body></html>` });
+      } else {
+        assert.ok(scripts.includes(request.url()));
+        assert.equal(allowedPassiveCheckoutWalletScript(request.url(), request.isNavigationRequest(), request.resourceType(), request.method()), true);
+        await route.fulfill({ status: 200, contentType: 'application/javascript', body: 'window.fixtureWalletSdkLoads=(window.fixtureWalletSdkLoads||0)+1;' });
+      }
+    });
+    const page = await context.newPage();
+    const errors: string[] = []; page.on('pageerror', () => { errors.push('page-error'); });
+    await page.goto(main);
+    assert.equal(await page.evaluate(() => (window as unknown as { fixtureWalletSdkLoads: number }).fixtureWalletSdkLoads), 2);
+    assert.equal(requests, 3, 'Only intercepted fixture and SDK requests, never provider contact.');
+    assert.equal(errors.length, 0);
+    const surface = await observeSurface(page, counters(), Date.now());
+    assert.doesNotThrow(() => validateNativeSurface(surface, Date.now()));
+  } finally { await browser.close(); }
 });
