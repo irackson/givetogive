@@ -20,7 +20,7 @@ if(process.platform!=='linux'||process.env.GITHUB_ACTIONS!=='true'
 const owner=postgres('postgres://give_mail_fixture:public-synthetic-fixture-password@127.0.0.1:55432/give_mail_fixture',{
   max:2,connect_timeout:2,idle_timeout:2,prepare:false});
 const app=postgres('postgres://give_mail_app_fixture:public-synthetic-app-password@127.0.0.1:55432/give_mail_fixture',{
-  max:8,connect_timeout:2,idle_timeout:2,prepare:false});
+  max:8,connect_timeout:2,idle_timeout:2});
 Object.defineProperty(globalThis,'__GIVE_NATIVE_FIXTURE_DB__',{value:drizzle(app)});
 const {PostgresGiveMailReceiptStore,executeNativeGiveReceipt}=await import('../../src/server/mail/postgres-receipts.ts');
 const {createGiveToGiveMailer,createGiveMailBinding}=await import('../../src/server/mail/give-mailer.ts');
@@ -32,7 +32,7 @@ const control=capacity=>({schema:'give-mail-receipts-v1',maxRecords:capacity,use
 const state=async()=> (await owner`SELECT state FROM public.give_mail_receipt_ledger_v1 WHERE id='capacity:v1'`)[0]?.state;
 async function initialize(capacity){
   await owner`TRUNCATE public.give_mail_receipt_ledger_v1`;
-  await owner`INSERT INTO public.give_mail_receipt_ledger_v1(id,state) VALUES('capacity:v1',${JSON.stringify(control(capacity))}::jsonb)`;
+  await owner`INSERT INTO public.give_mail_receipt_ledger_v1(id,state) VALUES('capacity:v1',${owner.json(control(capacity))}::jsonb)`;
 }
 
 test('isolated native SQL, actual adapter and durable transport', {timeout:60000},async t=>{
@@ -97,11 +97,11 @@ test('isolated native SQL, actual adapter and durable transport', {timeout:60000
       await initialize(1);
       const before=await state();
       for(const [operation,payload,capacity] of [[null,{},1],['reserve',{},null],['reserve',{},0],['reserve',{request:request(1),claim:'bad'},1]]){
-        await assert.rejects(owner`SELECT public.give_mail_receipt_command_v1(${operation},${JSON.stringify(payload)}::jsonb,${capacity})`);
+        await assert.rejects(owner`SELECT public.give_mail_receipt_command_v1(${operation},${owner.json(payload)}::jsonb,${capacity})`);
         assert.deepEqual(await state(),before);
       }
       for(const corrupt of [{...before,used:1},{...before,providers:{foreign:'mail:'+ '1'.repeat(32)}},{...before,maxRecords:'1'},{...before,foreign:true}]){
-        await owner`UPDATE public.give_mail_receipt_ledger_v1 SET state=${JSON.stringify(corrupt)}::jsonb WHERE id='capacity:v1'`;
+        await owner`UPDATE public.give_mail_receipt_ledger_v1 SET state=${owner.json(corrupt)}::jsonb WHERE id='capacity:v1'`;
         await assert.rejects(new PostgresGiveMailReceiptStore({maxRecords:1}).reserve(request(1)));
         assert.deepEqual(await state(),corrupt);
       }
@@ -122,7 +122,7 @@ test('isolated native SQL, actual adapter and durable transport', {timeout:60000
       ];
       await initialize(2);
       for(const corrupt of vectors){
-        await owner`UPDATE public.give_mail_receipt_ledger_v1 SET state=${JSON.stringify(corrupt)}::jsonb WHERE id='capacity:v1'`;
+        await owner`UPDATE public.give_mail_receipt_ledger_v1 SET state=${owner.json(corrupt)}::jsonb WHERE id='capacity:v1'`;
         await assert.rejects(new PostgresGiveMailReceiptStore({maxRecords:2}).reserve(request(2)));
         assert.deepEqual(await state(),corrupt);
       }
@@ -156,9 +156,9 @@ test('isolated native SQL, actual adapter and durable transport', {timeout:60000
       const store=new PostgresGiveMailReceiptStore({maxRecords:1});
       const r=await store.reserve(request(1));await store.complete(r.claim,{state:'accepted',providerMessageId:'<restore@fixture.invalid>'});
       const snapshot=await state();await initialize(1);
-      await owner`UPDATE public.give_mail_receipt_ledger_v1 SET state=${JSON.stringify(snapshot)}::jsonb WHERE id='capacity:v1'`;
+      await owner`UPDATE public.give_mail_receipt_ledger_v1 SET state=${owner.json(snapshot)}::jsonb WHERE id='capacity:v1'`;
       const restarted=postgres('postgres://give_mail_app_fixture:public-synthetic-app-password@127.0.0.1:55432/give_mail_fixture',{max:1,connect_timeout:2,prepare:false});
-      try{const rows=await restarted`SELECT public.give_mail_receipt_command_v1('reserve',${JSON.stringify({request:request(1),claim:request(1).key+'.'+'a'.repeat(32)})}::jsonb,1) AS result`;assert.deepEqual(rows[0].result,{state:'existing',outcome:{state:'accepted',providerMessageId:'<restore@fixture.invalid>'}});}
+      try{const rows=await restarted`SELECT public.give_mail_receipt_command_v1('reserve',${restarted.json({request:request(1),claim:request(1).key+'.'+'a'.repeat(32)})}::jsonb,1) AS result`;assert.deepEqual(rows[0].result,{state:'existing',outcome:{state:'accepted',providerMessageId:'<restore@fixture.invalid>'}});}
       finally{await restarted.end({timeout:2});}
     });
     await t.test('10000 retained accepted receipts remain inside the actual server deadline',async()=>{
@@ -169,7 +169,7 @@ test('isolated native SQL, actual adapter and durable transport', {timeout:60000
         snapshot.receipts[req.key]={request:req,claim:req.key+'.'+'a'.repeat(32),phase:'completed',outcome:{state:'accepted',providerMessageId:pid}};
         snapshot.providers[pid]=req.key;
       }
-      await owner`UPDATE public.give_mail_receipt_ledger_v1 SET state=${JSON.stringify(snapshot)}::jsonb WHERE id='capacity:v1'`;
+      await owner`UPDATE public.give_mail_receipt_ledger_v1 SET state=${owner.json(snapshot)}::jsonb WHERE id='capacity:v1'`;
       const started=performance.now();
       const result=await new PostgresGiveMailReceiptStore({maxRecords:10000}).reserve(request(1));
       assert.equal(result.state,'existing');assert.equal(result.outcome.state,'accepted');
@@ -179,7 +179,7 @@ test('isolated native SQL, actual adapter and durable transport', {timeout:60000
     await t.test('coherent old snapshot cannot be detected without independent history',async()=>{
       await initialize(1);const stale=await state();
       await new PostgresGiveMailReceiptStore({maxRecords:1}).reserve(request(1));
-      await owner`UPDATE public.give_mail_receipt_ledger_v1 SET state=${JSON.stringify(stale)}::jsonb WHERE id='capacity:v1'`;
+      await owner`UPDATE public.give_mail_receipt_ledger_v1 SET state=${owner.json(stale)}::jsonb WHERE id='capacity:v1'`;
       assert.equal((await new PostgresGiveMailReceiptStore({maxRecords:1}).reserve(request(1))).state,'new');
       // Expected counterexample, not recovery approval: production activation
       // requires an independent advancing checkpoint/restore hold.
