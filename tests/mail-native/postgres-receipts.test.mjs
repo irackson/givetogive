@@ -26,7 +26,7 @@ const {PostgresGiveMailReceiptStore,executeNativeGiveReceipt}=await import('../.
 const {createGiveToGiveMailer,createGiveMailBinding}=await import('../../src/server/mail/give-mailer.ts');
 const ddl=readFileSync(new URL('../../docs/sql/give-mail-receipts-v1.sql',import.meta.url),'utf8');
 const sourceSha=createHash('sha256').update(ddl).digest('hex');
-assert.equal(sourceSha,'2e55f57601e951600dcd9276079339fd252dc7172866725a9b1d7d916b8d8f79');
+assert.equal(sourceSha,'4b850cea4784e9aa24a50a820572999f1767c15a30cda803f472e6d65a36d996');
 const request=n=>({key:'mail:'+n.toString(16).padStart(32,'0'),binding:'b'.repeat(64),app:'givetogive',providerScope:'mailgun:us:ianrackson.com'});
 const control=capacity=>({schema:'give-mail-receipts-v1',maxRecords:capacity,used:0,receipts:{},providers:{}});
 const state=async()=> (await owner`SELECT state FROM public.give_mail_receipt_ledger_v1 WHERE id='capacity:v1'`)[0]?.state;
@@ -60,6 +60,16 @@ test('isolated native SQL, actual adapter and durable transport', {timeout:60000
       assert.throws(()=>new dgram.Socket('udp4'),/network denied/);
     });
 
+    await t.test('native provider ID enforces printable ASCII and exact 512-character bound',async()=>{
+      for(const length of [1,255,256,512]){
+        const rows=await owner`SELECT public.give_mail_outcome_v1(${owner.json({state:'accepted',providerMessageId:'x'.repeat(length)})}::jsonb) AS valid`;
+        assert.equal(rows[0].valid,true);
+      }
+      for(const value of ['', 'x'.repeat(513), 'has space', 'line\nfeed', 'é', '\u007f']){
+        const rows=await owner`SELECT public.give_mail_outcome_v1(${owner.json({state:'accepted',providerMessageId:value})}::jsonb) AS valid`;
+        assert.equal(rows[0].valid,false);
+      }
+    });
     await t.test('missing control refuses and never bootstraps',async()=>{
       const store=new PostgresGiveMailReceiptStore({maxRecords:1});
       await assert.rejects(store.reserve(request(1)));
@@ -133,7 +143,7 @@ test('isolated native SQL, actual adapter and durable transport', {timeout:60000
       const gate=new Promise(resolve=>{unlock=resolve}),ready=new Promise(resolve=>{locked=resolve});
       const holder=owner.begin(async tx=>{await tx`SELECT state FROM public.give_mail_receipt_ledger_v1 FOR UPDATE`;locked();await gate;});
       await ready;const started=performance.now();
-      try{await assert.rejects(new PostgresGiveMailReceiptStore({maxRecords:1}).reserve(request(1)),error=>['55P03','57014'].includes(error.code));}
+      try{await assert.rejects(new PostgresGiveMailReceiptStore({maxRecords:1}).reserve(request(1)),error=>['55P03','57014'].includes(error.code??error.cause?.code));}
       finally{unlock();await holder;}
       assert.ok(performance.now()-started<4500);
       assert.equal((await state()).used,0);
@@ -141,7 +151,7 @@ test('isolated native SQL, actual adapter and durable transport', {timeout:60000
     await t.test('server statement deadline cancels before commit',async()=>{
       await initialize(1);
       await owner.unsafe("CREATE FUNCTION public.fixture_delay() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_sleep(3); RETURN NEW; END $$; CREATE TRIGGER fixture_delay BEFORE UPDATE ON public.give_mail_receipt_ledger_v1 FOR EACH ROW EXECUTE FUNCTION public.fixture_delay()");
-      try{await assert.rejects(new PostgresGiveMailReceiptStore({maxRecords:1}).reserve(request(1)),{code:'57014'});assert.equal((await state()).used,0);}
+      try{await assert.rejects(new PostgresGiveMailReceiptStore({maxRecords:1}).reserve(request(1)),error=>(error.code??error.cause?.code)==='57014');assert.equal((await state()).used,0);}
       finally{await owner.unsafe('DROP TRIGGER fixture_delay ON public.give_mail_receipt_ledger_v1; DROP FUNCTION public.fixture_delay()');}
     });
     await t.test('lost caller acknowledgement retains committed submitting claim',async()=>{

@@ -30,7 +30,9 @@ CREATE FUNCTION public.give_mail_outcome_v1(v jsonb)
 RETURNS boolean LANGUAGE sql IMMUTABLE SECURITY INVOKER AS $$
   SELECT COALESCE(CASE v->>'state'
     WHEN 'accepted' THEN public.give_mail_fields_v1(v,ARRAY['state','providerMessageId'],ARRAY['state','providerMessageId'])
-      AND jsonb_typeof(v->'providerMessageId')='string' AND v->>'providerMessageId' ~ '^[!-~]{1,512}$'
+      AND jsonb_typeof(v->'providerMessageId')='string'
+      AND length(v->>'providerMessageId') BETWEEN 1 AND 512
+      AND ((v->>'providerMessageId') COLLATE "C") !~ '[^!-~]'
     WHEN 'unknown' THEN public.give_mail_fields_v1(v,ARRAY['state','reason'],ARRAY['state','reason'])
       AND v->>'reason'=ANY(ARRAY['deadline','network_or_body','unrecognized_response','malformed_acceptance','receipt_unavailable','in_progress_or_uncertain','provider_id_conflict','intent_conflict'])
     WHEN 'rejected' THEN public.give_mail_fields_v1(v,ARRAY['state','reason','httpStatus'],ARRAY['state','reason'])
