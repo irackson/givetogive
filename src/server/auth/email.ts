@@ -7,16 +7,22 @@ import { authEmailCaptured } from '@/lib/auth-email-status';
 import { db } from '@/server/db';
 import { emailSink } from '@/server/db/operations-schema';
 import { sealSecret } from '@/server/security/crypto';
+import { sendGiveAuthMail } from '@/server/mail/give-mailer';
 
 interface AuthEmailInput {
 	to: string;
 	url: string;
 	purpose: AuthTokenPurpose;
+	intentKey?: string;
 }
 
-type AuthEmailProvider = 'gmail' | 'resend' | 'test';
+type AuthEmailProvider = 'gmail' | 'resend' | 'test' | 'mailgun';
 
 function getEmailProvider(): AuthEmailProvider | undefined {
+	// Explicit Mailgun selection never falls back. Admission remains disabled in runtime.ts.
+	const selection = process.env['EMAIL_PROVIDER'];
+	if (selection === 'mailgun') return 'mailgun';
+	if (selection !== undefined && selection !== '') return undefined;
 	if (env.AUTH_EMAIL_TEST_MODE === 'true' && env.NODE_ENV === 'development')
 		return 'test';
 
@@ -140,7 +146,7 @@ async function sendWithResend({ to, url, purpose }: AuthEmailInput) {
 	}
 }
 
-export async function sendAuthEmail({ to, url, purpose }: AuthEmailInput) {
+export async function sendAuthEmail({ to, url, purpose, intentKey }: AuthEmailInput) {
 	if (
 		authEmailCaptured(
 			applicationEnvironment(),
@@ -156,15 +162,19 @@ export async function sendAuthEmail({ to, url, purpose }: AuthEmailInput) {
 		return { delivered: false, captured: true, previewUrl: undefined };
 	}
 	const provider = getEmailProvider();
+	let accepted = Boolean(provider);
 
-	if (provider === 'gmail') {
+	if (provider === 'mailgun') {
+		const result = await sendGiveAuthMail({ to, url, purpose, ...(intentKey === undefined ? {} : { intentKey }) });
+		accepted = result.delivered;
+	} else if (provider === 'gmail') {
 		await sendWithGmail({ to, url, purpose });
 	} else if (provider === 'resend') {
 		await sendWithResend({ to, url, purpose });
 	}
 
 	return {
-		delivered: Boolean(provider),
+		delivered: accepted,
 		captured: false,
 		previewUrl:
 			(
