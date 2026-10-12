@@ -50,6 +50,7 @@ RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pu
 DECLARE
   s jsonb; r jsonb; req jsonb; terminal jsonb; expected jsonb := '{}'::jsonb;
   k text; pid text; claim text; used integer; records integer := 0; collision boolean := false;
+  accepted_records bigint; unique_provider_ids bigint;
 BEGIN
   IF capacity IS NULL OR operation IS NULL OR capacity NOT BETWEEN 1 AND 10000 OR operation NOT IN ('reserve','complete')
     OR payload IS NULL OR octet_length(payload::text)>4096 THEN
@@ -79,14 +80,17 @@ BEGIN
       IF r ? 'outcome' THEN RAISE EXCEPTION 'give_mail_receipt_unavailable'; END IF;
     ELSIF r->>'phase'='completed' THEN
       IF public.give_mail_outcome_v1(r->'outcome') IS DISTINCT FROM true THEN RAISE EXCEPTION 'give_mail_receipt_unavailable'; END IF;
-      IF r->'outcome'->>'state'='accepted' THEN
-        pid:=r->'outcome'->>'providerMessageId';
-        IF expected ? pid THEN RAISE EXCEPTION 'give_mail_receipt_unavailable'; END IF;
-        expected:=expected || jsonb_build_object(pid,k);
-      END IF;
     ELSE RAISE EXCEPTION 'give_mail_receipt_unavailable'; END IF;
   END LOOP;
-  IF records<>used OR s->'providers' IS DISTINCT FROM expected THEN RAISE EXCEPTION 'give_mail_receipt_unavailable'; END IF;
+  -- Construct the reverse map once after every retained row has passed validation.
+  -- Reject duplicate IDs explicitly; jsonb_object_agg alone would hide duplicates.
+  SELECT COALESCE(jsonb_object_agg(value->'outcome'->>'providerMessageId',key),'{}'::jsonb),
+    count(*),count(DISTINCT (value->'outcome'->>'providerMessageId') COLLATE "C")
+    INTO expected,accepted_records,unique_provider_ids
+    FROM jsonb_each(s->'receipts')
+    WHERE value->>'phase'='completed' AND value->'outcome'->>'state'='accepted';
+  IF accepted_records<>unique_provider_ids OR records<>used OR s->'providers' IS DISTINCT FROM expected
+    THEN RAISE EXCEPTION 'give_mail_receipt_unavailable'; END IF;
 
   IF operation='reserve' THEN
     IF public.give_mail_fields_v1(payload,ARRAY['request','claim'],ARRAY['request','claim']) IS DISTINCT FROM true

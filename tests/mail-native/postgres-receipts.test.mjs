@@ -26,7 +26,7 @@ const {PostgresGiveMailReceiptStore,executeNativeGiveReceipt}=await import('../.
 const {createGiveToGiveMailer,createGiveMailBinding}=await import('../../src/server/mail/give-mailer.ts');
 const ddl=readFileSync(new URL('../../docs/sql/give-mail-receipts-v1.sql',import.meta.url),'utf8');
 const sourceSha=createHash('sha256').update(ddl).digest('hex');
-assert.equal(sourceSha,'4b850cea4784e9aa24a50a820572999f1767c15a30cda803f472e6d65a36d996');
+assert.equal(sourceSha,'5ecff1a8f780ae6c3624f04290a6f99872468eca06892fd6bd38bff157bc8e9f');
 const request=n=>({key:'mail:'+n.toString(16).padStart(32,'0'),binding:'b'.repeat(64),app:'givetogive',providerScope:'mailgun:us:ianrackson.com'});
 const control=capacity=>({schema:'give-mail-receipts-v1',maxRecords:capacity,used:0,receipts:{},providers:{}});
 const state=async()=> (await owner`SELECT state FROM public.give_mail_receipt_ledger_v1 WHERE id='capacity:v1'`)[0]?.state;
@@ -127,6 +127,7 @@ test('isolated native SQL, actual adapter and durable transport', {timeout:60000
         {...valid,receipts:{[key]:{...record,request:{...request(1),binding:null}}}},
         {...valid,receipts:{[key]:{...record,outcome:{state:'accepted',providerMessageId:null}}}},
         {...valid,providers:{}},
+        {...valid,used:2,receipts:{...valid.receipts,[request(2).key]:{...record,request:request(2),claim:request(2).key+'.'+'a'.repeat(32)}},providers:{'<retained@fixture.invalid>':request(2).key}},
         {...valid,receipts:{[key]:{...record,foreign:true}}},
         {...valid,receipts:{[key]:{...record,phase:'submitting'}}},
       ];
