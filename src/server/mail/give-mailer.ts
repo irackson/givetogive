@@ -72,11 +72,13 @@ export function createGiveToGiveMailer(runtime: GiveToGiveMailRuntime) {
 }
 
 /** Preserve uncertain outcomes; no fallback, automatic intent creation, logging or resend. */
-export async function sendGiveAuthMail(input: Omit<GiveAuthMail, 'intentKey'> & { readonly intentKey?: string }) {
-	const runtime = getGiveToGiveMailRuntime();
-	if (!runtime || !input.intentKey) return { delivered: false, retryAllowed: false } as const;
+export async function sendGiveAuthMail(input: Omit<GiveAuthMail, 'intentKey'> & { readonly intentKey?: string; readonly tokenHash?:string }) {
 	try {
-		const outcome = await createGiveToGiveMailer(runtime).sendAuth({ ...input, intentKey: input.intentKey });
+		const runtime = getGiveToGiveMailRuntime();
+		if(!runtime) return {delivered:false,retryAllowed:false} as const;
+		const intentKey=input.intentKey??(input.tokenHash&&runtime.bindAuthIntent?.(input.tokenHash,input.purpose));
+		if(!intentKey) return {delivered:false,retryAllowed:false} as const;
+		const outcome = await createGiveToGiveMailer(runtime).sendAuth({to:input.to,url:input.url,purpose:input.purpose,intentKey});
 		// Known queue acceptance remains known even if receipt acknowledgement was lost.
 		// Provider IDs and storage diagnostics never cross the public auth result boundary.
 		return { delivered: outcome.state === 'accepted', retryAllowed: false } as const;

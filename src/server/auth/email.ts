@@ -14,6 +14,7 @@ interface AuthEmailInput {
 	url: string;
 	purpose: AuthTokenPurpose;
 	intentKey?: string;
+	tokenHash?: string;
 }
 
 type AuthEmailProvider = 'gmail' | 'resend' | 'test' | 'mailgun';
@@ -146,7 +147,7 @@ async function sendWithResend({ to, url, purpose }: AuthEmailInput) {
 	}
 }
 
-export async function sendAuthEmail({ to, url, purpose, intentKey }: AuthEmailInput) {
+export async function sendAuthEmail({ to, url, purpose, intentKey, tokenHash }: AuthEmailInput) {
 	if (
 		authEmailCaptured(
 			applicationEnvironment(),
@@ -165,7 +166,7 @@ export async function sendAuthEmail({ to, url, purpose, intentKey }: AuthEmailIn
 	let accepted = Boolean(provider);
 
 	if (provider === 'mailgun') {
-		const result = await sendGiveAuthMail({ to, url, purpose, ...(intentKey === undefined ? {} : { intentKey }) });
+		const result = await sendGiveAuthMail({ to, url, purpose, ...(intentKey === undefined ? {} : { intentKey }), ...(tokenHash === undefined ? {} : { tokenHash }) });
 		accepted = result.delivered;
 	} else if (provider === 'gmail') {
 		await sendWithGmail({ to, url, purpose });

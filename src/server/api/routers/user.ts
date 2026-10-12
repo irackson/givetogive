@@ -14,6 +14,7 @@ import {
 	registrationSchema,
 } from '@/server/auth/credentials';
 import { sendAuthEmail } from '@/server/auth/email';
+import { authLinkBase } from '@/server/mail/auth-origin';
 import { hashPassword } from '@/server/auth/password';
 import { recordRateLimitAttempt } from '@/server/auth/rate-limit';
 import { createAuthToken, hashAuthToken } from '@/server/auth/tokens';
@@ -26,14 +27,7 @@ import { and, desc, eq, gt, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 function createAuthUrl(pathname: string, token: string) {
-	const configuredUrl =
-		env.APP_URL ??
-		process.env['VERCEL_PROJECT_PRODUCTION_URL'] ??
-		env.NEXTAUTH_URL;
-	const baseUrl =
-		configuredUrl.startsWith('http') ? configuredUrl : (
-			`https://${configuredUrl}`
-		);
+	const baseUrl = authLinkBase({...process.env,APP_URL:env.APP_URL,NEXTAUTH_URL:env.NEXTAUTH_URL});
 	const url = new URL(pathname, baseUrl);
 	url.searchParams.set('token', token);
 	return url.toString();
@@ -51,7 +45,7 @@ async function deliverToken(
 	);
 
 	try {
-		return await sendAuthEmail({ to: email, url, purpose });
+		return await sendAuthEmail({ to: email, url, purpose, tokenHash:hashAuthToken(token) });
 	} catch (error) {
 		// Database/provider errors can contain query parameters or authentication links.
 		console.error(
