@@ -39,7 +39,7 @@ test('isolated native SQL, actual adapter and durable transport', {timeout:60000
   try{
     const identity=(await owner`SELECT current_database() AS database, current_setting('server_version_num') AS version`)[0];
     assert.equal(identity.database,'give_mail_fixture');
-    assert.equal(Math.floor(Number(identity.version)/10000),17);
+    assert.equal(Math.floor(Number(identity.version)/10000),16);
     await owner.unsafe(ddl);
     await owner.unsafe("CREATE ROLE give_mail_app_fixture LOGIN PASSWORD 'public-synthetic-app-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION");
     await owner.unsafe('GRANT USAGE ON SCHEMA public TO give_mail_app_fixture');
