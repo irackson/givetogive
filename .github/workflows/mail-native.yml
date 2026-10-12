@@ -1,0 +1,39 @@
+name: Isolated mail receipt PostgreSQL verification
+on:
+  push:
+    branches: [main]
+    paths: ['tests/mail-native/**', 'docs/sql/give-mail-receipts-v1.sql', 'src/server/mail/**', '.github/workflows/mail-native.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    if: github.repository == 'irackson/givetogive' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        # Official Docker Hub PostgreSQL 17 Alpine, resolved 2026-10-12.
+        image: postgres@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+        env:
+          POSTGRES_USER: give_mail_fixture
+          POSTGRES_PASSWORD: public-synthetic-fixture-password
+          POSTGRES_DB: give_mail_fixture
+        ports: ['127.0.0.1:55432:5432']
+        options: >-
+          --health-cmd "pg_isready -U give_mail_fixture -d give_mail_fixture"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24.x
+          package-manager-cache: false
+      - name: Locked fixture dependencies, no lifecycle scripts or provider keys
+        run: npm ci --ignore-scripts --include=dev
+      - name: Real SQL and adapter on disposable loopback PostgreSQL
+        env:
+          GIVE_MAIL_NATIVE_FIXTURE: ephemeral-postgres-v1
+        run: node --import ./tests/mail-native/network-guard.mjs --test --test-concurrency=1 tests/mail-native/postgres-receipts.test.mjs
